@@ -6,4 +6,4 @@ from .pygeoogc import WFS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, wm
 
 __author__ = """Taher Chegini"""
 __email__ = "cheginit@gmail.com"
-__version__ = "0.0.0"
+__version__ = "0.1.0"
