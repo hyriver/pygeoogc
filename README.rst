@@ -114,5 +114,5 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 Contributing
 ------------
 
-Contirbutions are very welcomed. Please read the ``CONTRIBUTING.rst`` file for
+Contirbutions are very welcomed. Please read the `CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/master/CONTRIBUTING.rst>`__ file for
 instructions.
