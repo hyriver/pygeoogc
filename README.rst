@@ -68,10 +68,10 @@ Quickstart
 We can access
 `Watershed Boundary Dataset <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`__
 via RESTful service,
-`3D Eleveation Program <https://www.usgs.gov/core-science-systems/ngp/3dep>`__ from WMS, and
-`FEMA National Flood Hazard Layer <https://www.fema.gov/national-flood-hazard-layer-nfhl>`__
-via WFS. The output fo these functions are of type ``requests.Response`` that can be converted
-to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
+`National Wetlands Inventory <https://www.fws.gov/wetlands/>`__ from WMS, and
+`FEMA National Flood Hazard <https://www.fema.gov/national-flood-hazard-layer-nfhl>`__
+via WFS. The output for these functions are of type ``requests.Response`` that
+can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 
 .. code-block:: python
 
@@ -80,7 +80,8 @@ to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 
     la_wshed = Station('11092450')
 
-    wbd8 = ArcGISRESTful(base_url="https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4")
+    rest_url = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4"
+    wbd8 = ArcGISRESTful(rest_url)
     wbd8.get_featureids(la_wshed.geometry)
     resp = wbd8.get_features()
     _huc8 = utils.json_togeodf(resp[0])
@@ -113,72 +114,5 @@ to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 Contributing
 ------------
 
-Contirbutions are very welcomed. Here's how to set up PyGeoOGC for local development.
-
-1. Fork the PyGeoOGC repo through the GitHub website.
-2. Clone your fork locally and add the main PyGeoOGC as the upstream remote:
-
-.. code-block:: console
-
-    $ git clone git@github.com:your_name_here/pygeoogc.git
-    $ git remote add upstream git@github.com:cheginit/pygeoogc.git
-
-3. Install your local copy into a virtualenv. Assuming you have Conda installed, this is how you
-   can set up your fork for local development:
-
-.. code-block:: console
-
-    $ cd pygeoogc/
-    $ conda env create -f ci/requirements/environment.yml
-    $ conda activate pygeoogc-dev
-    $ python -m pip install . --no-deps
-
-4. Check out the ``develop`` branch and create a branch for local development:
-
-.. code-block:: console
-
-    $ git checkout develop
-    $ git checkout -b bugfix-or-feature/name-of-your-bugfix-or-feature
-    $ git push
-
-5. Before you first commit, pre-commit hooks needs to be setup:
-
-.. code-block:: console
-
-    $ pre-commit install
-    $ pre-commit run --all-files
-
-6. Now you can make your changes locally, make sure to add a description of the changes to
-   ``HISTORY.rst`` file and add extra tests, if applicable, to ``tests`` folder. Please
-   make sure to add your name at the end of the item(s) you added to the history file like this
-   ``By `Taher Chegini <https://github.com/cheginit>`_``.
-   Afterwards, fetch the latest updates from the remote and resolve any merge conflicts:
-
-.. code-block:: console
-
-    $ git fetch upstream
-    $ git merge upstream/develop
-
-7. Then lint and test the code:
-
-.. code-block:: console
-
-    $ make clean
-    $ make lint
-    $ make install
-    $ make coverage
-
-8. If you are making breaking changes make sure to reflect them in ``docs/usage.ipynb`` and
-   ``docs/quickguide.ipynb`` notebooks if necessary.
-
-9. Commit your changes and push your branch to GitHub:
-
-.. code-block:: console
-
-    $ git add .
-    $ git commit -m "Your detailed description of your changes."
-    $ git push origin name-of-your-bugfix-or-feature
-
-10. Submit a pull request through the GitHub website. The pull request should work for
-    Python 3.6, 3.7 and 3.8. Check https://github.com/cheginit/pygeoogc/actions
-    and make sure that the tests pass.
+Contirbutions are very welcomed. Please read the ``CONTRIBUTING.rst`` file for
+instructions.
