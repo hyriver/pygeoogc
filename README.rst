@@ -1,16 +1,13 @@
-.. image:: https://raw.githubusercontent.com/cheginit/pygeoogc/develop/docs/_static/pygeoogc_logo_text.png
-    :target: https://raw.githubusercontent.com/cheginit/pygeoogc/develop/docs/_static/pygeoogc_logo_text.png
+.. image:: https://raw.githubusercontent.com/cheginit/hydrodata/develop/docs/_static/pygeoogc_logo.png
+    :target: https://github.com/cheginit/pygeoogc
     :align: center
+
 
 |
 
 .. image:: https://img.shields.io/pypi/v/pygeoogc.svg
     :target: https://pypi.python.org/pypi/pygeoogc
     :alt: PyPi
-
-.. image:: https://img.shields.io/conda/vn/conda-forge/pygeoogc.svg
-    :target: https://anaconda.org/conda-forge/pygeoogc
-    :alt: Conda Version
 
 .. image:: https://codecov.io/gh/cheginit/pygeoogc/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/cheginit/pygeoogc
@@ -19,10 +16,6 @@
 .. image:: https://github.com/cheginit/pygeoogc/workflows/build/badge.svg
     :target: https://github.com/cheginit/pygeoogc/actions?query=workflow%3Abuild
     :alt: Github Actions
-
-.. image:: https://readthedocs.org/projects/pygeoogc/badge/?version=latest
-    :target: https://pygeoogc.readthedocs.io/en/latest/?badge=latest
-    :alt: ReadTheDocs
 
 .. image:: https://mybinder.org/badge_logo.svg
     :target: https://mybinder.org/v2/gh/cheginit/hydrodata/develop
