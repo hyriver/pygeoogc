@@ -2,7 +2,6 @@
     :target: https://github.com/cheginit/pygeoogc
     :align: center
 
-
 |
 
 .. image:: https://img.shields.io/pypi/v/pygeoogc.svg
@@ -14,7 +13,7 @@
     :alt: CodeCov
 
 .. image:: https://github.com/cheginit/pygeoogc/workflows/build/badge.svg
-    :target: https://github.com/cheginit/pygeoogc/actions?query=workflow%3Abuild
+    :target: https://github.com/cheginit/pygeoogc/workflows/build/badge.svg
     :alt: Github Actions
 
 .. image:: https://mybinder.org/badge_logo.svg
@@ -23,13 +22,9 @@
 
 |
 
-.. image:: https://pepy.tech/badge/pygeoogc
-    :target: https://pepy.tech/project/pygeoogc
-    :alt: Downloads
-
-.. image:: https://www.codefactor.io/repository/github/cheginit/pygeoogc/badge/develop
-    :target: https://www.codefactor.io/repository/github/cheginit/pygeoogc/overview/develop
-    :alt: CodeFactor
+.. image:: https://www.codefactor.io/repository/github/cheginit/pygeoogc/badge
+   :target: https://www.codefactor.io/repository/github/cheginit/pygeoogc
+   :alt: CodeFactor
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
@@ -51,11 +46,10 @@ interfaces to web services that are based on
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__.
 
 You can try using PyGeoOGC without installing it by clicking on the binder badge below
-the PyGeoOGC banner. A Jupyter notebook instance with PyGeoOGC installed, will be
-launched on yout web browser. Then, you can check out ``docs`` directory for example notebooks
-or create a new one and start coding!
+the PyGeoOGC banner. A Jupyter notebook instance with Hydrodata and PyGeoOGC installed, will be
+launched in yout web browser and you can start coding!
 
-Moreover, requests for additional databases or functionalities can be submitted via
+Moreover, requests functionalities can be submitted via
 `issue tracker <https://github.com/cheginit/pygeoogc/issues>`__.
 
 
