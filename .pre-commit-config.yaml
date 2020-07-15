@@ -1,0 +1,44 @@
+repos:
+  # isort should run before black as black sometimes tweaks the isort output
+  - repo: https://github.com/timothycrosley/isort
+    rev: 5.1.0
+    hooks:
+      - id: isort
+
+  - repo: https://github.com/python/black
+    rev: 19.10b0
+    hooks:
+      - id: black
+        args: [-t, py38, -l, "100"]
+
+  - repo: https://github.com/PyCQA/doc8
+    rev: 0.8.1rc3
+    hooks:
+      - id: doc8
+        args: [--max-line-length, "100"]
+
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.8.3
+    hooks:
+      - id: flake8
+        exclude: docs/conf.py
+        additional_dependencies: [flake8-comprehensions, flake8-builtins, flake8-blind-except, flake8-bugbear, flake8-use-fstring]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v0.782
+    hooks:
+      - id: mypy
+        files: pygeoogc
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.7.0
+    hooks:
+      - id: pyupgrade
+        args: [--py36-plus]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.6.2
+    hooks:
+      - id: bandit
+        args: [-lll, --recursive, pygeoogc]
+        files: .py$

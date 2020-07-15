@@ -1,0 +1,12 @@
+name: pygeoogc
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip
+  - owslib
+  - pyproj
+  - simplejson
+  - defusedxml
+  - requests
+  - dataclasses
