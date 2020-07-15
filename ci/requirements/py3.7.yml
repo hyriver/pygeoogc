@@ -6,6 +6,7 @@ dependencies:
   - pip
   - owslib
   - pyproj
+  - shapely
   - simplejson
   - defusedxml
   - requests

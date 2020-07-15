@@ -1,7 +1,8 @@
 """Top-level package for PyGeoOGC."""
 
+
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
-from .pygeoogc import WFS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL
+from .pygeoogc import WFS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, wms_bybox
 
 __author__ = """Taher Chegini"""
 __email__ = "cheginit@gmail.com"

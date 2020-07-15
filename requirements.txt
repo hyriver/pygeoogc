@@ -3,8 +3,9 @@
 
 pip
 owslib
-rasterio
 pyproj
+shapely
 simplejson
 defusedxml
 requests
+dataclasses
