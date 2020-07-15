@@ -39,17 +39,17 @@
 Features
 --------
 
-PyGeoOGC is a part of the `Hydrodata <https://github.com/cheginit/hydrodata>`__ suite that offer
-interfaces to web services that are based on
+PyGeoOGC is a part of `Hydrodata <https://github.com/cheginit/hydrodata>`__ suite
+that provides interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__.
 
-You can try using PyGeoOGC without installing it by clicking on the binder badge below
-the PyGeoOGC banner. A Jupyter notebook instance with Hydrodata and PyGeoOGC installed, will be
-launched in yout web browser and you can start coding!
+You can try using PyGeoOGC without installing it by clicking on the binder badge
+below the PyGeoOGC banner. A Jupyter notebook instance with Hydrodata and PyGeoOGC
+installed, will be launched in your web browser and you can start coding!
 
-Moreover, requests functionalities can be submitted via
+Moreover, requests for addiitonal functionalities can be submitted via
 `issue tracker <https://github.com/cheginit/pygeoogc/issues>`__.
 
 
@@ -76,29 +76,33 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 .. code-block:: python
 
     from pygeoogc import ArcGISREST, WFS, wms_bybox, MatchCRS
-    from hydrodata import Station, utils
+    from hydrodata import NLDI, utils
 
-    la_wshed = Station('11092450')
+    basin_geom = NLDI().getfeature_byid(
+        "nwissite",
+        "USGS-11092450",
+        basin=True
+    ).geometry[0]
 
     rest_url = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4"
     wbd8 = ArcGISRESTful(rest_url)
-    wbd8.get_featureids(la_wshed.geometry)
+    wbd8.get_featureids(basin_geom)
     resp = wbd8.get_features()
-    _huc8 = utils.json_togeodf(resp[0])
-    huc8 = _huc8.append([utils.json_togeodf(r) for r in resp[1:]])
+    huc8 = utils.json_togeodf(resp[0])
+    huc8 = huc8.append([utils.json_togeodf(r) for r in resp[1:]])
 
     url_wms = "https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer"
     layer = "0"
     r_dict = wms_bybox(
         url_wms,
         layer,
-        la_wshed.geometry.bounds,
+        basin_geom.bounds,
         1e3,
         "image/tiff",
         box_crs="epsg:4326",
         crs="epsg:3857",
     )
-    geom = MatchCRS.geometry(la_wshed.geometry, "epsg:4326", "epsg:3857")
+    geom = MatchCRS.geometry(basin_geom, "epsg:4326", "epsg:3857")
     wetlands = utils.wms_toxarray(r_dict, geom, "epsg:3857")
 
     url_wfs = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
@@ -108,7 +112,7 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
         outformat="esrigeojson",
         crs="epsg:4269",
     )
-    r = wfs.getfeature_bybox(la_wshed.geometry.bounds, box_crs="epsg:4326")
+    r = wfs.getfeature_bybox(basin_geom.bounds, box_crs="epsg:4326")
     flood = utils.json_togeodf(r.json(), "epsg:4269", "epsg:4326")
 
 Contributing

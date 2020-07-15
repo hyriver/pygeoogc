@@ -61,21 +61,6 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-docs: apidocs ## generate Sphinx HTML documentation, including API docs
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
-	$(BROWSER) docs/_build/html/index.html
-
-apidocs: ## generate API docs
-	rm -f docs/pygeoogc.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ pygeoogc
-	sed -i '0,/pygeoogc/{s/pygeoogc/Modules/}' docs/modules.rst
-	sed -i '0,/pygeoogc/{s/pygeoogc package/PyGeoOGC Package/}' docs/pygeoogc.rst
-
-servedocs: docs ## compile the docs watching for changes
-	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
-
 dist: clean ## builds source and wheel package
 	python setup.py sdist
 	python setup.py bdist_wheel
