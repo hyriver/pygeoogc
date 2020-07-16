@@ -329,6 +329,7 @@ def wms_bybox(
     box_crs: str = "epsg:4326",
     crs: str = "epsg:4326",
     version: str = "1.3.0",
+    max_pixel: int = 8000000,
 ) -> Dict[str, bytes]:
     """Get data from a WMS service within a geometry or bounding box.
 
@@ -355,6 +356,9 @@ def wms_bybox(
         epsg:4326.
     version : str, optional
         The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
+    max_pixel : int, opitonal
+        The maximum allowable number of pixels (width x height) for a WMS requests,
+        defaults to 8 million based on some trial-and-error.
 
     Returns
     -------
@@ -387,7 +391,7 @@ def wms_bybox(
     utils.check_bbox(bbox)
     _bbox = MatchCRS.bounds(bbox, box_crs, crs)
     _, height = utils.bbox_resolution(_bbox, resolution, crs)
-    bounds, widths = utils.vsplit_bbox(_bbox, resolution, crs)
+    bounds, widths = utils.vsplit_bbox(_bbox, resolution, crs, max_pixel)
     _bounds = [(*bw[0], i, bw[1]) for i, bw in enumerate(zip(bounds, widths))]
 
     def getmap(args):
