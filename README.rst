@@ -8,7 +8,7 @@
     :target: https://pypi.python.org/pypi/pygeoogc
     :alt: PyPi
 
-.. image:: https://codecov.io/gh/cheginit/pygeoogc/branch/develop/graph/badge.svg
+.. image:: https://codecov.io/gh/cheginit/pygeoogc/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/cheginit/pygeoogc
     :alt: CodeCov
 
