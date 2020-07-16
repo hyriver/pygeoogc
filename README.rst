@@ -39,15 +39,15 @@
 Features
 --------
 
-PyGeoOGC is a part of `Hydrodata <https://github.com/cheginit/hydrodata>`__ suite
-that provides interfaces to web services that are based on
+PyGeoOGC is a part of `Hydrodata <https://github.com/cheginit/hydrodata>`__ software stack
+and provides interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__.
 
-You can try using PyGeoOGC without installing it by clicking on the binder badge
-below the PyGeoOGC banner. A Jupyter notebook instance with Hydrodata and PyGeoOGC
-installed, will be launched in your web browser and you can start coding!
+You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
+below the PyGeoOGC banner. A Jupyter notebook instance with Hydrodata
+pre-installed will be launched in your web browser and you can start coding!
 
 Moreover, requests for addiitonal functionalities can be submitted via
 `issue tracker <https://github.com/cheginit/pygeoogc/issues>`__.
@@ -118,5 +118,8 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 Contributing
 ------------
 
-Contirbutions are very welcomed. Please read the `CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/master/CONTRIBUTING.rst>`__ file for
-instructions.
+Contirbutions are very welcomed. Please read
+`CODE_OF_CONDUCT.rst <https://github.com/cheginit/pygeoogc/blob/master/CODE_OF_CONDUCT.rst>`__
+and
+`CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/master/CONTRIBUTING.rst>`__
+file for instructions.
