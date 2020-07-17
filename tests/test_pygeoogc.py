@@ -131,7 +131,7 @@ def test_ipv4():
     )
 
     session = RetrySession()
-    with session.onlyIPv4():
+    with session.onlyipv4():
         r = session.get(url)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         fname = z.read(z.filelist[0].filename)

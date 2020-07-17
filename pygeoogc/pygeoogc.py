@@ -80,7 +80,7 @@ class RetrySession:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
     @staticmethod
-    def onlyIPv4() -> _patch:
+    def onlyipv4() -> _patch:
         """Disable IPv6 and only use IPv4."""
         orig_getaddrinfo = socket.getaddrinfo
 
