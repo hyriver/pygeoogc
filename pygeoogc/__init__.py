@@ -1,9 +1,11 @@
 """Top-level package for PyGeoOGC."""
-
+from pkg_resources import DistributionNotFound, get_distribution
 
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
 from .pygeoogc import WFS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, wms_bybox
 
-__author__ = """Taher Chegini"""
-__email__ = "cheginit@gmail.com"
-__version__ = "0.1.2"
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    # package is not installed
+    pass
