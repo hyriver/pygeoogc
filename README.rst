@@ -8,6 +8,10 @@
     :target: https://pypi.python.org/pypi/pygeoogc
     :alt: PyPi
 
+.. image:: https://img.shields.io/conda/vn/conda-forge/pygeoogc.svg
+    :target: https://anaconda.org/conda-forge/pygeoogc
+    :alt: Conda Version
+
 .. image:: https://codecov.io/gh/cheginit/pygeoogc/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/cheginit/pygeoogc
     :alt: CodeCov
@@ -46,7 +50,7 @@ and provides interfaces to web services that are based on
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__.
 
 You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
-below the PyGeoOGC banner. A Jupyter notebook instance with Hydrodata
+below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
 pre-installed will be launched in your web browser and you can start coding!
 
 Moreover, requests for addiitonal functionalities can be submitted via
@@ -61,6 +65,13 @@ You can install PyGeoOGC using ``pip``:
 .. code-block:: console
 
     $ pip install pygeoogc
+
+Alternatively, PyGeoOGC can be installed from the ``conda-forge`` repository
+using `Conda <https://docs.conda.io/en/latest/>`__:
+
+.. code-block:: console
+
+    $ conda install -c conda-forge pygeoogc
 
 Quickstart
 ----------
@@ -106,14 +117,18 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
     wetlands = utils.wms_toxarray(r_dict, geom, "epsg:3857")
 
     url_wfs = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
+
     wfs = WFS(
         url_wfs,
         layer="public_NFHL:Base_Flood_Elevations",
         outformat="esrigeojson",
         crs="epsg:4269",
     )
-    r = wfs.getfeature_bybox(basin_geom.bounds, box_crs="epsg:4326")
-    flood = utils.json_togeodf(r.json(), "epsg:4269", "epsg:4326")
+    bbox = basin_geom.bounds
+    bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
+    r = wfs.getfeature_bybox(bbox, box_crs="epsg:4326")
+    flood = utils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
+
 
 Contributing
 ------------
