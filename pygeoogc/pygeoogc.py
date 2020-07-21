@@ -575,7 +575,6 @@ class WFS(WFSBase):
             WFS query response within a bounding box.
         """
         utils.check_bbox(bbox)
-        bbox = MatchCRS.bounds(bbox, box_crs, self.crs)
 
         payload = {
             "service": "wfs",
@@ -583,7 +582,8 @@ class WFS(WFSBase):
             "outputFormat": self.outformat,
             "request": "GetFeature",
             "typeName": self.layer,
-            "bbox": ",".join(str(c) for c in bbox) + f",{self.crs}",
+            "bbox": f'{",".join(str(c) for c in bbox)},{box_crs}',
+            "srsName": self.crs,
         }
 
         resp = self.session.get(self.url, payload)
