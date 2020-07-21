@@ -25,7 +25,7 @@ def geometry_urb():
             [-118.31, 34.118],
             [-118.31, 34.518],
             [-118.72, 34.518],
-            [-118.72, 45.07],
+            [-118.72, 34.118],
         ]
     )
 
@@ -35,9 +35,9 @@ def test_restful(geometry_nat):
         base_url="https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/1"
     )
     print(wbd2)
-    wbd2.max_nrecords = 5
+    wbd2.max_nrecords = 1
     wbd2.outformat = "geojson"
-    wbd2.featureids = list(range(1, 21))
+    wbd2.featureids = list(range(1, 6))
     wbd2.outfields = ["huc2", "name", "areaacres"]
     huc2 = wbd2.get_features()
 
@@ -49,7 +49,7 @@ def test_restful(geometry_nat):
     wbd8.get_featureids(geometry_nat)
     huc8 = wbd8.get_features()
 
-    assert sum(len(h) for h in huc2) == 12 and sum(len(h) for h in huc8) == 3
+    assert sum(len(h) for h in huc2) == 15 and sum(len(h) for h in huc8) == 3
 
 
 def test_wms(geometry_nat):
@@ -71,8 +71,10 @@ def test_wfsbybox(geometry_urb):
         crs="epsg:4269",
     )
     print(wfs)
-    r = wfs.getfeature_bybox(geometry_urb.bounds, box_crs="epsg:4326")
-    assert len(r.json()["features"]) == 1589
+    bbox = geometry_urb.bounds
+    bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
+    r = wfs.getfeature_bybox(bbox, box_crs="epsg:4326")
+    assert len(r.json()["features"]) == 628
 
 
 def test_wfsbyid():
@@ -102,8 +104,8 @@ def test_fspec1():
 
 
 def test_vsplit(geometry_urb):
-    bboxs = utils.vsplit_bbox(geometry_urb.bounds, 70)
-    assert bboxs[-1][0] == 460
+    bboxs = utils.vsplit_bbox(geometry_urb.bounds, 10)
+    assert bboxs[-1][0] == 1803
 
 
 def test_matchcrs(geometry_urb):
@@ -113,7 +115,7 @@ def test_matchcrs(geometry_urb):
     bbox = MatchCRS.bounds(geometry_urb.bounds, "epsg:4326", "epsg:2149")
     coords = MatchCRS.coords(points, "epsg:4326", "epsg:2149")
     assert (
-        abs(geom.area - 498873742.661) < 1e-3
+        abs(geom.area - 2475726907.644) < 1e-3
         and abs(bbox[0] - (-3654031.190)) < 1e-3
         and abs(coords[0][-1] == (-2877067.244)) < 1e-3
     )
