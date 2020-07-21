@@ -1,7 +1,7 @@
 repos:
   # isort should run before black as black sometimes tweaks the isort output
   - repo: https://github.com/timothycrosley/isort
-    rev: 5.1.1
+    rev: 5.1.4
     hooks:
       - id: isort
 
@@ -31,7 +31,7 @@ repos:
         files: pygeoogc
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.0
+    rev: v2.7.1
     hooks:
       - id: pyupgrade
         args: [--py36-plus]
