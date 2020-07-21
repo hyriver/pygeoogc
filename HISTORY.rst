@@ -2,6 +2,12 @@
 History
 =======
 
+0.1.3 (2020-07-21)
+------------------
+
+- Remove unneccassary transformation of the input bbox in WFS.
+- Use ``setuptools_scm`` for versioning.
+
 0.1.2 (2020-07-16)
 ------------------
 
