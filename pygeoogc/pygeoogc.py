@@ -13,7 +13,7 @@ from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
-from requests.exceptions import HTTPError, RequestException, RetryError, Timeout
+from requests.exceptions import RequestException
 from shapely.geometry import Polygon
 from simplejson import JSONDecodeError
 from urllib3 import Retry
@@ -21,6 +21,8 @@ from urllib3 import Retry
 from . import utils
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
 from .utils import MatchCRS
+
+DEF_CRS = "epsg:4326"
 
 
 class RetrySession:
@@ -47,7 +49,7 @@ class RetrySession:
         retries: int = 3,
         backoff_factor: float = 0.3,
         status_to_retry: Tuple[int, ...] = (500, 502, 504),
-        prefixes: Tuple[str, ...] = ("http://", "https://"),
+        prefixes: Tuple[str, ...] = ("https://",),
     ) -> None:
         self.session = Session()
         self.retries = retries
@@ -69,14 +71,14 @@ class RetrySession:
         """Retrieve data from a url by GET and return the Response."""
         try:
             return self.session.get(url, params=payload)
-        except (ConnectionError, HTTPError, RequestException, RetryError, Timeout):
+        except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
     def post(self, url: str, payload: Optional[MutableMapping[str, Any]] = None,) -> Response:
         """Retrieve data from a url by POST and return the Response."""
         try:
             return self.session.post(url, data=payload)
-        except (ConnectionError, HTTPError, RequestException, RetryError, Timeout):
+        except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
     @staticmethod
@@ -84,12 +86,12 @@ class RetrySession:
         """Disable IPv6 and only use IPv4."""
         orig_getaddrinfo = socket.getaddrinfo
 
-        def getaddrinfoIPv4(host, port, family=socket.AF_INET, ptype=0, proto=0, flags=0):
+        def getaddrinfo_ipv4(host, port, family=socket.AF_INET, ptype=0, proto=0, flags=0):
             return orig_getaddrinfo(
                 host=host, port=port, family=family, type=ptype, proto=proto, flags=flags,
             )
 
-        return patch("socket.getaddrinfo", side_effect=getaddrinfoIPv4)
+        return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
 
 
 class ArcGISRESTful:
@@ -116,7 +118,7 @@ class ArcGISRESTful:
         base_url: str,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        crs: str = "epsg:4326",
+        crs: str = DEF_CRS,
         n_threads: int = 4,
     ) -> None:
 
@@ -213,7 +215,7 @@ class ArcGISRESTful:
 
         self.nfeatures = len(oids)
         if self.nfeatures == 0:
-            ZeroMatched("No feature ID were found within the requested region.")
+            raise ZeroMatched("No feature ID were found within the requested region.")
 
         oid_list = list(zip_longest(*[iter(oids)] * self.max_nrecords))
         oid_list[-1] = tuple(i for i in oid_list[-1] if i is not None)
@@ -230,7 +232,7 @@ class ArcGISRESTful:
         )
 
     def get_featureids(
-        self, geom: Union[Polygon, Tuple[float, float, float, float]], geo_crs: str = "epsg:4326"
+        self, geom: Union[Polygon, Tuple[float, float, float, float]], geo_crs: str = DEF_CRS
     ) -> None:
         """Get feature IDs withing a geometry or bounding box.
 
@@ -320,17 +322,70 @@ class ArcGISRESTful:
         return features
 
 
-def wms_bybox(
-    url: str,
-    layers: Union[str, List[str]],
-    bbox: Tuple[float, float, float, float],
-    resolution: float,
-    outformat: str,
-    box_crs: str = "epsg:4326",
-    crs: str = "epsg:4326",
-    version: str = "1.3.0",
-    max_pixel: int = 8000000,
-) -> Dict[str, bytes]:
+@dataclass
+class WMSBase:
+    """Base class for accessing a WMS service.
+
+    Parameters
+    ----------
+    url : str
+        The base url for the WMS service e.g., https://www.mrlc.gov/geoserver/mrlc_download/wms
+    layers : str or list
+        A layer or a list of layers from the service to be downloaded. You can pass an empty
+        string to get a list of available layers.
+    outformat : str
+        The data format to request for data from the service. You can pass an empty
+        string to get a list of available output formats.
+    version : str, optional
+        The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
+    crs : str, optional
+        The spatial reference system to be used for requesting the data, defaults to
+        epsg:4326.
+    """
+
+    url: str
+    layers: Union[str, List[str]]
+    outformat: str
+    version: str = "1.3.0"
+    crs: str = DEF_CRS
+
+    def __repr__(self) -> str:
+        """Print the services properties."""
+        layers = self.layers if isinstance(self.layers, list) else [self.layers]
+        return (
+            "Connected to the WFS service with the following properties:\n"
+            + f"URL: {self.url}\n"
+            + f"Version: {self.version}\n"
+            + f"Layers: {', '.join(lyr for lyr in layers)}\n"
+            + f"Output Format: {self.outformat}\n"
+            + f"Output CRS: {self.crs}"
+        )
+
+    def validate_wms(self) -> None:
+        """Validate input arguments with the WMS service."""
+        wms = WebMapService(self.url, version=self.version)
+
+        valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
+
+        if not isinstance(self.layers, (str, list)):
+            raise InvalidInputType("layers", "str or list")
+
+        layers = [self.layers] if isinstance(self.layers, str) else self.layers
+
+        if any(lyr not in valid_layers.keys() for lyr in layers):
+            raise InvalidInputValue("layers", (f"{n} for {t}" for n, t in valid_layers.items()))
+
+        valid_outformats = wms.getOperationByName("GetMap").formatOptions
+        if self.outformat not in valid_outformats:
+            raise InvalidInputValue("outformat", valid_outformats)
+
+        valid_crss = {lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in layers}
+        if any(self.crs not in valid_crss[lyr] for lyr in layers):
+            _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
+            raise InvalidInputValue("CRS", _valid_crss)
+
+
+class WMS(WMSBase):
     """Get data from a WMS service within a geometry or bounding box.
 
     Parameters
@@ -340,69 +395,101 @@ def wms_bybox(
     layers : str or list
         A layer or a list of layers from the service to be downloaded. You can pass an empty
         string to get a list of available layers.
-    box : tuple
-        A bounding box for getting the data.
-    resolution : float
-        The output resolution in meters. The width and height of output are computed in pixel
-        based on the geometry bounds and the given resolution.
     outformat : str
         The data format to request for data from the service. You can pass an empty
         string to get a list of available output formats.
-    box_crs : str, optional
-        The spatial reference system of the input bbox, defaults to
-        epsg:4326.
     crs : str, optional
         The spatial reference system to be used for requesting the data, defaults to
         epsg:4326.
     version : str, optional
         The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
-    max_pixel : int, opitonal
-        The maximum allowable number of pixels (width x height) for a WMS requests,
-        defaults to 8 million based on some trial-and-error.
-
-    Returns
-    -------
-    dict
-        A dict where the keys are the layer name and values are the returned response
-        from the WMS service as bytes. You can use ``utils.create_dataset`` function
-        to convert the responses to ``xarray.Dataset``.
+    validation : bool, optional
+        Validate the input arguments from the WFS service, defaults to True. Set this
+        to False if you are sure all the WFS settings such as layer and crs are correct
+        to avoid sending extra requests.
     """
-    wms = WebMapService(url, version=version)
 
-    valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
+    def __init__(
+        self,
+        url: str,
+        layers: str,
+        outformat: str,
+        version: str = "1.3.0",
+        crs: str = DEF_CRS,
+        validation: bool = True,
+    ) -> None:
+        super().__init__(url, layers, outformat, version, crs)
 
-    if not isinstance(layers, (str, list)):
-        raise InvalidInputType("layers", "str or list")
+        self.session = RetrySession()
+        self.layers = [self.layers] if isinstance(self.layers, str) else self.layers
+        if validation:
+            self.validate_wms()
 
-    _layers = [layers] if isinstance(layers, str) else layers
+    def getmap_bybox(
+        self,
+        bbox: Tuple[float, float, float, float],
+        resolution: float,
+        box_crs: str = DEF_CRS,
+        max_pixel: int = 8000000,
+    ) -> Dict[str, bytes]:
+        """Get data from a WMS service within a geometry or bounding box.
 
-    if any(lyr not in valid_layers.keys() for lyr in _layers):
-        raise InvalidInputValue("layers", (f"{n} for {t}" for n, t in valid_layers.items()))
+        Parameters
+        ----------
+        box : tuple
+            A bounding box for getting the data.
+        resolution : float
+            The output resolution in meters. The width and height of output are computed in pixel
+            based on the geometry bounds and the given resolution.
+        box_crs : str, optional
+            The spatial reference system of the input bbox, defaults to
+            epsg:4326.
+        max_pixel : int, opitonal
+            The maximum allowable number of pixels (width x height) for a WMS requests,
+            defaults to 8 million based on some trial-and-error.
 
-    valid_outformats = wms.getOperationByName("GetMap").formatOptions
-    if outformat is None or outformat not in valid_outformats:
-        raise InvalidInputValue("outformat", valid_outformats)
+        Returns
+        -------
+        dict
+            A dict where the keys are the layer name and values are the returned response
+            from the WMS service as bytes. You can use ``utils.create_dataset`` function
+            to convert the responses to ``xarray.Dataset``.
+        """
+        utils.check_bbox(bbox)
+        _bbox = MatchCRS.bounds(bbox, box_crs, self.crs)
+        _, height = utils.bbox_resolution(_bbox, resolution, self.crs)
+        bounds, widths = utils.vsplit_bbox(_bbox, resolution, self.crs, max_pixel)
+        _bounds = [(*bw[0], i, bw[1]) for i, bw in enumerate(zip(bounds, widths))]
 
-    valid_crss = {lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in _layers}
-    if any(crs not in valid_crss[lyr] for lyr in _layers):
-        _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
-        raise InvalidInputValue("CRS", _valid_crss)
+        payload = {
+            "version": self.version,
+            "format": self.outformat,
+            "request": "GetMap",
+            "height": height,
+        }
 
-    utils.check_bbox(bbox)
-    _bbox = MatchCRS.bounds(bbox, box_crs, crs)
-    _, height = utils.bbox_resolution(_bbox, resolution, crs)
-    bounds, widths = utils.vsplit_bbox(_bbox, resolution, crs, max_pixel)
-    _bounds = [(*bw[0], i, bw[1]) for i, bw in enumerate(zip(bounds, widths))]
+        if self.version == "1.3.0":
+            payload["crs"] = self.crs
 
-    def getmap(args):
-        lyr, bnds = args
-        _bbox, res_count, _width = bnds[:-2], bnds[-2], bnds[-1]
-        img = wms.getmap(
-            layers=[lyr], srs=crs, bbox=_bbox, size=(_width, height), format=outformat,
+        else:
+            payload["srs"] = self.crs
+
+        def _getmap(args):
+            lyr, bnds = args
+            _bbox, res_count, _width = bnds[:-2], bnds[-2], bnds[-1]
+
+            if self.version == "1.3.0":
+                _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
+
+            payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
+            payload["width"] = _width
+            payload["layers"] = lyr
+            resp = self.session.get(self.url, payload)
+            return (f"{lyr}_{res_count}", resp.content)
+
+        return dict(
+            utils.threading(_getmap, product(self.layers, _bounds), max_workers=len(self.layers))
         )
-        return (f"{lyr}_{res_count}", img.read())
-
-    return dict(utils.threading(getmap, product(_layers, _bounds), max_workers=len(_layers)))
 
 
 @dataclass
@@ -426,19 +513,13 @@ class WFSBase:
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
         epsg:4326.
-    validation : bool
-        Validate the input arguments from the WFS service, defaults to True. Set this
-        to False if you are sure all the WFS settings such as layer and crs are correct
-        to avoid sending extra requests.
     """
 
     url: str
     layer: Optional[str] = None
     outformat: Optional[str] = None
     version: str = "2.0.0"
-    crs: str = "epsg:4326"
-    validation: bool = True
-    session: RetrySession = RetrySession()
+    crs: str = DEF_CRS
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -495,7 +576,7 @@ class WFSBase:
             max_features: "1",
         }
 
-        resp = self.session.get(self.url, payload)
+        resp = RetrySession().get(self.url, payload)
 
         if resp.headers["Content-Type"] == "application/xml":
             root = etree.fromstring(resp.text)
@@ -536,7 +617,7 @@ class WFS(WFSBase):
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
         epsg:4326.
-    validation : bool
+    validation : bool, optional
         Validate the input arguments from the WFS service, defaults to True. Set this
         to False if you are sure all the WFS settings such as layer and crs are correct
         to avoid sending extra requests.
@@ -548,16 +629,17 @@ class WFS(WFSBase):
         layer: Optional[str] = None,
         outformat: Optional[str] = None,
         version: str = "2.0.0",
-        crs: str = "epsg:4326",
+        crs: str = DEF_CRS,
         validation: bool = True,
     ) -> None:
-        super().__init__(url, layer, outformat, version, crs, validation)
+        super().__init__(url, layer, outformat, version, crs)
 
+        self.session = RetrySession()
         if validation:
             self.validate_wfs()
 
     def getfeature_bybox(
-        self, bbox: Tuple[float, float, float, float], box_crs: str = "epsg:4326"
+        self, bbox: Tuple[float, float, float, float], box_crs: str = DEF_CRS
     ) -> Response:
         """Get data from a WMS service within a bounding box.
 
