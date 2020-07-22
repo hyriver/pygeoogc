@@ -6,8 +6,7 @@ import zipfile
 import pytest
 from shapely.geometry import Polygon
 
-import pygeoogc as ogc
-from pygeoogc import WFS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
+from pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
 
 
 @pytest.fixture
@@ -41,6 +40,8 @@ def test_restful(geometry_nat):
     wbd2.outfields = ["huc2", "name", "areaacres"]
     huc2 = wbd2.get_features()
 
+    geom_type = utils.traverse_json(huc2, ["features", "geometry", "type"])
+
     wbd8 = ArcGISRESTful(
         base_url="https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4"
     )
@@ -49,16 +50,20 @@ def test_restful(geometry_nat):
     wbd8.get_featureids(geometry_nat)
     huc8 = wbd8.get_features()
 
-    assert sum(len(h) for h in huc2) == 15 and sum(len(h) for h in huc8) == 3
+    assert (
+        sum(len(h) for h in huc2) == 15
+        and ["MultiPolygon"] in geom_type
+        and sum(len(h) for h in huc8) == 3
+    )
 
 
 def test_wms(geometry_nat):
     url_wms = "https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer"
-    layer = "0"
-    r_dict = ogc.wms_bybox(
-        url_wms, layer, geometry_nat.bounds, 20, "image/tiff", box_crs="epsg:4326", crs="epsg:3857",
-    )
-    assert sys.getsizeof(r_dict["0_0"]) == 12537117
+
+    wms = WMS(url_wms, layers="0", outformat="image/tiff", crs="epsg:4326")
+    print(wms)
+    r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, "epsg:4326")
+    assert sys.getsizeof(r_dict["0_0"]) == 12536763
 
 
 def test_wfsbybox(geometry_urb):
