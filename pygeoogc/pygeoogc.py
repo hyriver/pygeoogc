@@ -104,6 +104,10 @@ class ArcGISRESTful:
     outformat : str, optional
         One of the output formats offered by the selected layer. If not correct
         a list of available formats is shown, defaults to ``geojson``.
+    spatial_relation : str, optional
+        The spatial relationship to be applied on the input geometry
+        while performing the query. If not correct a list of available options is shown.
+        It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default behaviour.
@@ -118,6 +122,7 @@ class ArcGISRESTful:
         base_url: str,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
+        spatial_relation: str = "esriSpatialRelIntersects",
         crs: str = DEF_CRS,
         n_threads: int = 4,
     ) -> None:
@@ -127,6 +132,7 @@ class ArcGISRESTful:
         self.test_url()
 
         self._outformat = outformat
+        self._spatial_relation = spatial_relation
         self._outfields = outfields if isinstance(outfields, list) else [outfields]
         self._n_threads = n_threads
         self.nfeatures = 0
@@ -143,6 +149,27 @@ class ArcGISRESTful:
             raise InvalidInputValue("outformat", self.query_formats)
 
         self._outformat = value
+
+    @property
+    def spatial_relation(self) -> str:
+        return self._spatial_relation
+
+    @spatial_relation.setter
+    def spatial_relation(self, value: str) -> None:
+        valid_spatialrels = [
+            "esriSpatialRelIntersects",
+            "esriSpatialRelContains",
+            "esriSpatialRelCrosses",
+            "esriSpatialRelEnvelopeIntersects",
+            "esriSpatialRelIndexIntersects",
+            "esriSpatialRelOverlaps",
+            "esriSpatialRelTouches",
+            "esriSpatialRelWithin",
+            "esriSpatialRelRelation",
+        ]
+        if value not in valid_spatialrels:
+            raise InvalidInputValue("spatial_rel", valid_spatialrels)
+        self._spatialRel = value
 
     @property
     def outfields(self) -> List[str]:
@@ -252,7 +279,7 @@ class ArcGISRESTful:
 
         payload = {
             **geom_query,
-            "spatialRel": "esriSpatialRelIntersects",
+            "spatialRel": self.spatial_relation,
             "returnGeometry": "false",
             "returnIdsOnly": "true",
             "f": self.outformat,
@@ -353,7 +380,7 @@ class WMSBase:
         """Print the services properties."""
         layers = self.layers if isinstance(self.layers, list) else [self.layers]
         return (
-            "Connected to the WFS service with the following properties:\n"
+            "Connected to the WMS service with the following properties:\n"
             + f"URL: {self.url}\n"
             + f"Version: {self.version}\n"
             + f"Layers: {', '.join(lyr for lyr in layers)}\n"
@@ -404,8 +431,8 @@ class WMS(WMSBase):
     version : str, optional
         The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
     validation : bool, optional
-        Validate the input arguments from the WFS service, defaults to True. Set this
-        to False if you are sure all the WFS settings such as layer and crs are correct
+        Validate the input arguments from the WMS service, defaults to True. Set this
+        to False if you are sure all the WMS settings such as layer and crs are correct
         to avoid sending extra requests.
     """
 
@@ -468,17 +495,19 @@ class WMS(WMSBase):
             "height": height,
         }
 
-        if self.version == "1.3.0":
-            payload["crs"] = self.crs
+        if self.version == "1.1.1":
+            payload["srs"] = self.crs
 
         else:
-            payload["srs"] = self.crs
+            payload["crs"] = self.crs
+
+        geographic_crs = pyproj.CRS.from_user_input(self.crs).is_geographic
 
         def _getmap(args):
             lyr, bnds = args
             _bbox, res_count, _width = bnds[:-2], bnds[-2], bnds[-1]
 
-            if self.version == "1.3.0":
+            if self.version != "1.1.1" and geographic_crs:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
 
             payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
@@ -657,6 +686,9 @@ class WFS(WFSBase):
             WFS query response within a bounding box.
         """
         utils.check_bbox(bbox)
+
+        if self.version != "1.1.1" and pyproj.CRS.from_user_input(box_crs).is_geographic:
+            bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
         payload = {
             "service": "wfs",

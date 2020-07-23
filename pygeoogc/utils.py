@@ -10,6 +10,8 @@ from shapely.ops import transform
 
 from .exceptions import InvalidInputType
 
+DEF_CRS = "epsg:4326"
+
 
 def threading(
     func: Callable,
@@ -218,7 +220,7 @@ def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
 
 
 def bbox_resolution(
-    bbox: Tuple[float, float, float, float], resolution: float, bbox_crs: str = "epsg:4326"
+    bbox: Tuple[float, float, float, float], resolution: float, bbox_crs: str = DEF_CRS
 ) -> Tuple[int, int]:
     """Image size of a bounding box WGS84 for a given resolution in meters.
 
@@ -238,7 +240,7 @@ def bbox_resolution(
     """
     check_bbox(bbox)
 
-    bbox = MatchCRS.bounds(bbox, bbox_crs, "epsg:4326")
+    bbox = MatchCRS.bounds(bbox, bbox_crs, DEF_CRS)
     west, south, east, north = bbox
     geod = pyproj.Geod(ellps="WGS84")
 
@@ -254,7 +256,7 @@ def bbox_resolution(
 def vsplit_bbox(
     bbox: Tuple[float, float, float, float],
     resolution: float,
-    box_crs: str = "epsg:4326",
+    box_crs: str = DEF_CRS,
     max_pixel: int = 8000000,
 ) -> Tuple[List[Tuple[float, float, float, float]], List[int]]:
     """Split the bounding box vertically for WMS requests.
@@ -276,7 +278,7 @@ def vsplit_bbox(
     tuple
         The first element is a list of bboxes and the second one is width of the last bbox
     """
-    _crs = "epsg:4326"
+    _crs = DEF_CRS
     check_bbox(bbox)
     _bbox = MatchCRS.bounds(bbox, box_crs, _crs)
     width, height = bbox_resolution(_bbox, resolution, _crs)
