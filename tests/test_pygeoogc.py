@@ -74,10 +74,10 @@ def test_wfsbybox(geometry_urb):
         layer="public_NFHL:Base_Flood_Elevations",
         outformat="esrigeojson",
         crs="epsg:4269",
+        version="2.0.0",
     )
     print(wfs)
     bbox = geometry_urb.bounds
-    bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
     r = wfs.getfeature_bybox(bbox, box_crs="epsg:4326")
     assert len(r.json()["features"]) == 628
 
