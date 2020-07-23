@@ -2,6 +2,13 @@
 History
 =======
 
+0.1.4 (2020-07-23)
+------------------
+
+- Re-wrote ``wms_bybox`` function as a class called ``WMS`` with similar
+  interface to the ``WFS`` class.
+- Added support for WMS 1.3.0 and WFS 2.0.0.
+
 0.1.3 (2020-07-21)
 ------------------
 
