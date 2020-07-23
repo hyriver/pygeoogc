@@ -5,12 +5,15 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pyproj
 import simplejson as json
+from defusedxml import cElementTree as etree
+from requests import Response
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import transform
 
-from .exceptions import InvalidInputType
+from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
 
 DEF_CRS = "epsg:4326"
+BOX_ORD = "(west, south, east, north)"
 
 
 def threading(
@@ -50,7 +53,7 @@ def threading(
             try:
                 data.append(future.result())
             except Exception as exc:
-                raise Exception(f"{itr}: {exc}")
+                raise ThreadingException(itr, exc)
     return data
 
 
@@ -147,7 +150,7 @@ class ESRIGeomQuery:
     def bbox(self) -> Dict[str, str]:
         """Query for a bbox."""
         if len(self.geometry) != 4:
-            raise InvalidInputType("geometry (bbox)", "tuple", "(west, south, east, north)")
+            raise InvalidInputType("geometry (bbox)", "tuple", BOX_ORD)
 
         geo_type = "esriGeometryEnvelope"
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
@@ -197,7 +200,7 @@ class MatchCRS:
         geom: Tuple[float, float, float, float], in_crs: str, out_crs: str
     ) -> Tuple[float, float, float, float]:
         if not isinstance(geom, tuple) and len(geom) != 4:
-            raise InvalidInputType("geom", "tuple of length 4", "(west, south, east, north)")
+            raise InvalidInputType("geom", "tuple of length 4", BOX_ORD)
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
         return transform(project, box(*geom)).bounds
@@ -216,7 +219,7 @@ class MatchCRS:
 def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
     if not isinstance(bbox, tuple) or len(bbox) != 4:
-        raise InvalidInputType("bbox", "tuple", "(west, south, east, north)")
+        raise InvalidInputType("bbox", "tuple", BOX_ORD)
 
 
 def bbox_resolution(
@@ -308,3 +311,10 @@ def vsplit_bbox(
         bboxs = [bbox]
         widths = [width]
     return bboxs, widths
+
+
+def check_response(resp: Response) -> None:
+    """Check if a ``requests.Resonse`` returned an error message."""
+    if resp.headers["Content-Type"] == "application/xml":
+        root = etree.fromstring(resp.text)
+        raise ZeroMatched(root[0][0].text.strip())

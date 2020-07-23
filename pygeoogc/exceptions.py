@@ -19,6 +19,25 @@ class ServerError(Exception):
         return self.message
 
 
+class ThreadingException(Exception):
+    """Exception raised when the requested data is not available on the server.
+
+    Parameters
+    ----------
+    itr : int
+        The number of iteration where the exception occured
+    msg : str
+        The exception error message
+    """
+
+    def __init__(self, itr: int, msg: Exception) -> None:
+        self.message = f"{itr}: {msg}"
+        super().__init__(self.message)
+
+    def __str__(self) -> str:
+        return self.message
+
+
 class ZeroMatched(ValueError):
     """Exception raised when a function argument is missing."""
 

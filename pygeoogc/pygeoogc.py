@@ -8,7 +8,6 @@ from unittest.mock import _patch, patch
 from warnings import warn
 
 import pyproj
-from defusedxml import cElementTree as etree
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from requests import Response, Session
@@ -169,7 +168,7 @@ class ArcGISRESTful:
         ]
         if value not in valid_spatialrels:
             raise InvalidInputValue("spatial_rel", valid_spatialrels)
-        self._spatialRel = value
+        self._spatial_relation = value
 
     @property
     def outfields(self) -> List[str]:
@@ -606,10 +605,7 @@ class WFSBase:
         }
 
         resp = RetrySession().get(self.url, payload)
-
-        if resp.headers["Content-Type"] == "application/xml":
-            root = etree.fromstring(resp.text)
-            raise ZeroMatched(root[0][0].text.strip())
+        utils.check_response(resp)
 
         r_json = resp.json()
         valid_fields = list(
@@ -701,10 +697,8 @@ class WFS(WFSBase):
         }
 
         resp = self.session.get(self.url, payload)
+        utils.check_response(resp)
 
-        if resp.headers["Content-Type"] == "application/xml":
-            root = etree.fromstring(resp.text)
-            raise ZeroMatched(root[0][0].text.strip())
         return resp
 
     def getfeature_byid(
@@ -785,10 +779,7 @@ class WFS(WFSBase):
         }
 
         resp = self.session.post(self.url, payload)
-
-        if resp.headers["Content-Type"] == "application/xml":
-            root = etree.fromstring(resp.text)
-            raise ZeroMatched(root[0][0].text.strip())
+        utils.check_response(resp)
 
         return resp
 
