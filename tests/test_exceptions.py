@@ -68,7 +68,7 @@ def test_missing_input():
 
 
 def get_connection_error():
-    url = "http://somefailedurl.com"
+    url = "https://somefailedurl.com"
     s = RetrySession(retries=2)
     s.get(url)
 
@@ -79,7 +79,7 @@ def test_get_connection_error():
 
 
 def post_connection_error():
-    url = "http://somefailedurl.com"
+    url = "https://somefailedurl.com"
     s = RetrySession(retries=2)
     s.post(url)
 

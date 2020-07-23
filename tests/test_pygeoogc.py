@@ -60,7 +60,7 @@ def test_restful(geometry_nat):
 def test_wms(geometry_nat):
     url_wms = ServiceURL().wms.fws
 
-    wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS, version="1.1.1")
+    WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS, version="1.1.1")
     wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS)
     print(wms)
     r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
