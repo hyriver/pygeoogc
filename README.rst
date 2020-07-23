@@ -40,6 +40,8 @@
 
 |
 
+🚨 **This package is under heavy development and breaking changes are likely to happen.** 🚨
+
 Features
 --------
 
@@ -47,7 +49,9 @@ PyGeoOGC is a part of `Hydrodata <https://github.com/cheginit/hydrodata>`__ soft
 and provides interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
-`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__.
+`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. There is also an invetory
+of URLs for some of these web services in form of a class called ``ServiceURL``. These URLs
+are in three categories: ``ServiceURL().resful``, ``ServiceURL().wms``, and ``ServiceURL().wfs``.
 
 You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
 below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
@@ -86,8 +90,9 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 
 .. code-block:: python
 
-    from pygeoogc import ArcGISREST, WFS, wms_bybox, MatchCRS
-    from hydrodata import NLDI, utils
+    from pygeoogc import ArcGISRESTful, WFS, WMS, ServiceURL
+    import pygeoutils as geoutils
+    from hydrodata import NLDI
 
     basin_geom = NLDI().getfeature_byid(
         "nwissite",
@@ -95,38 +100,32 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
         basin=True
     ).geometry[0]
 
-    rest_url = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4"
-    wbd8 = ArcGISRESTful(rest_url)
-    wbd8.get_featureids(basin_geom)
-    resp = wbd8.get_features()
-    huc8 = utils.json_togeodf(resp)
+    wbd12 = ArcGISRESTful(f"{ServiceURL().restful.wbd}/6")
+    wbd12.get_featureids(basin_geom)
+    resp = wbd12.get_features()
+    huc12 = geoutils.json2geodf(resp)
 
-    url_wms = "https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer"
-    layer = "0"
-    r_dict = wms_bybox(
-        url_wms,
-        layer,
-        basin_geom.bounds,
-        1e3,
-        "image/tiff",
-        box_crs="epsg:4326",
+    wms = WMS(
+        ServiceURL().wms.fws,
+        layers="0",
+        outformat="image/tiff",
         crs="epsg:3857",
     )
-    geom = MatchCRS.geometry(basin_geom, "epsg:4326", "epsg:3857")
-    wetlands = utils.wms_toxarray(r_dict, geom, "epsg:3857")
-
-    url_wfs = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
+    r_dict = wms.getmap_bybox(
+        basin_geom.bounds,
+        1e3,
+        box_crs="epsg:4326",
+    )
+    wetlands = geoutils.gtiff2xarray(r_dict, basin_geom, "epsg:4326")
 
     wfs = WFS(
-        url_wfs,
+        ServiceURL().wfs.fema,
         layer="public_NFHL:Base_Flood_Elevations",
         outformat="esrigeojson",
         crs="epsg:4269",
     )
-    bbox = basin_geom.bounds
-    bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
-    r = wfs.getfeature_bybox(bbox, box_crs="epsg:4326")
-    flood = utils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
+    r = wfs.getfeature_bybox(basin_geom.bounds, box_crs="epsg:4326")
+    flood = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
 
 Contributing
