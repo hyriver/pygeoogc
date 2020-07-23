@@ -8,6 +8,9 @@ from shapely.geometry import Polygon
 
 from pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
 
+DEF_CRS = "epsg:4326"
+ALT_CRS = "epsg:2149"
+
 
 @pytest.fixture
 def geometry_nat():
@@ -30,11 +33,10 @@ def geometry_urb():
 
 
 def test_restful(geometry_nat):
-    wbd2 = ArcGISRESTful(
-        base_url="https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/1"
-    )
+    wbd2 = ArcGISRESTful(base_url=f"{ServiceURL().restful.wbd}/1")
     print(wbd2)
     wbd2.max_nrecords = 1
+    wbd2.spatial_relation = "esriSpatialRelIntersects"
     wbd2.outformat = "geojson"
     wbd2.featureids = list(range(1, 6))
     wbd2.outfields = ["huc2", "name", "areaacres"]
@@ -42,9 +44,7 @@ def test_restful(geometry_nat):
 
     geom_type = utils.traverse_json(huc2, ["features", "geometry", "type"])
 
-    wbd8 = ArcGISRESTful(
-        base_url="https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/4"
-    )
+    wbd8 = ArcGISRESTful(base_url=f"{ServiceURL().restful.wbd}/4")
     wbd8.n_threads = 4
     wbd8.get_featureids(geometry_nat.bounds)
     wbd8.get_featureids(geometry_nat)
@@ -58,17 +58,17 @@ def test_restful(geometry_nat):
 
 
 def test_wms(geometry_nat):
-    url_wms = "https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer"
+    url_wms = ServiceURL().wms.fws
 
-    wms = WMS(url_wms, layers="0", outformat="image/tiff", crs="epsg:4326")
+    wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS, version="1.1.1")
+    wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS)
     print(wms)
-    r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, "epsg:4326")
+    r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
     assert sys.getsizeof(r_dict["0_0"]) == 12536763
 
 
 def test_wfsbybox(geometry_urb):
-    url_wfs = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
-
+    url_wfs = ServiceURL().wfs.fema
     wfs = WFS(
         url_wfs,
         layer="public_NFHL:Base_Flood_Elevations",
@@ -78,13 +78,13 @@ def test_wfsbybox(geometry_urb):
     )
     print(wfs)
     bbox = geometry_urb.bounds
-    r = wfs.getfeature_bybox(bbox, box_crs="epsg:4326")
+    r = wfs.getfeature_bybox(bbox, box_crs=DEF_CRS)
     assert len(r.json()["features"]) == 628
 
 
 def test_wfsbyid():
     wfs = WFS(
-        "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows",
+        ServiceURL().wfs.waterdata,
         layer="wmadata:gagesii",
         outformat="application/json",
         version="2.0.0",
@@ -97,7 +97,7 @@ def test_wfsbyid():
 
 def test_fspec1():
     wfs = WFS(
-        "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows",
+        ServiceURL().wfs.waterdata,
         layer="wmadata:gagesii",
         outformat="application/json",
         version="1.1.0",
@@ -116,9 +116,9 @@ def test_vsplit(geometry_urb):
 def test_matchcrs(geometry_urb):
     bounds = geometry_urb.bounds
     points = ((bounds[0], bounds[2]), (bounds[1], bounds[3]))
-    geom = MatchCRS.geometry(geometry_urb, "epsg:4326", "epsg:2149")
-    bbox = MatchCRS.bounds(geometry_urb.bounds, "epsg:4326", "epsg:2149")
-    coords = MatchCRS.coords(points, "epsg:4326", "epsg:2149")
+    geom = MatchCRS.geometry(geometry_urb, DEF_CRS, ALT_CRS)
+    bbox = MatchCRS.bounds(geometry_urb.bounds, DEF_CRS, ALT_CRS)
+    coords = MatchCRS.coords(points, DEF_CRS, ALT_CRS)
     assert (
         abs(geom.area - 2475726907.644) < 1e-3
         and abs(bbox[0] - (-3654031.190)) < 1e-3
@@ -127,7 +127,7 @@ def test_matchcrs(geometry_urb):
 
 
 def test_esriquery():
-    point = utils.ESRIGeomQuery((-118.72, 34.118), wkid="epsg:4326").point()
+    point = utils.ESRIGeomQuery((-118.72, 34.118), wkid=DEF_CRS).point()
     assert list(point.keys()) == ["geometryType", "geometry", "inSR"]
 
 

@@ -7,6 +7,7 @@ from pygeoogc import (
     MissingInputs,
     RetrySession,
     ServerError,
+    ThreadingException,
     ZeroMatched,
 )
 
@@ -19,6 +20,15 @@ def server_error():
 def test_server_error():
     with pytest.raises(ServerError):
         server_error()
+
+
+def threading_exception():
+    raise ThreadingException(4, "Failed")
+
+
+def test_threading_exception():
+    with pytest.raises(ThreadingException):
+        threading_exception()
 
 
 def zero_matched():
