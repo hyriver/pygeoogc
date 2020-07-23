@@ -8,6 +8,7 @@ History
 - Re-wrote ``wms_bybox`` function as a class called ``WMS`` with similar
   interface to the ``WFS`` class.
 - Added support for WMS 1.3.0 and WFS 2.0.0.
+- Added a custom ``Exception`` for the threadnig function called ``ThreadingException``.
 
 0.1.3 (2020-07-21)
 ------------------
