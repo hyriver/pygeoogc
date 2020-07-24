@@ -2,13 +2,16 @@
 History
 =======
 
-0.1.4 (2020-07-23)
+0.1.5 (2020-07-23)
 ------------------
 
 - Re-wrote ``wms_bybox`` function as a class called ``WMS`` with a similar
   interface to the ``WFS`` class.
 - Added support for WMS 1.3.0 and WFS 2.0.0.
 - Added a custom ``Exception`` for the threading function called ``ThreadingException``.
+- Add ``always_xy`` flag to ``WMS`` and ``WFS`` which is False by default. It is useful
+  for cases where a web service doesn't change the axis order from tranditional
+  ``xy`` to ``yx`` for versions higher than 1.3.0.
 
 0.1.3 (2020-07-21)
 ------------------

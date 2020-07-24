@@ -456,6 +456,7 @@ class WMS(WMSBase):
         bbox: Tuple[float, float, float, float],
         resolution: float,
         box_crs: str = DEF_CRS,
+        always_xy: bool = False,
         max_pixel: int = 8000000,
     ) -> Dict[str, bytes]:
         """Get data from a WMS service within a geometry or bounding box.
@@ -470,6 +471,11 @@ class WMS(WMSBase):
         box_crs : str, optional
             The spatial reference system of the input bbox, defaults to
             epsg:4326.
+        always_xy : bool, optional
+            Whether to always use xy axis order, defaults to False. Some services change the axis
+            order from xy to yx, following the latest WFS version specifications but some don't.
+            If the returned value does not have any geometry, it indicates that most probably the
+            axis order does not match. You can set this to True in that case.
         max_pixel : int, opitonal
             The maximum allowable number of pixels (width x height) for a WMS requests,
             defaults to 8 million based on some trial-and-error.
@@ -506,7 +512,7 @@ class WMS(WMSBase):
             lyr, bnds = args
             _bbox, res_count, _width = bnds[:-2], bnds[-2], bnds[-1]
 
-            if self.version != "1.1.1" and geographic_crs:
+            if self.version != "1.1.1" and geographic_crs and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
 
             payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
@@ -664,7 +670,10 @@ class WFS(WFSBase):
             self.validate_wfs()
 
     def getfeature_bybox(
-        self, bbox: Tuple[float, float, float, float], box_crs: str = DEF_CRS
+        self,
+        bbox: Tuple[float, float, float, float],
+        box_crs: str = DEF_CRS,
+        always_xy: bool = False,
     ) -> Response:
         """Get data from a WMS service within a bounding box.
 
@@ -675,6 +684,11 @@ class WFS(WFSBase):
         box_crs : str, optional
             The spatial reference system of the input bbox, defaults to
             epsg:4326.
+        always_xy : bool, optional
+            Whether to always use xy axis order, defaults to False. Some services change the axis
+            order from xy to yx, following the latest WFS version specifications but some don't.
+            If the returned value does not have any geometry, it indicates that most probably the
+            axis order does not match. You can set this to True in that case.
 
         Returns
         -------
@@ -683,7 +697,11 @@ class WFS(WFSBase):
         """
         utils.check_bbox(bbox)
 
-        if self.version != "1.1.1" and pyproj.CRS.from_user_input(box_crs).is_geographic:
+        if (
+            self.version != "1.1.1"
+            and pyproj.CRS.from_user_input(box_crs).is_geographic
+            and not always_xy
+        ):
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
         payload = {
