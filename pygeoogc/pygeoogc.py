@@ -675,7 +675,7 @@ class WFS(WFSBase):
         box_crs: str = DEF_CRS,
         always_xy: bool = False,
     ) -> Response:
-        """Get data from a WMS service within a bounding box.
+        """Get data from a WFS service within a bounding box.
 
         Parameters
         ----------
