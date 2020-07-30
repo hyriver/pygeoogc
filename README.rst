@@ -26,6 +26,10 @@
 
 |
 
+.. image:: https://img.shields.io/badge/security-bandit-green.svg
+    :target: https://github.com/PyCQA/bandit
+    :alt: Security Status
+
 .. image:: https://www.codefactor.io/repository/github/cheginit/pygeoogc/badge
    :target: https://www.codefactor.io/repository/github/cheginit/pygeoogc
    :alt: CodeFactor
@@ -131,8 +135,6 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 Contributing
 ------------
 
-Contirbutions are very welcomed. Please read
-`CODE_OF_CONDUCT.rst <https://github.com/cheginit/pygeoogc/blob/master/CODE_OF_CONDUCT.rst>`__
-and
+Contributions are very welcomed. Please read
 `CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/master/CONTRIBUTING.rst>`__
 file for instructions.
