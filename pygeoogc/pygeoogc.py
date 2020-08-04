@@ -438,7 +438,7 @@ class WMS(WMSBase):
     def __init__(
         self,
         url: str,
-        layers: str,
+        layers: Union[str, List[str]],
         outformat: str,
         version: str = "1.3.0",
         crs: str = DEF_CRS,
