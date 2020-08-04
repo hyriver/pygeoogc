@@ -74,7 +74,7 @@ PyDaymet_   Access the Daymet database for daily climate data
 PyGeoOGC provides interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
-`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. There is also an invetory
+`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. There is also an inventory
 of URLs for some of these web services in form of a class called ``ServiceURL``. These URLs
 are in three categories: ``ServiceURL().restful``, ``ServiceURL().wms``, and ``ServiceURL().wfs``.
 
@@ -82,7 +82,7 @@ You can try using PyGeoOGC without installing it on you system by clicking on th
 below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
 pre-installed will be launched in your web browser and you can start coding!
 
-Moreover, requests for addiitonal functionalities can be submitted via
+Moreover, requests for additional functionalities can be submitted via
 `issue tracker <https://github.com/cheginit/pygeoogc/issues>`__.
 
 Installation
@@ -101,8 +101,8 @@ using `Conda <https://docs.conda.io/en/latest/>`__:
 
     $ conda install -c conda-forge pygeoogc
 
-Quickstart
-----------
+Quick start
+-----------
 
 We can access
 `Watershed Boundary Dataset <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`__
