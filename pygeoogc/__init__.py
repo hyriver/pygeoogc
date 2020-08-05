@@ -9,6 +9,7 @@ from .exceptions import (
     ThreadingException,
     ZeroMatched,
 )
+from .print_versions import show_versions
 from .pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL
 
 try:
