@@ -6,6 +6,7 @@ import zipfile
 import pytest
 from shapely.geometry import Polygon
 
+import pygeoogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
 
 DEF_CRS = "epsg:4326"
@@ -170,3 +171,9 @@ def test_urls():
         and urls.http.ssebopeta
         == "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads"
     )
+
+
+def test_show_versions():
+    f = io.StringIO()
+    pygeoogc.show_versions(file=f)
+    assert "INSTALLED VERSIONS" in f.getvalue()
