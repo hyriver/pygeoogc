@@ -65,7 +65,7 @@ def test_wms(geometry_nat):
     wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS)
     print(wms)
     r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
-    assert sys.getsizeof(r_dict["0_0"]) == 12536763
+    assert sys.getsizeof(r_dict["0_dd_1"]) == 12536763
 
 
 def test_wfsbybox(geometry_urb):
@@ -109,9 +109,9 @@ def test_fspec1():
     assert st.json()["numberMatched"] == 1
 
 
-def test_vsplit(geometry_urb):
-    bboxs = utils.vsplit_bbox(geometry_urb.bounds, 10)
-    assert bboxs[-1][0] == 1803
+def test_decompose(geometry_urb):
+    bboxs = utils.bbox_decompose(geometry_urb.bounds, 10)
+    assert bboxs[0][-1] == 2828
 
 
 def test_matchcrs(geometry_urb):

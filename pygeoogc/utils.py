@@ -1,8 +1,9 @@
-"""Some utilities for Hydrodata."""
+"""Some utilities for PyGeoOGC."""
 from concurrent import futures
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
+import numpy as np
 import pyproj
 import simplejson as json
 from defusedxml import cElementTree as etree
@@ -256,12 +257,12 @@ def bbox_resolution(
     return int(delx / resolution), int(dely / resolution)
 
 
-def vsplit_bbox(
+def bbox_decompose(
     bbox: Tuple[float, float, float, float],
     resolution: float,
     box_crs: str = DEF_CRS,
-    max_pixel: int = 8000000,
-) -> Tuple[List[Tuple[float, float, float, float]], List[int]]:
+    max_px: int = 8000000,
+) -> List[Tuple[Tuple[float, float, float, float], int, int, int]]:
     """Split the bounding box vertically for WMS requests.
 
     Parameters
@@ -272,7 +273,7 @@ def vsplit_bbox(
         The target resolution for a WMS request in meters.
     box_crs : str, optional
         The spatial reference of the input bbox, default to EPSG:4326.
-    max_pixel : int, opitonal
+    max_px : int, opitonal
         The maximum allowable number of pixels (width x height) for a WMS requests,
         defaults to 8 million based on some trial-and-error.
 
@@ -281,36 +282,55 @@ def vsplit_bbox(
     tuple
         The first element is a list of bboxes and the second one is width of the last bbox
     """
-    _crs = DEF_CRS
     check_bbox(bbox)
-    _bbox = MatchCRS.bounds(bbox, box_crs, _crs)
-    width, height = bbox_resolution(_bbox, resolution, _crs)
+    _bbox = MatchCRS.bounds(bbox, box_crs, DEF_CRS)
+    width, height = bbox_resolution(_bbox, resolution, DEF_CRS)
 
     # Max number of cells that 3DEP can handle safely is about 8 mil.
     # We need to divide the domain into boxes with cell count of 8 mil.
     # We fix the height and incremenet the width.
-    if (width * height) > max_pixel:
-        _width = int(max_pixel / height)
-        stepx = _width * resolution
+    n_px = width * height
+    if n_px > max_px:
+        dim = int(np.sqrt(max_px))
+        step = dim * resolution
 
         geod = pyproj.Geod(ellps="WGS84")
 
         west, south, east, north = _bbox
-        az = geod.inv(west, south, east, south)[0]
+
+        # west east decompositon
+        az_x = geod.inv(west, south, east, south)[0]
         lons = [west]
 
         while lons[-1] < east:
-            lons.append(geod.fwd(lons[-1], south, az, stepx)[0])
-
+            lons.append(geod.fwd(lons[-1], south, az_x, step)[0])
         lons[-1] = east
-        bboxs = [(left, south, right, north) for left, right in zip(lons[:-1], lons[1:])]
-        bboxs = [MatchCRS.bounds(i, _crs, box_crs) for i in bboxs]
-        widths = [_width for _ in range(len(bboxs))]
-        widths[-1] = width - (len(bboxs) - 1) * _width
+
+        nx = len(lons) - 1
+        widths = [dim for _ in range(nx)]
+        widths[-1] = width - (nx - 1) * dim
+
+        # south north decompositon
+        az_y = geod.inv(west, south, west, north)[0]
+        lats = [south]
+        while lats[-1] < north:
+            lats.append(geod.fwd(west, lats[-1], az_y, step)[1])
+        lats[-1] = north
+
+        ny = len(lats) - 1
+        heights = [dim for _ in range(ny)]
+        heights[-1] = height - (ny - 1) * dim
+
+        bboxs = []
+        counter = 0
+        for bottom, top, h in zip(lats[:-1], lats[1:], heights):
+            for left, right, w in zip(lons[:-1], lons[1:], widths):
+                counter += 1
+                box = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
+                bboxs.append((box, counter, w, h))
     else:
-        bboxs = [bbox]
-        widths = [width]
-    return bboxs, widths
+        bboxs = [(bbox, 1, width, height)]
+    return bboxs
 
 
 def check_response(resp: Response) -> None:

@@ -457,7 +457,7 @@ class WMS(WMSBase):
         resolution: float,
         box_crs: str = DEF_CRS,
         always_xy: bool = False,
-        max_pixel: int = 8000000,
+        max_px: int = 8000000,
     ) -> Dict[str, bytes]:
         """Get data from a WMS service within a geometry or bounding box.
 
@@ -476,7 +476,7 @@ class WMS(WMSBase):
             order from xy to yx, following the latest WFS version specifications but some don't.
             If the returned value does not have any geometry, it indicates that most probably the
             axis order does not match. You can set this to True in that case.
-        max_pixel : int, opitonal
+        max_px : int, opitonal
             The maximum allowable number of pixels (width x height) for a WMS requests,
             defaults to 8 million based on some trial-and-error.
 
@@ -490,14 +490,12 @@ class WMS(WMSBase):
         utils.check_bbox(bbox)
         _bbox = MatchCRS.bounds(bbox, box_crs, self.crs)
         _, height = utils.bbox_resolution(_bbox, resolution, self.crs)
-        bounds, widths = utils.vsplit_bbox(_bbox, resolution, self.crs, max_pixel)
-        _bounds = [(*bw[0], i, bw[1]) for i, bw in enumerate(zip(bounds, widths))]
+        bounds = utils.bbox_decompose(_bbox, resolution, self.crs, max_px)
 
         payload = {
             "version": self.version,
             "format": self.outformat,
             "request": "GetMap",
-            "height": height,
         }
 
         if self.version == "1.1.1":
@@ -510,20 +508,24 @@ class WMS(WMSBase):
 
         def _getmap(args):
             lyr, bnds = args
-            _bbox, res_count, _width = bnds[:-2], bnds[-2], bnds[-1]
+            _bbox, counter, _width, _height = bnds
 
             if self.version != "1.1.1" and geographic_crs and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
 
             payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
             payload["width"] = _width
+            payload["height"] = _height
             payload["layers"] = lyr
             resp = self.session.get(self.url, payload)
-            return (f"{lyr}_{res_count}", resp.content)
+            return (f"{lyr}_dd_{counter}", resp.content)
 
-        return dict(
-            utils.threading(_getmap, product(self.layers, _bounds), max_workers=len(self.layers))
-        )
+        resp = {}
+        for layer in self.layers:
+            resp.update(
+                dict(utils.threading(_getmap, product([layer], bounds), max_workers=len(bounds)))
+            )
+        return resp
 
 
 @dataclass

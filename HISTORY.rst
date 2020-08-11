@@ -2,6 +2,12 @@
 History
 =======
 
+0.1.7 (2020-08-10)
+------------------
+
+- Renameed ``vsplit_bbox`` to ``bbox_decompose``. The function now decomposes the domain
+  in both directions and return squares and rectangulars.
+
 0.1.5 (2020-07-23)
 ------------------
 
