@@ -326,8 +326,8 @@ def bbox_decompose(
         for bottom, top, h in zip(lats[:-1], lats[1:], heights):
             for left, right, w in zip(lons[:-1], lons[1:], widths):
                 counter += 1
-                box = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
-                bboxs.append((box, counter, w, h))
+                bx_crs = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
+                bboxs.append((bx_crs, counter, w, h))
     else:
         bboxs = [(bbox, 1, width, height)]
     return bboxs
