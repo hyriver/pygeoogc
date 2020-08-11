@@ -33,6 +33,7 @@ def geometry_urb():
     )
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_restful(geometry_nat):
     wbd2 = ArcGISRESTful(base_url=f"{ServiceURL().restful.wbd}/1")
     print(wbd2)
@@ -58,6 +59,7 @@ def test_restful(geometry_nat):
     )
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_wms(geometry_nat):
     url_wms = ServiceURL().wms.fws
 
@@ -68,6 +70,7 @@ def test_wms(geometry_nat):
     assert sys.getsizeof(r_dict["0_dd_1"]) == 12536763
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_wfsbybox(geometry_urb):
     url_wfs = ServiceURL().wfs.fema
     wfs = WFS(
@@ -83,6 +86,7 @@ def test_wfsbybox(geometry_urb):
     assert len(r.json()["features"]) == 628
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_wfsbyid():
     wfs = WFS(
         ServiceURL().wfs.waterdata,
@@ -96,6 +100,7 @@ def test_wfsbyid():
     assert st.json()["numberMatched"] == 1
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_fspec1():
     wfs = WFS(
         ServiceURL().wfs.waterdata,
