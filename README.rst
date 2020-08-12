@@ -74,9 +74,14 @@ PyGeoOGC is a part of Hydrodata software stack and provides interfaces to web se
 that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
-`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. There is also an inventory
-of URLs for some of these web services in form of a class called ``ServiceURL``. These URLs
-are in three categories: ``ServiceURL().restful``, ``ServiceURL().wms``, and ``ServiceURL().wfs``.
+`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. It is noted that although,
+all these web service have limits on the number of objects (e.g., 1000 objectIDs for RESTful)
+or pixels (e.g., 8 million pixels) per requests, PyGeoOGC takes care of dividing the requests
+into smaller chunks under-the-hood and then merges them.
+
+There is also an inventory of URLs for some of these web services in form of a class called
+``ServiceURL``. These URLs are in three categories: ``ServiceURL().restful``,
+``ServiceURL().wms``, and ``ServiceURL().wfs``.
 
 You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
 below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
