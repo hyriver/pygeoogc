@@ -2,7 +2,7 @@
 History
 =======
 
-0.1.7 (2020-08-10)
+0.1.7 (2020-08-11)
 ------------------
 
 - Renameed ``vsplit_bbox`` to ``bbox_decompose``. The function now decomposes the domain
