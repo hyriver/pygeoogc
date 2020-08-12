@@ -490,7 +490,6 @@ class WMS(WMSBase):
         utils.check_bbox(bbox)
         _bbox = MatchCRS.bounds(bbox, box_crs, self.crs)
         bounds = utils.bbox_decompose(_bbox, resolution, self.crs, max_px)
-        print(bounds)
 
         payload = {
             "version": self.version,
