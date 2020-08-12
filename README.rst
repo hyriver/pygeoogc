@@ -1,4 +1,4 @@
-.. image:: https://raw.githubusercontent.com/cheginit/hydrodata/develop/docs/_static/pygeoogc_logo.png
+.. image:: https://raw.githubusercontent.com/cheginit/hydrodata/master/docs/_static/pygeoogc_logo.png
     :target: https://github.com/cheginit/pygeoogc
     :align: center
 
@@ -42,7 +42,7 @@ PyGeoOGC: Query ArcGIS RESTful, WMS, and WFS
     :alt: Github Actions
 
 .. image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/cheginit/hydrodata/develop
+    :target: https://mybinder.org/v2/gh/cheginit/hydrodata/master
     :alt: Binder
 
 |
