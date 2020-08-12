@@ -2,11 +2,17 @@
 History
 =======
 
+0.1.8 (2020-08-12)
+------------------
+
+- Removed threading for ``WMS`` due to inconsistent behavior.
+- Addressed an issue with domain decomposition for ``WMS`` where width/height becomes 0.
+
 0.1.7 (2020-08-11)
 ------------------
 
-- Renameed ``vsplit_bbox`` to ``bbox_decompose``. The function now decomposes the domain
-  in both directions and return squares and rectangulars.
+- Renamed ``vsplit_bbox`` to ``bbox_decompose``. The function now decomposes the domain
+  in both directions and return squares and rectangular.
 
 0.1.5 (2020-07-23)
 ------------------
@@ -16,7 +22,7 @@ History
 - Added support for WMS 1.3.0 and WFS 2.0.0.
 - Added a custom ``Exception`` for the threading function called ``ThreadingException``.
 - Add ``always_xy`` flag to ``WMS`` and ``WFS`` which is False by default. It is useful
-  for cases where a web service doesn't change the axis order from tranditional
+  for cases where a web service doesn't change the axis order from the transitional
   ``xy`` to ``yx`` for versions higher than 1.3.0.
 
 0.1.3 (2020-07-21)
