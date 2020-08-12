@@ -121,7 +121,7 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
 
     from pygeoogc import ArcGISRESTful, WFS, WMS, ServiceURL
     import pygeoutils as geoutils
-    from hydrodata import NLDI
+    from pynhd import NLDI
 
     basin_geom = NLDI().getfeature_byid(
         "nwissite",
