@@ -291,35 +291,44 @@ def bbox_decompose(
     # We fix the height and incremenet the width.
     n_px = width * height
     if n_px > max_px:
-        dim = int(np.sqrt(max_px))
-        step = dim * resolution
-
         geod = pyproj.Geod(ellps="WGS84")
-
         west, south, east, north = _bbox
 
-        # west east decompositon
-        az_x = geod.inv(west, south, east, south)[0]
-        lons = [west]
+        widths = [0]
+        mul = 1.0
+        while widths[-1] < 1:
+            dim = int(np.sqrt(max_px) * mul)
+            step = dim * resolution
 
-        while lons[-1] < east:
-            lons.append(geod.fwd(lons[-1], south, az_x, step)[0])
-        lons[-1] = east
+            # west east decompositon
+            az_x = geod.inv(west, south, east, south)[0]
+            lons = [west]
 
-        nx = len(lons) - 1
-        widths = [dim for _ in range(nx)]
-        widths[-1] = width - (nx - 1) * dim
+            while lons[-1] < east:
+                lons.append(geod.fwd(lons[-1], south, az_x, step)[0])
+            lons[-1] = east
+
+            nx = len(lons) - 1
+            widths = [dim for _ in range(nx)]
+            widths[-1] = width - (nx - 1) * dim
+            mul -= 0.1
 
         # south north decompositon
-        az_y = geod.inv(west, south, west, north)[0]
-        lats = [south]
-        while lats[-1] < north:
-            lats.append(geod.fwd(west, lats[-1], az_y, step)[1])
-        lats[-1] = north
+        heights = [0]
+        mul = 1.0
+        while heights[-1] < 1:
+            dim = int(np.sqrt(max_px) * mul)
+            step = dim * resolution
+            az_y = geod.inv(west, south, west, north)[0]
+            lats = [south]
+            while lats[-1] < north:
+                lats.append(geod.fwd(west, lats[-1], az_y, step)[1])
+            lats[-1] = north
 
-        ny = len(lats) - 1
-        heights = [dim for _ in range(ny)]
-        heights[-1] = height - (ny - 1) * dim
+            ny = len(lats) - 1
+            heights = [dim for _ in range(ny)]
+            heights[-1] = height - (ny - 1) * dim
+            mul -= 0.1
 
         bboxs = []
         counter = 0
