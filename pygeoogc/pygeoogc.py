@@ -490,6 +490,7 @@ class WMS(WMSBase):
         utils.check_bbox(bbox)
         _bbox = MatchCRS.bounds(bbox, box_crs, self.crs)
         bounds = utils.bbox_decompose(_bbox, resolution, self.crs, max_px)
+        print(bounds)
 
         payload = {
             "version": self.version,
@@ -519,12 +520,7 @@ class WMS(WMSBase):
             resp = self.session.get(self.url, payload)
             return (f"{lyr}_dd_{counter}", resp.content)
 
-        resp = {}
-        for layer in self.layers:
-            resp.update(
-                dict(utils.threading(_getmap, product([layer], bounds), max_workers=len(bounds)))
-            )
-        return resp
+        return dict(_getmap(i) for i in product(self.layers, bounds))
 
 
 @dataclass
