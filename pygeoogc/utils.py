@@ -286,59 +286,45 @@ def bbox_decompose(
     _bbox = MatchCRS.bounds(bbox, box_crs, DEF_CRS)
     width, height = bbox_resolution(_bbox, resolution, DEF_CRS)
 
-    # Max number of cells that 3DEP can handle safely is about 8 mil.
-    # We need to divide the domain into boxes with cell count of 8 mil.
-    # We fix the height and incremenet the width.
     n_px = width * height
-    if n_px > max_px:
-        geod = pyproj.Geod(ellps="WGS84")
-        west, south, east, north = _bbox
+    if n_px < max_px:
+        return [(bbox, 1, width, height)]
 
-        widths = [0]
+    geod = pyproj.Geod(ellps="WGS84")
+    west, south, east, north = _bbox
+
+    def directional_split(az: float, origin: float, dest: float, lvl: float, xy: bool, px: int):
+        divs = [0]
         mul = 1.0
-        while widths[-1] < 1:
+        coords = [origin]
+        while divs[-1] < 1:
             dim = int(np.sqrt(max_px) * mul)
             step = dim * resolution
 
-            # west east decompositon
-            az_x = geod.inv(west, south, east, south)[0]
-            lons = [west]
+            while coords[-1] < dest:
+                args = (coords[-1], lvl, az, step, 0) if xy else (lvl, coords[-1], az, step, 1)
+                coords.append(geod.fwd(*args[:-1])[args[-1]])
+            coords[-1] = dest
 
-            while lons[-1] < east:
-                lons.append(geod.fwd(lons[-1], south, az_x, step)[0])
-            lons[-1] = east
-
-            nx = len(lons) - 1
-            widths = [dim for _ in range(nx)]
-            widths[-1] = width - (nx - 1) * dim
+            nd = len(coords) - 1
+            divs = [dim for _ in range(nd)]
+            divs[-1] = px - (nd - 1) * dim
             mul -= 0.1
+        return coords, divs
 
-        # south north decompositon
-        heights = [0]
-        mul = 1.0
-        while heights[-1] < 1:
-            dim = int(np.sqrt(max_px) * mul)
-            step = dim * resolution
-            az_y = geod.inv(west, south, west, north)[0]
-            lats = [south]
-            while lats[-1] < north:
-                lats.append(geod.fwd(west, lats[-1], az_y, step)[1])
-            lats[-1] = north
+    az_x = geod.inv(west, south, east, south)[0]
+    lons, widths = directional_split(az_x, west, east, south, True, width)
 
-            ny = len(lats) - 1
-            heights = [dim for _ in range(ny)]
-            heights[-1] = height - (ny - 1) * dim
-            mul -= 0.1
+    az_y = geod.inv(west, south, west, north)[0]
+    lats, heights = directional_split(az_y, south, north, west, False, height)
 
-        bboxs = []
-        counter = 0
-        for bottom, top, h in zip(lats[:-1], lats[1:], heights):
-            for left, right, w in zip(lons[:-1], lons[1:], widths):
-                counter += 1
-                bx_crs = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
-                bboxs.append((bx_crs, counter, w, h))
-    else:
-        bboxs = [(bbox, 1, width, height)]
+    bboxs = []
+    counter = 0
+    for bottom, top, h in zip(lats[:-1], lats[1:], heights):
+        for left, right, w in zip(lons[:-1], lons[1:], widths):
+            counter += 1
+            bx_crs = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
+            bboxs.append((bx_crs, counter, w, h))
     return bboxs
 
 
