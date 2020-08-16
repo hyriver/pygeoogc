@@ -297,6 +297,11 @@ def bbox_decompose(
         divs = [0]
         mul = 1.0
         coords = []
+        res_half = 0.5 * resolution
+
+        def get_args(dst, dx):
+            return (dst, lvl, az, dx, 0) if xy else (lvl, dst, az, dx, 1)
+
         while divs[-1] < 1:
             dim = int(np.sqrt(max_px) * mul)
             step = (dim - 1) * resolution
@@ -304,15 +309,12 @@ def bbox_decompose(
             _dest = origin
             rev = (-1) ** (xy + 1)
             while rev * _dest < rev * dest:
-                args = (_dest, lvl, az, step, 0) if xy else (lvl, _dest, az, step, 1)
+                args = get_args(_dest, step)
                 coords.append((_dest, geod.fwd(*args[:-1])[args[-1]]))
 
-                if xy:
-                    args = (coords[-1][-1], lvl, az, resolution * 0.5, 0)
-                else:
-                    args = (lvl, coords[-1][-1], az, resolution * 0.5, 1)
-
+                args = get_args(coords[-1][-1], res_half)
                 _dest = geod.fwd(*args[:-1])[args[-1]]
+
             coords[-1] = (coords[-1][0], dest)
 
             nd = len(coords)
