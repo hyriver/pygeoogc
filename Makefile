@@ -53,7 +53,7 @@ lint: ## check style with pre-commit
 	pre-commit run --all-files
 
 test: ## run tests quickly with the default Python
-	pytest --cov=pygeoogc -n 2 -v
+	pytest --cov=pygeoogc -n 4 -v
 
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source pygeoogc -m pytest -v
