@@ -67,7 +67,7 @@ def test_wms(geometry_nat):
     wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS)
     print(wms)
     r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
-    assert sys.getsizeof(r_dict["0_dd_1"]) == 12536763
+    assert sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
 
 
 @pytest.mark.flaky(max_runs=3)
