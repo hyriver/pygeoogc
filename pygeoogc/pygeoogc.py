@@ -410,6 +410,12 @@ class WMSBase:
             _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
             raise InvalidInputValue("CRS", _valid_crss)
 
+    def get_validlayers(self) -> Dict[str, str]:
+        """Get the layers supportted by the WMS service."""
+        wms = WebMapService(self.url, version=self.version)
+
+        return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
+
 
 class WMS(WMSBase):
     """Get data from a WMS service within a geometry or bounding box.
@@ -517,7 +523,7 @@ class WMS(WMSBase):
             payload["height"] = _height
             payload["layers"] = lyr
             resp = self.session.get(self.url, payload)
-            return (f"{lyr}_dd_{counter}", resp.content)
+            return f"{lyr}_dd_{counter}", resp.content
 
         return dict(_getmap(i) for i in product(self.layers, bounds))
 
