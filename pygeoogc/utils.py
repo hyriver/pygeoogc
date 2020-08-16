@@ -262,7 +262,7 @@ def bbox_decompose(
     resolution: float,
     box_crs: str = DEF_CRS,
     max_px: int = 8000000,
-) -> List[Tuple[Tuple[float, float, float, float], int, int, int]]:
+) -> List[Tuple[Tuple[float, float, float, float], str, int, int]]:
     """Split the bounding box vertically for WMS requests.
 
     Parameters
@@ -288,7 +288,7 @@ def bbox_decompose(
 
     n_px = width * height
     if n_px < max_px:
-        return [(bbox, 1, width, height)]
+        return [(bbox, "0_0", width, height)]
 
     geod = pyproj.Geod(ellps="WGS84")
     west, south, east, north = _bbox
@@ -296,17 +296,26 @@ def bbox_decompose(
     def directional_split(az: float, origin: float, dest: float, lvl: float, xy: bool, px: int):
         divs = [0]
         mul = 1.0
-        coords = [origin]
+        coords = []
         while divs[-1] < 1:
             dim = int(np.sqrt(max_px) * mul)
-            step = dim * resolution
+            step = (dim - 1) * resolution
 
-            while coords[-1] < dest:
-                args = (coords[-1], lvl, az, step, 0) if xy else (lvl, coords[-1], az, step, 1)
-                coords.append(geod.fwd(*args[:-1])[args[-1]])
-            coords[-1] = dest
+            _dest = origin
+            rev = (-1) ** (xy + 1)
+            while rev * _dest < rev * dest:
+                args = (_dest, lvl, az, step, 0) if xy else (lvl, _dest, az, step, 1)
+                coords.append((_dest, geod.fwd(*args[:-1])[args[-1]]))
 
-            nd = len(coords) - 1
+                if xy:
+                    args = (coords[-1][-1], lvl, az, resolution * 0.5, 0)
+                else:
+                    args = (lvl, coords[-1][-1], az, resolution * 0.5, 1)
+
+                _dest = geod.fwd(*args[:-1])[args[-1]]
+            coords[-1] = (coords[-1][0], dest)
+
+            nd = len(coords)
             divs = [dim for _ in range(nd)]
             divs[-1] = px - (nd - 1) * dim
             mul -= 0.1
@@ -315,16 +324,14 @@ def bbox_decompose(
     az_x = geod.inv(west, south, east, south)[0]
     lons, widths = directional_split(az_x, west, east, south, True, width)
 
-    az_y = geod.inv(west, south, west, north)[0]
-    lats, heights = directional_split(az_y, south, north, west, False, height)
+    az_y = geod.inv(west, north, west, south)[0]
+    lats, heights = directional_split(az_y, north, south, west, False, height)
 
     bboxs = []
-    counter = 0
-    for bottom, top, h in zip(lats[:-1], lats[1:], heights):
-        for left, right, w in zip(lons[:-1], lons[1:], widths):
-            counter += 1
+    for i, ((top, bottom), h) in enumerate(zip(lats, heights)):
+        for j, ((left, right), w) in enumerate(zip(lons, widths)):
             bx_crs = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
-            bboxs.append((bx_crs, counter, w, h))
+            bboxs.append((bx_crs, f"{i}_{j}", w, h))
     return bboxs
 
 
