@@ -6,7 +6,7 @@ dependencies:
   - setuptools
   - owslib
   - pyproj
-  - simplejson
+  - orjson
   - shapely
   - defusedxml
   - requests
