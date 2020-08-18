@@ -8,13 +8,13 @@ from unittest.mock import _patch, patch
 from warnings import warn
 
 import pyproj
+from orjson import JSONDecodeError
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from shapely.geometry import Polygon
-from simplejson import JSONDecodeError
 from urllib3 import Retry
 
 from . import utils
