@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
+import orjson as json
 import pyproj
-import simplejson as json
 from defusedxml import cElementTree as etree
 from requests import Response
 from shapely.geometry import LineString, Point, Polygon, box
@@ -139,7 +139,7 @@ class ESRIGeomQuery:
     geometry: Union[Tuple[float, float], Tuple[float, float, float, float], Polygon]
     wkid: int
 
-    def point(self) -> Dict[str, str]:
+    def point(self) -> Dict[str, Union[str, bytes]]:
         """Query for a point."""
         if len(self.geometry) != 2:
             raise InvalidInputType("geometry (point)", "tuple", "(x, y)")
@@ -148,7 +148,7 @@ class ESRIGeomQuery:
         geo_json = dict(zip(("x", "y"), self.geometry))
         return self.get_payload(geo_type, geo_json)
 
-    def bbox(self) -> Dict[str, str]:
+    def bbox(self) -> Dict[str, Union[str, bytes]]:
         """Query for a bbox."""
         if len(self.geometry) != 4:
             raise InvalidInputType("geometry (bbox)", "tuple", BOX_ORD)
@@ -157,7 +157,7 @@ class ESRIGeomQuery:
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
         return self.get_payload(geo_type, geo_json)
 
-    def polygon(self) -> Dict[str, str]:
+    def polygon(self) -> Dict[str, Union[str, bytes]]:
         """Query for a polygon."""
         if not isinstance(self.geometry, Polygon):
             raise InvalidInputType("geomtry", "Shapely's Polygon")
@@ -166,7 +166,7 @@ class ESRIGeomQuery:
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
         return self.get_payload(geo_type, geo_json)
 
-    def get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, str]:
+    def get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
         esri_json = json.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
         return {
             "geometryType": geo_type,
@@ -297,7 +297,6 @@ def bbox_decompose(
         divs = [0]
         mul = 1.0
         coords = []
-        res_half = 0.5 * resolution
 
         def get_args(dst, dx):
             return (dst, lvl, az, dx, 0) if xy else (lvl, dst, az, dx, 1)
@@ -307,12 +306,11 @@ def bbox_decompose(
             step = (dim - 1) * resolution
 
             _dest = origin
-            rev = (-1) ** (xy + 1)
-            while rev * _dest < rev * dest:
+            while _dest < dest:
                 args = get_args(_dest, step)
                 coords.append((_dest, geod.fwd(*args[:-1])[args[-1]]))
 
-                args = get_args(coords[-1][-1], res_half)
+                args = get_args(coords[-1][-1], resolution)
                 _dest = geod.fwd(*args[:-1])[args[-1]]
 
             coords[-1] = (coords[-1][0], dest)
@@ -326,11 +324,11 @@ def bbox_decompose(
     az_x = geod.inv(west, south, east, south)[0]
     lons, widths = directional_split(az_x, west, east, south, True, width)
 
-    az_y = geod.inv(west, north, west, south)[0]
-    lats, heights = directional_split(az_y, north, south, west, False, height)
+    az_y = geod.inv(west, south, west, north)[0]
+    lats, heights = directional_split(az_y, south, north, west, False, height)
 
     bboxs = []
-    for i, ((top, bottom), h) in enumerate(zip(lats, heights)):
+    for i, ((bottom, top), h) in enumerate(zip(lats, heights)):
         for j, ((left, right), w) in enumerate(zip(lons, widths)):
             bx_crs = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
             bboxs.append((bx_crs, f"{i}_{j}", w, h))

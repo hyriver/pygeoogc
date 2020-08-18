@@ -277,7 +277,7 @@ class ArcGISRESTful:
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
 
         payload = {
-            **geom_query,
+            **geom_query,  # type: ignore
             "spatialRel": self.spatial_relation,
             "returnGeometry": "false",
             "returnIdsOnly": "true",
