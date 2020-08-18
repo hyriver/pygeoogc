@@ -2,6 +2,12 @@
 History
 =======
 
+0.1.10 (2020-08-18)
+-------------------
+
+- Improved ``bbox_decompose`` to fix the ``WMS`` issue with high resolution requests.
+- Replaces ``simplejson`` with ``orjson`` to speed up json operations.
+
 0.1.8 (2020-08-12)
 ------------------
 
