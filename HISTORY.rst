@@ -2,6 +2,11 @@
 History
 =======
 
+0.1.11 (unreleased)
+-------------------
+
+- Changed the NLDI's URL for migrating to its new API v3.
+
 0.1.10 (2020-08-18)
 -------------------
 
