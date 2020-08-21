@@ -828,7 +828,7 @@ class RESTfulURLs(NamedTuple):
     """A list of RESTful services URLs."""
 
     nwis: str = "https://waterservices.usgs.gov/nwis"
-    nldi: str = "https://labs.waterdata.usgs.gov/api/nldi/linked-data"
+    nldi: str = "https://labs.waterdata.usgs.gov/api/nldi"
     daymet_point: str = "https://daymet.ornl.gov/single-pixel/api/data"
     daymet_grid: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1328"
     wbd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
