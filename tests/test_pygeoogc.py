@@ -156,7 +156,7 @@ def test_urls():
     urls = ServiceURL()
     assert (
         urls.restful.nwis == "https://waterservices.usgs.gov/nwis"
-        and urls.restful.nldi == "https://labs.waterdata.usgs.gov/api/nldi/linked-data"
+        and urls.restful.nldi == "https://labs.waterdata.usgs.gov/api/nldi"
         and urls.restful.daymet_point == "https://daymet.ornl.gov/single-pixel/api/data"
         and urls.restful.daymet_grid == "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1328"
         and urls.restful.wbd == "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
