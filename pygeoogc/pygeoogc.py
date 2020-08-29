@@ -721,9 +721,7 @@ class WFS(WFSBase):
 
         return resp
 
-    def getfeature_byid(
-        self, featurename: str, featureids: Union[List[str], str], filter_spec: str = "1.1",
-    ) -> Response:
+    def getfeature_byid(self, featurename: str, featureids: Union[List[str], str],) -> Response:
         """Get features based on feature IDs.
 
         Parameters
@@ -732,9 +730,6 @@ class WFS(WFSBase):
             The name of the column for searching for feature IDs
         featureids : str or list
             The feature ID(s)
-        filter_spec : str
-            The OGC filter spec, defaults to "1.1". Supported versions are
-            1.1 and 2.0.
 
         Returns
         -------
@@ -750,44 +745,7 @@ class WFS(WFSBase):
         if len(featureids) == 0:
             raise InvalidInputType("featureids", "int or str or list")
 
-        fspecs = ["2.0", "1.1"]
-        if filter_spec not in fspecs:
-            raise InvalidInputValue("filter_spec", fspecs)
-
-        def filter_xml1(pname, pid):
-            fstart = '<ogc:Filter xmlns:ogc="http://www.opengis.net/ogc"><ogc:Or>'
-            fend = "</ogc:Or></ogc:Filter>"
-            return (
-                fstart
-                + "".join(
-                    [
-                        f"<ogc:PropertyIsEqualTo><ogc:PropertyName>{pname}"
-                        + f"</ogc:PropertyName><ogc:Literal>{p}"
-                        + "</ogc:Literal></ogc:PropertyIsEqualTo>"
-                        for p in pid
-                    ]
-                )
-                + fend
-            )
-
-        def filter_xml2(pname, pid):
-            fstart = '<fes:Filter xmlns:fes="http://www.opengis.net/fes/2.0"><fes:Or>'
-            fend = "</fes:Or></fes:Filter>"
-            return (
-                fstart
-                + "".join(
-                    [
-                        f"<fes:PropertyIsEqualTo><fes:ValueReference>{pname}"
-                        + f"</fes:ValueReference><fes:Literal>{p}"
-                        + "</fes:Literal></fes:PropertyIsEqualTo>"
-                        for p in pid
-                    ]
-                )
-                + fend
-            )
-
-        fxml = filter_xml1 if filter_spec == "1.1" else filter_xml2
-
+        fid_list = ", ".join(f"'{fid}'" for fid in featureids)
         payload = {
             "service": "wfs",
             "version": self.version,
@@ -795,10 +753,10 @@ class WFS(WFSBase):
             "request": "GetFeature",
             "typeName": self.layer,
             "srsName": self.crs,
-            "filter": fxml(featurename, featureids),
+            "cql_filter": f"{featurename} IN ({fid_list})",
         }
 
-        resp = self.session.post(self.url, payload)
+        resp = self.session.get(self.url, payload)
         utils.check_response(resp)
 
         return resp
