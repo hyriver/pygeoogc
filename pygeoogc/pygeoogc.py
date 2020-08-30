@@ -609,7 +609,7 @@ class WFSBase:
             "outputFormat": self.outformat,
             "request": "GetFeature",
             "typeName": self.layer,
-            max_features: "1",
+            max_features: 1,
         }
 
         resp = RetrySession().get(self.url, payload)
@@ -746,6 +746,30 @@ class WFS(WFSBase):
             raise InvalidInputType("featureids", "int or str or list")
 
         fid_list = ", ".join(f"'{fid}'" for fid in featureids)
+        return self.getfeature_byfilter(f"{featurename} IN ({fid_list})")
+
+    def getfeature_byfilter(self, cql_filter: str) -> Response:
+        """Get features based on a valid CQL filter.
+
+        Notes
+        -----
+        The validity of the input CQL expression is user's responsibility since
+        the function does not perform any check and just send a request using the
+        input filter.
+
+        Parameters
+        ----------
+        cql_filter : str
+            A valid CQL filter expression.
+
+        Returns
+        -------
+        requests.Response
+            WMS query response
+        """
+        if not isinstance(cql_filter, str):
+            raise InvalidInputType("cql_filter", "str")
+
         payload = {
             "service": "wfs",
             "version": self.version,
@@ -753,7 +777,7 @@ class WFS(WFSBase):
             "request": "GetFeature",
             "typeName": self.layer,
             "srsName": self.crs,
-            "cql_filter": f"{featurename} IN ({fid_list})",
+            "cql_filter": cql_filter,
         }
 
         resp = self.session.get(self.url, payload)
