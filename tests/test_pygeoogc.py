@@ -63,11 +63,32 @@ def test_restful(geometry_nat):
 def test_wms(geometry_nat):
     url_wms = ServiceURL().wms.fws
 
-    WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS, version="1.1.1")
+    wms_111 = WMS(
+        url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS, version="1.1.1", validation=False
+    )
+    r_dict_111 = wms_111.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
     wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS)
     print(wms)
     r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
-    assert sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
+    assert (
+        wms_111.get_validlayers()["0"] == "Wetlands_Raster"
+        and sys.getsizeof(r_dict_111["0_dd_0_0"]) == 12536763
+        and sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
+    )
+
+
+@pytest.mark.flaky(max_runs=3)
+def test_wfsbyid():
+    wfs = WFS(
+        ServiceURL().wfs.waterdata,
+        layer="wmadata:gagesii",
+        outformat="application/json",
+        version="2.0.0",
+        crs="epsg:900913",
+    )
+
+    st = wfs.getfeature_byid("staid", "01031500")
+    assert st.json()["numberMatched"] == 1
 
 
 @pytest.mark.flaky(max_runs=3)
@@ -87,31 +108,18 @@ def test_wfsbybox(geometry_urb):
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wfsbyid():
+def test_wfsbyfilter():
+    layer = "wmadata:huc12"
     wfs = WFS(
         ServiceURL().wfs.waterdata,
-        layer="wmadata:gagesii",
+        layer=layer,
         outformat="application/json",
         version="2.0.0",
         crs="epsg:900913",
     )
 
-    st = wfs.getfeature_byid("staid", "01031500", "2.0")
-    assert st.json()["numberMatched"] == 1
-
-
-@pytest.mark.flaky(max_runs=3)
-def test_fspec1():
-    wfs = WFS(
-        ServiceURL().wfs.waterdata,
-        layer="wmadata:gagesii",
-        outformat="application/json",
-        version="1.1.0",
-        crs="epsg:900913",
-    )
-
-    st = wfs.getfeature_byid("staid", "01031500", "1.1")
-    assert st.json()["numberMatched"] == 1
+    wb = wfs.getfeature_byfilter(f"{layer} LIKE '17030001%'")
+    assert len(utils.traverse_json(wb.json(), ["features", "geometry", "coordinates"])) == 52
 
 
 def test_decompose(geometry_urb):
