@@ -74,14 +74,49 @@ PyGeoOGC is a part of Hydrodata software stack and provides interfaces to web se
 that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
-`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. It is noted that although,
-all these web service have limits on the number of objects (e.g., 1000 objectIDs for RESTful)
-or pixels (e.g., 8 million pixels) per requests, PyGeoOGC takes care of dividing the requests
-into smaller chunks under-the-hood and then merges them.
+`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. It is noted that although
+all these web service have limits on the number of objects per requests (e.g., 1000
+objectIDs for RESTful and 8 million pixels for WMS), PyGeoOGC divides the requests into
+smaller chunks under-the-hood and then merges the returned responses.
 
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in three categories: ``ServiceURL().restful``,
-``ServiceURL().wms``, and ``ServiceURL().wfs``.
+``ServiceURL().wms``, and ``ServiceURL().wfs``. These URLs provide you with some examples
+of the services that PyGeoOGC supports. All the URLs are read from a YAML file located at
+``pygeoogc/static/urls.yml``.
+
+There are three main classes:
+
+* ``ArcGISRESTful``: This class can be instantiated by providing the target layer URL.
+  For example, for getting Watershed Boundary Data we can use ``ServiceURL().restful.wbd``.
+  By looking at the web service website
+  (https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer) we see that there are 9
+  layers; 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. Therefore, if
+  we want to get HUC12 watershed boundaries then we need to pass
+  ``f"{ServiceURL().restful.wbd}/6"`` as the servie url. Afterward, we can request for the data
+  in two steps. First, get the object IDs using ``get_featureids`` class method which accepts any
+  valid Polygon or bounding box as input. Second, get the actual data using ``get_features`` class
+  method. The returned response can be converted into a GeoDataFrame using ``json2geodf`` function
+  from `PyGeoOGC <https://github.com/cheginit/pygeoutils>`__ package.
+
+* ``WMS``: Instantiation of this class requires at least 3 arguments: service URL, layer(s)
+  name(s), and output format. Additionally, target CRS and the web service version can be provided.
+  Upon instantiation, we could use ``getmap_bybox`` method class to get the raster data within a
+  bounding box. The box can be any valid CRS and if it is different from the default EPSG:4326, it
+  should be passed to the function using ``box_crs`` argumnet. The service response can be
+  converted into a ``xarray.Dataset`` using ``gtiff2xarray`` function from PyGeoOGC package.
+
+* ``WFS``: Instantiation of this class is similar to ``WMS`` and the only difference is that
+  only one layer name can be passed. Upon instantiation there are three ways to get the data:
+  - ``getfeature_bybox``: Get all the features within a boudning box in any valid CRS.
+  - ``getfeature_byid``: Get all the features based on the IDs. Note that two arguments should be
+  provided: ``featurename``, and ``featureids``. You can get a list of valid feature names using
+  ``get_validnames`` class method.
+  - ``getfeature_byfilter``: Get the data based on a valid
+  `CQL <https://docs.geoserver.org/latest/en/user/tutorials/cql/cql_tutorial.html>`__ filter.
+
+  You can convert the returned response to a GeoDataFrame using ``json2geodf`` function
+  from PyGeoOGC package.
 
 You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
 below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
@@ -156,10 +191,21 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
     r = wfs.getfeature_bybox(basin_geom.bounds, box_crs="epsg:4326")
     flood = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
+    layer = "wmadata:huc08"
+    wfs = WFS(
+        ServiceURL().wfs.waterdata,
+        layer=layer,
+        outformat="application/json",
+        version="2.0.0",
+        crs="epsg:900913",
+    )
+    r = wfs.getfeature_byfilter(f"huc8 LIKE '13030%'")
+    huc8 = geoutils.json2geodf(r.json(), "epsg:900913", "epsg:4326")
+
 
 Contributing
 ------------
 
-Contributions are very welcomed. Please read
+Contributions are appreciated and very welcomed. Please read
 `CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/master/CONTRIBUTING.rst>`__
-file for instructions.
+for instructions.

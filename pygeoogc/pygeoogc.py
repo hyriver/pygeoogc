@@ -1,13 +1,15 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import socket
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from itertools import product, zip_longest
-from typing import Any, Dict, List, Mapping, MutableMapping, NamedTuple, Optional, Tuple, Union
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
 from unittest.mock import _patch, patch
 from warnings import warn
 
 import pyproj
+import yaml
 from orjson import JSONDecodeError
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
@@ -66,14 +68,22 @@ class RetrySession:
             self.session.mount(prefix, adapter)
         self.session.hooks = {"response": [lambda r, *args, **kwargs: r.raise_for_status()]}
 
-    def get(self, url: str, payload: Optional[Mapping[str, Any]] = None,) -> Response:
+    def get(
+        self,
+        url: str,
+        payload: Optional[Mapping[str, Any]] = None,
+    ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
         try:
             return self.session.get(url, params=payload)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
-    def post(self, url: str, payload: Optional[MutableMapping[str, Any]] = None,) -> Response:
+    def post(
+        self,
+        url: str,
+        payload: Optional[MutableMapping[str, Any]] = None,
+    ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
         try:
             return self.session.post(url, data=payload)
@@ -87,7 +97,12 @@ class RetrySession:
 
         def getaddrinfo_ipv4(host, port, family=socket.AF_INET, ptype=0, proto=0, flags=0):
             return orig_getaddrinfo(
-                host=host, port=port, family=family, type=ptype, proto=proto, flags=flags,
+                host=host,
+                port=port,
+                family=family,
+                type=ptype,
+                proto=proto,
+                flags=flags,
             )
 
         return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
@@ -391,13 +406,11 @@ class WMSBase:
         """Validate input arguments with the WMS service."""
         wms = WebMapService(self.url, version=self.version)
 
-        valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
-
         if not isinstance(self.layers, (str, list)):
             raise InvalidInputType("layers", "str or list")
 
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
-
+        valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
         if any(lyr not in valid_layers.keys() for lyr in layers):
             raise InvalidInputValue("layers", (f"{n} for {t}" for n, t in valid_layers.items()))
 
@@ -721,7 +734,11 @@ class WFS(WFSBase):
 
         return resp
 
-    def getfeature_byid(self, featurename: str, featureids: Union[List[str], str],) -> Response:
+    def getfeature_byid(
+        self,
+        featurename: str,
+        featureids: Union[List[str], str],
+    ) -> Response:
         """Get features based on feature IDs.
 
         Parameters
@@ -789,52 +806,26 @@ class WFS(WFSBase):
 class ServiceURL:
     """Base URLs of the supported services."""
 
+    def __init__(self):
+        fpath = Path(__file__).parent.joinpath("static/urls.yml")
+        with open(fpath) as fp:
+            self.urls = yaml.load(fp, Loader=yaml.FullLoader)
+
+    def _make_nt(self, service):
+        return namedtuple(service, self.urls[service].keys())(*self.urls[service].values())
+
     @property
     def restful(self):
-        return RESTfulURLs()
+        return self._make_nt("restful")
 
     @property
     def wms(self):
-        return WMSURLs()
+        return self._make_nt("wms")
 
     @property
     def wfs(self):
-        return WFSURLs()
+        return self._make_nt("wfs")
 
     @property
     def http(self):
-        return HTTPURLs()
-
-
-class RESTfulURLs(NamedTuple):
-    """A list of RESTful services URLs."""
-
-    nwis: str = "https://waterservices.usgs.gov/nwis"
-    nldi: str = "https://labs.waterdata.usgs.gov/api/nldi"
-    daymet_point: str = "https://daymet.ornl.gov/single-pixel/api/data"
-    daymet_grid: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1328"
-    wbd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
-    fws: str = "https://www.fws.gov/wetlands/arcgis/rest/services"
-    fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer"
-
-
-class WMSURLs(NamedTuple):
-    """A list of WMS services URLs."""
-
-    mrlc: str = "https://www.mrlc.gov/geoserver/mrlc_download/wms"
-    fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer"
-    nm_3dep: str = "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
-    fws: str = "https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer"
-
-
-class WFSURLs(NamedTuple):
-    """A list of WFS services URLs."""
-
-    waterdata: str = "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows"
-    fema: str = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
-
-
-class HTTPURLs(NamedTuple):
-    """A list of HTTP services URLs."""
-
-    ssebopeta: str = "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads"
+        return self._make_nt("http")

@@ -1,0 +1,21 @@
+http:
+  ssebopeta: https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads
+
+restful:
+  daymet_grid: https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1328
+  daymet_point: https://daymet.ornl.gov/single-pixel/api/data
+  fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer
+  fws: https://www.fws.gov/wetlands/arcgis/rest/services
+  nldi: https://labs.waterdata.usgs.gov/api/nldi
+  nwis: https://waterservices.usgs.gov/nwis
+  wbd: https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer
+
+wfs:
+  fema: https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer
+  waterdata: https://labs.waterdata.usgs.gov/geoserver/wmadata/ows
+
+wms:
+  fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer
+  fws: https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer
+  mrlc: https://www.mrlc.gov/geoserver/mrlc_download/wms
+  nm_3dep: https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer

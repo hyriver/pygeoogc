@@ -7,6 +7,8 @@ History
 
 - Changed the NLDI's URL for migrating to its new API v3.
 - Added support for CQL filter to ``WFS``, credits to `Eilio <https://github.com/emiliom>`__.
+- Moved all the web services URLs to a YAML file that ``ServiceURL`` class reads. It makes
+  managing the new URLs easier. The file is located at ``pygeoogc/static/urls.yml``.
 
 0.1.10 (2020-08-18)
 -------------------
