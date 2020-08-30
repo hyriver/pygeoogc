@@ -754,8 +754,8 @@ class WFS(WFSBase):
         Notes
         -----
         The validity of the input CQL expression is user's responsibility since
-        the function does not perform any check and just send a request using the
-        input filter.
+        the function does not perform any checks and just sends a request using
+        the input filter.
 
         Parameters
         ----------
