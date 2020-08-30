@@ -108,12 +108,13 @@ There are three main classes:
 
 * ``WFS``: Instantiation of this class is similar to ``WMS`` and the only difference is that
   only one layer name can be passed. Upon instantiation there are three ways to get the data:
+
   - ``getfeature_bybox``: Get all the features within a boudning box in any valid CRS.
   - ``getfeature_byid``: Get all the features based on the IDs. Note that two arguments should be
-  provided: ``featurename``, and ``featureids``. You can get a list of valid feature names using
-  ``get_validnames`` class method.
+    provided: ``featurename``, and ``featureids``. You can get a list of valid feature names using
+    ``get_validnames`` class method.
   - ``getfeature_byfilter``: Get the data based on a valid
-  `CQL <https://docs.geoserver.org/latest/en/user/tutorials/cql/cql_tutorial.html>`__ filter.
+    `CQL <https://docs.geoserver.org/latest/en/user/tutorials/cql/cql_tutorial.html>`__ filter.
 
   You can convert the returned response to a GeoDataFrame using ``json2geodf`` function
   from PyGeoOGC package.
