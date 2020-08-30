@@ -6,6 +6,7 @@ History
 -------------------
 
 - Changed the NLDI's URL for migrating to its new API v3.
+- Added support for CQL filter to ``WFS``, credits to `Eilio <https://github.com/emiliom>`__.
 
 0.1.10 (2020-08-18)
 -------------------
