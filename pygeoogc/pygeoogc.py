@@ -809,7 +809,7 @@ class ServiceURL:
     def __init__(self):
         fpath = Path(__file__).parent.joinpath("static/urls.yml")
         with open(fpath) as fp:
-            self.urls = yaml.load(fp, Loader=yaml.FullLoader)
+            self.urls = yaml.safe_load(fp)
 
     def _make_nt(self, service):
         return namedtuple(service, self.urls[service].keys())(*self.urls[service].values())
