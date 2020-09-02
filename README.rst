@@ -82,8 +82,9 @@ smaller chunks under-the-hood and then merges the returned responses.
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in three categories: ``ServiceURL().restful``,
 ``ServiceURL().wms``, and ``ServiceURL().wfs``. These URLs provide you with some examples
-of the services that PyGeoOGC supports. All the URLs are read from a YAML file located at
-``pygeoogc/static/urls.yml``.
+of the services that PyGeoOGC supports. All the URLs are read from a YAML file located
+`here <pygeoogc/static/urls.yml>`_. If you had success using PyGeoOGC with a web service
+please consider adding its URL to this YAML file which is located at ``pygeoogc/static/urls.yml``.
 
 There are three main classes:
 
@@ -91,12 +92,13 @@ There are three main classes:
   For example, for getting Watershed Boundary Data we can use ``ServiceURL().restful.wbd``.
   By looking at the web service website
   (https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer) we see that there are 9
-  layers; 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. Therefore, if
-  we want to get HUC12 watershed boundaries then we need to pass
-  ``f"{ServiceURL().restful.wbd}/6"`` as the servie url. Afterward, we can request for the data
-  in two steps. First, get the object IDs using ``get_featureids`` class method which accepts any
-  valid Polygon or bounding box as input. Second, get the actual data using ``get_features`` class
-  method. The returned response can be converted into a GeoDataFrame using ``json2geodf`` function
+  layers; 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. We can either
+  pass the base URL or concat the target layer number like so ``f"{ServiceURL().restful.wbd}/6"``.
+  If you want to change the layer you can simply set the the ``layer`` property of the class.
+  Afterward, we can request for the data in two steps. First, get the object IDs using
+  ``get_featureids`` class method which accepts any valid Polygon or bounding box as input.
+  Second, get the actual data using ``get_features`` class method. The returned response can
+  be converted into a GeoDataFrame using ``json2geodf`` function
   from `PyGeoOGC <https://github.com/cheginit/pygeoutils>`__ package.
 
 * ``WMS``: Instantiation of this class requires at least 3 arguments: service URL, layer(s)

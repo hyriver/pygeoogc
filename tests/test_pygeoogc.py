@@ -33,30 +33,60 @@ def geometry_urb():
     )
 
 
+@pytest.fixture
+def wfs():
+    return WFS(
+        ServiceURL().wfs.waterdata,
+        layer="wmadata:gagesii",
+        outformat="application/json",
+        version="2.0.0",
+        crs="epsg:900913",
+    )
+
+
 @pytest.mark.flaky(max_runs=3)
-def test_restful(geometry_nat):
-    wbd2 = ArcGISRESTful(base_url=f"{ServiceURL().restful.wbd}/1")
+def test_restful_byid(geometry_nat):
+    wbd2 = ArcGISRESTful(ServiceURL().restful.wbd)
+    wbd2.layer = 1
     print(wbd2)
     wbd2.max_nrecords = 1
     wbd2.spatial_relation = "esriSpatialRelIntersects"
     wbd2.outformat = "geojson"
     wbd2.featureids = list(range(1, 6))
+    fields = [f.lower() for f in wbd2.get_validfields()]
     wbd2.outfields = ["huc2", "name", "areaacres"]
     huc2 = wbd2.get_features()
 
     geom_type = utils.traverse_json(huc2, ["features", "geometry", "type"])
 
-    wbd8 = ArcGISRESTful(base_url=f"{ServiceURL().restful.wbd}/4")
-    wbd8.n_threads = 4
-    wbd8.get_featureids(geometry_nat.bounds)
-    wbd8.get_featureids(geometry_nat)
-    huc8 = wbd8.get_features()
-
     assert (
-        sum(len(h) for h in huc2) == 15
-        and ["MultiPolygon"] in geom_type
-        and sum(len(h) for h in huc8) == 3
+        sum(len(h) for h in huc2) == 15 and ["MultiPolygon"] in geom_type and "areaacres" in fields
     )
+
+
+@pytest.mark.flaky(max_runs=3)
+def test_restful_bygeom(geometry_nat):
+    wbd8 = ArcGISRESTful(f"{ServiceURL().restful.wbd}/4")
+    wbd8.n_threads = 4
+    wbd8.oids_bygeom(geometry_nat.bounds)
+    wbd8.oids_bygeom(geometry_nat)
+    huc8_all = wbd8.get_features()
+    wbd8.oids_bygeom(geometry_nat, sql_clause="areasqkm > 5000")
+    huc8_large = wbd8.get_features()
+    assert len(huc8_all[0]["features"]) - len(huc8_large[0]["features"]) == 2
+
+
+@pytest.mark.flaky(max_runs=3)
+def test_restful_bysql():
+    hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, outformat="json")
+    hr.layer = 1
+    hr.layer = 2
+    hr.oids_bysql("NHDPLUSID IN (5000500013223, 5000400039708, 5000500004825)")
+    resp_sql = hr.get_features(return_m=True)
+    hr.oids_byfield("NHDPLUSID", [5000500013223, 5000400039708, 5000500004825])
+    resp_ids = hr.get_features()
+
+    assert len(resp_sql[0]["features"]) == len(resp_ids[0]["features"])
 
 
 @pytest.mark.flaky(max_runs=3)
@@ -78,48 +108,23 @@ def test_wms(geometry_nat):
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wfsbyid():
-    wfs = WFS(
-        ServiceURL().wfs.waterdata,
-        layer="wmadata:gagesii",
-        outformat="application/json",
-        version="2.0.0",
-        crs="epsg:900913",
-    )
-
+def test_wfsbyid(wfs):
+    print(wfs)
     st = wfs.getfeature_byid("staid", "01031500")
     assert st.json()["numberMatched"] == 1
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wfsbybox(geometry_urb):
-    url_wfs = ServiceURL().wfs.fema
-    wfs = WFS(
-        url_wfs,
-        layer="public_NFHL:Base_Flood_Elevations",
-        outformat="esrigeojson",
-        crs="epsg:4269",
-        version="2.0.0",
-    )
-    print(wfs)
+def test_wfsbybox(wfs, geometry_urb):
     bbox = geometry_urb.bounds
-    r = wfs.getfeature_bybox(bbox, box_crs=DEF_CRS)
-    assert len(r.json()["features"]) == 628
+    r = wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
+    assert len(r.json()["features"]) == 7
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wfsbyfilter():
-    layer = "wmadata:huc12"
-    wfs = WFS(
-        ServiceURL().wfs.waterdata,
-        layer=layer,
-        outformat="application/json",
-        version="2.0.0",
-        crs="epsg:900913",
-    )
-
-    wb = wfs.getfeature_byfilter(f"{layer} LIKE '17030001%'")
-    assert len(utils.traverse_json(wb.json(), ["features", "geometry", "coordinates"])) == 52
+def test_wfsbyfilter(wfs):
+    wb = wfs.getfeature_byfilter("staid LIKE '010315%'")
+    assert len(utils.traverse_json(wb.json(), ["features", "geometry", "coordinates"])) == 2
 
 
 def test_decompose(geometry_urb):

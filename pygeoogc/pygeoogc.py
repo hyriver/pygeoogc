@@ -128,7 +128,10 @@ class ArcGISRESTful:
     crs : str, optional
         The spatial reference of the output data, defaults to EPSG:4326
     n_threads : int, optional
-        Number of simultaneous download, default to 4.
+        Number of simultaneous download, default to 1 i.e., no threading. Note
+        that some services might face issues when several requests are sent
+        simultaniously and will return the requests partially. It's recommended
+        to avoid performing threading unless you are certain the web service can handle it.
     """
 
     def __init__(
@@ -138,13 +141,14 @@ class ArcGISRESTful:
         outfields: Union[List[str], str] = "*",
         spatial_relation: str = "esriSpatialRelIntersects",
         crs: str = DEF_CRS,
-        n_threads: int = 4,
+        n_threads: int = 1,
     ) -> None:
 
         self.session = RetrySession()
-        self.base_url = base_url
+        self.base_url = base_url[:-1] if base_url[-1] == "/" else base_url
         self.test_url()
 
+        self._layer = ""
         self._outformat = outformat
         self._spatial_relation = spatial_relation
         self._outfields = outfields if isinstance(outfields, list) else [outfields]
@@ -152,6 +156,33 @@ class ArcGISRESTful:
         self.nfeatures = 0
         self.crs = crs
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
+        self.valid_layers = self.get_validlayers()
+
+    @property
+    def layer(self) -> str:
+        return self._layer
+
+    @layer.setter
+    def layer(self, value: int) -> None:
+        try:
+            existing_lyr = int(self.base_url.split("/")[-1])
+            self.base_url = self.base_url.replace(f"/{existing_lyr}", "")
+        except ValueError:
+            pass
+
+        self.valid_layers = self.get_validlayers()
+        if value not in self.valid_layers:
+            valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
+            raise InvalidInputValue("layer", valids)
+
+        self._layer = f"{value}"
+        try:
+            existing_lyr = int(self.base_url.split("/")[-1])
+            self.base_url = self.base_url.replace(f"/{existing_lyr}", f"/{value}")
+        except ValueError:
+            self.base_url = f"{self.base_url}/{value}"
+
+        self.test_url()
 
     @property
     def outformat(self) -> str:
@@ -195,6 +226,28 @@ class ArcGISRESTful:
             raise InvalidInputType("outfields", "str or list")
 
         self._outfields = value if isinstance(value, list) else [value]
+
+    def get_validlayers(self) -> Dict[str, str]:
+        try:
+            existing_lyr = int(self.base_url.split("/")[-1])
+            url = self.base_url.replace(f"/{existing_lyr}", "")
+        except ValueError:
+            url = self.base_url
+
+        resp = self.session.get(url, {"f": "json"})
+        utils.check_response(resp)
+
+        layers = {"No layer": ""}
+        try:
+            layers = {lyr["id"]: lyr["name"] for lyr in resp.json()["layers"]}
+        except (JSONDecodeError, KeyError):
+            raise ZeroMatched(f"The requested layer does not exists in:\n{self.base_url}")
+
+        return layers
+
+    def get_validfields(self) -> Dict[str, str]:
+        resp = self.session.get(self.base_url, {"f": "json"}).json()
+        return {f["name"]: f["type"].replace("esriFieldType", "").lower() for f in resp["fields"]}
 
     def test_url(self) -> None:
         """Test the generated url and get the required parameters from the service."""
@@ -272,18 +325,26 @@ class ArcGISRESTful:
             + f"Units: {self.units}"
         )
 
-    def get_featureids(
-        self, geom: Union[Polygon, Tuple[float, float, float, float]], geo_crs: str = DEF_CRS
+    def oids_bygeom(
+        self,
+        geom: Union[Polygon, Tuple[float, float, float, float]],
+        geo_crs: str = DEF_CRS,
+        sql_clause: str = "",
     ) -> None:
-        """Get feature IDs withing a geometry or bounding box.
+        """Get feature IDs within a geometry that can be combined with a SQL where clause.
 
         Parameters
         ----------
         geom : Polygon or tuple
-            A geometry or bounding box
+            A geometry (Polgon) or bounding box (tuple of length 4).
         geo_crs : str
             The spatial reference of the input geometry, defaults to EPSG:4326
+        sql_clause : str, optional
+            A valid SQL 92 WHERE clause, default to an empty string i.e., no
         """
+        if not isinstance(sql_clause, str):
+            raise InvalidInputType("sql_clause", str)
+
         if isinstance(geom, tuple):
             geom = MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).bbox()
@@ -298,6 +359,10 @@ class ArcGISRESTful:
             "returnIdsOnly": "true",
             "f": self.outformat,
         }
+
+        if len(sql_clause) > 0:
+            payload.update({"where": sql_clause})
+
         resp = self.session.post(f"{self.base_url}/query", payload)
 
         try:
@@ -305,20 +370,90 @@ class ArcGISRESTful:
         except (KeyError, TypeError, IndexError, JSONDecodeError):
             raise ZeroMatched("No feature ID were found within the requested region.")
 
-    def get_features(self) -> List[Dict[str, Any]]:
-        """Get features based on the feature IDs."""
-        if not all(f in self.valid_fields for f in self.outfields):
+    def oids_byfield(self, field: str, ids: Union[str, List[str]], return_m: bool = False) -> None:
+        """Get Object IDs based on a list of field IDs.
+
+        Parameters
+        ----------
+        field : str
+            Name of the target field that IDs belong to.
+        ids : str or list
+            A list of target ID(s).
+        return_m : bool
+            Whether to activate the Return M (measure) in the request, defaults to False.
+
+        Returns
+        -------
+        geopandas.GeoDataFrame
+            The requested features as a GeoDataFrame.
+        """
+        valid_fields = self.get_validfields()
+        if field not in valid_fields:
+            raise InvalidInputValue("field", list(valid_fields))
+
+        ftype = valid_fields[field]
+        if "string" in ftype:
+            fids = ", ".join(f"'{i}'" for i in ids)
+        else:
+            fids = ", ".join(f"{i}" for i in ids)
+
+        self.oids_bysql(f"{field} IN ({fids})")
+
+    def oids_bysql(self, sql_clause: str) -> None:
+        """Get feature IDs using a valid SQL 92 WHERE clause.
+
+        Notes
+        -----
+        Not all web services support this type of query. For more details look
+        `here <https://developers.arcgis.com/rest/services-reference/query-feature-service-.htm#ESRI_SECTION2_07DD2C5127674F6A814CE6C07D39AD46>`__
+
+        Parameters
+        ----------
+        sql_clause : str
+            A valid SQL 92 WHERE clause.
+        """
+        if not isinstance(sql_clause, str):
+            raise InvalidInputType("sql_clause", str)
+
+        payload = {
+            "where": sql_clause,
+            "returnGeometry": "false",
+            "returnIdsOnly": "true",
+            "f": self.outformat,
+        }
+        resp = self.session.post(f"{self.base_url}/query", payload)
+
+        try:
+            self.featureids = resp.json()["objectIds"]
+        except (KeyError, TypeError, IndexError, JSONDecodeError):
+            raise ZeroMatched("No feature ID were found within the requested region.")
+
+    def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
+        """Get features based on the feature IDs.
+
+        Parameters
+        ----------
+        return_m : bool
+            Whether to activate the Return M (measure) in the request, defaults to False.
+
+        Returns
+        -------
+        dict
+            (Geo)json response from the web service.
+        """
+        if any(f not in self.valid_fields for f in self.outfields):
             raise InvalidInputValue("outfields", self.valid_fields)
 
         payload = {
             "returnGeometry": "true",
             "outSR": self.out_sr,
             "outfields": ",".join(self.outfields),
+            "ReturnM": return_m,
             "f": self.outformat,
         }
 
         def getter(ids: Tuple[str, ...]) -> Union[Response, Tuple[str, ...]]:
-            payload.update({"objectIds": ",".join(ids)})
+            payload.update({"objectIds": ", ".join(ids)})
             resp = self.session.post(f"{self.base_url}/query", payload)
             r_json = resp.json()
             try:

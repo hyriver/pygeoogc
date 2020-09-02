@@ -9,6 +9,8 @@ restful:
   nldi: https://labs.waterdata.usgs.gov/api/nldi
   nwis: https://waterservices.usgs.gov/nwis
   wbd: https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer
+  nhdhr: https://edits.nationalmap.gov/arcgis/rest/services/HEM/NHDHigh/MapServer
+  nhdplushr: https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer
 
 wfs:
   fema: https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer
