@@ -93,13 +93,15 @@ There are three main classes:
   By looking at the web service website
   (https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer) we see that there are 9
   layers; 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. We can either
-  pass the base URL or concat the target layer number like so ``f"{ServiceURL().restful.wbd}/6"``.
-  If you want to change the layer you can simply set the the ``layer`` property of the class.
+  pass the base URL or concatenate the target layer number like so
+  ``f"{ServiceURL().restful.wbd}/6"``.
+
+  If you want to change the layer you can simply set the ``layer`` property of the class.
   Afterward, we can request for the data in two steps. First, get the object IDs using
-  ``get_featureids`` class method which accepts any valid Polygon or bounding box as input.
-  Second, get the actual data using ``get_features`` class method. The returned response can
-  be converted into a GeoDataFrame using ``json2geodf`` function
-  from `PyGeoOGC <https://github.com/cheginit/pygeoutils>`__ package.
+  ``oids_bygeom`` (within a geometry), ``oids_byfield`` (specific field IDs), or ``oids_bysql``
+  (any valid SQL 92 WHERE clause) class methods. Second, get the actual data using ``get_features``
+  class method. The returned response can be converted into a GeoDataFrame using ``json2geodf``
+  function from `PyGeoOGC <https://github.com/cheginit/pygeoutils>`__ package.
 
 * ``WMS``: Instantiation of this class requires at least 3 arguments: service URL, layer(s)
   name(s), and output format. Additionally, target CRS and the web service version can be provided.
@@ -111,7 +113,7 @@ There are three main classes:
 * ``WFS``: Instantiation of this class is similar to ``WMS`` and the only difference is that
   only one layer name can be passed. Upon instantiation there are three ways to get the data:
 
-  - ``getfeature_bybox``: Get all the features within a boudning box in any valid CRS.
+  - ``getfeature_bybox``: Get all the features within a bounding box in any valid CRS.
   - ``getfeature_byid``: Get all the features based on the IDs. Note that two arguments should be
     provided: ``featurename``, and ``featureids``. You can get a list of valid feature names using
     ``get_validnames`` class method.
@@ -148,12 +150,16 @@ Quick start
 -----------
 
 We can access
-`Watershed Boundary Dataset <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`__
+`NHDPlus HR <https://edits.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/NHDPlus_HR/MapServer>`__
 via RESTful service,
 `National Wetlands Inventory <https://www.fws.gov/wetlands/>`__ from WMS, and
 `FEMA National Flood Hazard <https://www.fema.gov/national-flood-hazard-layer-nfhl>`__
 via WFS. The output for these functions are of type ``requests.Response`` that
-can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
+can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using
+`PyGeoOGC <https://github.com/cheginit/pygeoogc>`__.
+
+Let's start the National Map's NHDPlus HR web service. We can query the flowlines that are
+within a geometry as follows:
 
 .. code-block:: python
 
@@ -167,10 +173,37 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
         basin=True
     ).geometry[0]
 
-    wbd12 = ArcGISRESTful(f"{ServiceURL().restful.wbd}/6")
-    wbd12.get_featureids(basin_geom)
-    resp = wbd12.get_features()
-    huc12 = geoutils.json2geodf(resp)
+    hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, outformat="json")
+    hr.layer = 2
+
+    hr.oids_bygeom(basin_geom, "epsg:4326")
+    resp = hr.get_features()
+    flowlines = geoutils.json2geodf(resp)
+
+Note ``oids_bygeom`` has an additional argument for passing any valid SQL WHERE clause
+to father filter the data on the server side.
+
+We can query based IDs of any valid field in the database. If the measure property is
+desired you can pass ``return_m`` as ``True`` to the ``get_features`` class method:
+
+.. code-block:: python
+
+    hr.oids_byfield("NHDPLUSID", [5000500013223, 5000400039708, 5000500004825])
+    resp = hr.get_features(return_m=True)
+    flowlines = geoutils.json2geodf(resp)
+
+Additionally, any valid SQL 92 WHERE clause can be used. For more details look
+`here <https://developers.arcgis.com/rest/services-reference/query-feature-service-.htm#ESRI_SECTION2_07DD2C5127674F6A814CE6C07D39AD46>`__.
+
+.. code-block:: python
+
+    hr.oids_bysql("NHDPLUSID IN (5000500013223, 5000400039708, 5000500004825)")
+    resp = hr.get_features()
+    flowlines = geoutils.json2geodf(resp)
+
+A WMS-based example is shown below:
+
+.. code-block:: python
 
     wms = WMS(
         ServiceURL().wms.fws,
@@ -184,6 +217,11 @@ can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using Hydrodata.
         box_crs="epsg:4326",
     )
     wetlands = geoutils.gtiff2xarray(r_dict, basin_geom, "epsg:4326")
+
+Query from a WFS-based web service can be done either within a bounding box or using
+any valid `CQL filter <https://docs.geoserver.org/stable/en/user/tutorials/cql/cql_tutorial.html>`__.
+
+.. code-block:: python
 
     wfs = WFS(
         ServiceURL().wfs.fema,
