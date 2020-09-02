@@ -5,6 +5,10 @@ History
 0.1.11 (unreleased)
 -------------------
 
+- Added/Renamed three class methods in ``ArcGISRESTful``: ``oids_bygeom``, ``oids_byfield``,
+  and ``oids_bysql``. So you can query feature within a geometry, using specific field ID(s),
+  or more generally using any valid SQL 92 WHERE clause.
+- Added support for query with SQL WHERE clause to ``ArcGISRESTful``.
 - Changed the NLDI's URL for migrating to its new API v3.
 - Added support for CQL filter to ``WFS``, credits to `Eilio <https://github.com/emiliom>`__.
 - Moved all the web services URLs to a YAML file that ``ServiceURL`` class reads. It makes
