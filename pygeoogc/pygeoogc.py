@@ -158,6 +158,8 @@ class ArcGISRESTful:
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.valid_layers = self.get_validlayers()
 
+        self._zeromatched = "No feature ID were found within the requested region."
+
     @property
     def layer(self) -> str:
         return self._layer
@@ -309,7 +311,7 @@ class ArcGISRESTful:
 
         self.nfeatures = len(oids)
         if self.nfeatures == 0:
-            raise ZeroMatched("No feature ID were found within the requested region.")
+            raise ZeroMatched(self._zeromatched)
 
         oid_list = list(zip_longest(*[iter(oids)] * self.max_nrecords))
         oid_list[-1] = tuple(i for i in oid_list[-1] if i is not None)
@@ -368,7 +370,7 @@ class ArcGISRESTful:
         try:
             self.featureids = resp.json()["objectIds"]
         except (KeyError, TypeError, IndexError, JSONDecodeError):
-            raise ZeroMatched("No feature ID were found within the requested region.")
+            raise ZeroMatched(self._zeromatched)
 
     def oids_byfield(self, field: str, ids: Union[str, List[str]], return_m: bool = False) -> None:
         """Get Object IDs based on a list of field IDs.
@@ -426,7 +428,7 @@ class ArcGISRESTful:
         try:
             self.featureids = resp.json()["objectIds"]
         except (KeyError, TypeError, IndexError, JSONDecodeError):
-            raise ZeroMatched("No feature ID were found within the requested region.")
+            raise ZeroMatched(self._zeromatched)
 
     def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.

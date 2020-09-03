@@ -40,7 +40,7 @@ def wfs():
         layer="wmadata:gagesii",
         outformat="application/json",
         version="2.0.0",
-        crs="epsg:900913",
+        crs="epsg:4269",
     )
 
 
