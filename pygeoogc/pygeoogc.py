@@ -79,9 +79,11 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if isinstance(geom, tuple):
             geom = MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).bbox()
-        else:
+        elif isinstance(geom, Polygon):
             geom = MatchCRS.geometry(geom, geo_crs, self.crs)
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
+        else:
+            raise InvalidInputType("geom", "tuple or Polgon")
 
         payload = {
             **geom_query,  # type: ignore
