@@ -181,10 +181,10 @@ within a geometry as follows:
     flowlines = geoutils.json2geodf(resp)
 
 Note ``oids_bygeom`` has an additional argument for passing any valid SQL WHERE clause
-to father filter the data on the server side.
+to further filter the data on the server side.
 
-We can query based IDs of any valid field in the database. If the measure property is
-desired you can pass ``return_m`` as ``True`` to the ``get_features`` class method:
+We can also submit a query based on IDs of any valid field in the database. If the measure
+property is desired you can pass ``return_m`` as ``True`` to the ``get_features`` class method:
 
 .. code-block:: python
 
@@ -238,10 +238,10 @@ any valid `CQL filter <https://docs.geoserver.org/stable/en/user/tutorials/cql/c
         layer=layer,
         outformat="application/json",
         version="2.0.0",
-        crs="epsg:900913",
+        crs="epsg:4269",
     )
     r = wfs.getfeature_byfilter(f"huc8 LIKE '13030%'")
-    huc8 = geoutils.json2geodf(r.json(), "epsg:900913", "epsg:4326")
+    huc8 = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
 
 Contributing
