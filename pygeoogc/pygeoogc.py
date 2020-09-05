@@ -1,11 +1,9 @@
 """Base classes and function for REST, WMS, and WMF services."""
-import socket
 from collections import defaultdict, namedtuple
 from dataclasses import dataclass
 from itertools import product, zip_longest
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
-from unittest.mock import _patch, patch
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import pyproj
@@ -13,99 +11,14 @@ import yaml
 from orjson import JSONDecodeError
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from requests import Response, Session
-from requests.adapters import HTTPAdapter
-from requests.exceptions import RequestException
+from requests import Response
 from shapely.geometry import Polygon
-from urllib3 import Retry
 
 from . import utils
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
-from .utils import MatchCRS
+from .utils import MatchCRS, RetrySession
 
 DEF_CRS = "epsg:4326"
-
-
-class RetrySession:
-    """Configures the passed-in session to retry on failed requests.
-
-    The fails can be due to connection errors, specific HTTP response
-    codes and 30X redirections. The code is based on:
-    https://github.com/bustawin/retry-requests
-
-    Parameters
-    ----------
-    retries : int, optional
-        The number of maximum retries before raising an exception, defaults to 5.
-    backoff_factor : float, optional
-        A factor used to compute the waiting time between retries, defaults to 0.5.
-    status_to_retry : tuple, optional
-        A tuple of status codes that trigger the reply behaviour, defaults to (500, 502, 504).
-    prefixes : tuple, optional
-        The prefixes to consider, defaults to ("http://", "https://")
-    """
-
-    def __init__(
-        self,
-        retries: int = 3,
-        backoff_factor: float = 0.3,
-        status_to_retry: Tuple[int, ...] = (500, 502, 504),
-        prefixes: Tuple[str, ...] = ("https://",),
-    ) -> None:
-        self.session = Session()
-        self.retries = retries
-
-        r = Retry(
-            total=retries,
-            read=retries,
-            connect=retries,
-            backoff_factor=backoff_factor,
-            status_forcelist=status_to_retry,
-            method_whitelist=False,
-        )
-        adapter = HTTPAdapter(max_retries=r)
-        for prefix in prefixes:
-            self.session.mount(prefix, adapter)
-        self.session.hooks = {"response": [lambda r, *args, **kwargs: r.raise_for_status()]}
-
-    def get(
-        self,
-        url: str,
-        payload: Optional[Mapping[str, Any]] = None,
-    ) -> Response:
-        """Retrieve data from a url by GET and return the Response."""
-        try:
-            return self.session.get(url, params=payload)
-        except (ConnectionError, RequestException):
-            raise ConnectionError(f"Connection failed after {self.retries} retries.")
-
-    def post(
-        self,
-        url: str,
-        payload: Optional[MutableMapping[str, Any]] = None,
-    ) -> Response:
-        """Retrieve data from a url by POST and return the Response."""
-        try:
-            return self.session.post(url, data=payload)
-        except (ConnectionError, RequestException):
-            raise ConnectionError(f"Connection failed after {self.retries} retries.")
-
-    @staticmethod
-    def onlyipv4() -> _patch:
-        """Disable IPv6 and only use IPv4."""
-        orig_getaddrinfo = socket.getaddrinfo
-
-        def getaddrinfo_ipv4(host, port, family=socket.AF_INET, ptype=0, proto=0, flags=0):
-            return orig_getaddrinfo(
-                host=host,
-                port=port,
-                family=family,
-                type=ptype,
-                proto=proto,
-                flags=flags,
-            )
-
-        return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
 
 
 class ArcGISRESTful:
