@@ -132,6 +132,7 @@ def test_decompose(geometry_urb):
     assert bboxs[0][-1] == 2828
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_matchcrs(geometry_urb):
     bounds = geometry_urb.bounds
     points = ((bounds[0], bounds[2]), (bounds[1], bounds[3]))
