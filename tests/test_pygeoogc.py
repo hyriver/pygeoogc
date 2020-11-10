@@ -140,8 +140,8 @@ def test_matchcrs(geometry_urb):
     geom = MatchCRS.geometry(geometry_urb, DEF_CRS, ALT_CRS)
     assert (
         abs(geom.centroid.x * 1e-4 - (-362.099)) < 1e-3
-        and abs(bbox[0] - (-3654031.190)) < 1e-3
-        and abs(coords[0][-1] == (-2877067.244)) < 1e-3
+        and abs(bbox[0] * 1e-4 - (-365.403)) < 1e-3
+        and abs(coords[0][-1] * 1e-4 == (-287.707)) < 1e-3
     )
 
 
