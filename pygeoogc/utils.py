@@ -79,10 +79,11 @@ class RetrySession:
         self,
         url: str,
         payload: Optional[Mapping[str, Any]] = None,
+        headers: Optional[MutableMapping[str, Any]] = None,
     ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
         try:
-            return self.session.get(url, params=payload)
+            return self.session.get(url, params=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
@@ -90,10 +91,11 @@ class RetrySession:
         self,
         url: str,
         payload: Optional[MutableMapping[str, Any]] = None,
+        headers: Optional[MutableMapping[str, Any]] = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
         try:
-            return self.session.post(url, data=payload)
+            return self.session.post(url, data=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
