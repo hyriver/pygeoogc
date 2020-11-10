@@ -115,6 +115,13 @@ def test_wfsbyid(wfs):
 
 
 @pytest.mark.flaky(max_runs=3)
+def test_wfsbygeom(wfs, geometry_urb):
+    bbox = geometry_urb
+    r = wfs.getfeature_bygeom(geometry_urb, geo_crs=DEF_CRS, always_xy=False)
+    assert len(r.json()["features"]) == 7
+
+
+@pytest.mark.flaky(max_runs=3)
 def test_wfsbybox(wfs, geometry_urb):
     bbox = geometry_urb.bounds
     r = wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)

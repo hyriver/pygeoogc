@@ -23,7 +23,7 @@ from defusedxml import cElementTree as etree
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
-from shapely.geometry import LineString, Point, Polygon, box
+from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box
 from shapely.ops import transform
 from urllib3 import Retry
 
@@ -289,8 +289,8 @@ class MatchCRS:
     """
 
     @staticmethod
-    def geometry(geom: Polygon, in_crs: str, out_crs: str) -> Polygon:
-        if not isinstance(geom, Polygon):
+    def geometry(geom: Union[Polygon, MultiPolygon], in_crs: str, out_crs: str) -> Polygon:
+        if not isinstance(geom, (Polygon, MultiPolygon)):
             raise InvalidInputType("geom", "Polygon")
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform

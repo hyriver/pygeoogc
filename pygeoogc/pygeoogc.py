@@ -6,10 +6,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import pyproj
+import shapely.ops as ops
 import yaml
 from orjson import JSONDecodeError
 from requests import Response
-from shapely.geometry import Polygon
+from shapely.geometry import MultiPolygon, Polygon
 
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
@@ -44,17 +45,6 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         simultaniously and will return the requests partially. It's recommended
         to avoid performing threading unless you are certain the web service can handle it.
     """
-
-    def __init__(
-        self,
-        base_url: str,
-        outformat: str = "geojson",
-        outfields: Union[List[str], str] = "*",
-        spatial_relation: str = "esriSpatialRelIntersects",
-        crs: str = DEF_CRS,
-        n_threads: int = 1,
-    ) -> None:
-        super().__init__(base_url, outformat, outfields, spatial_relation, crs, n_threads)
 
     def oids_bygeom(
         self,
@@ -432,6 +422,66 @@ class WFS(WFSBase):
         utils.check_response(resp)
 
         return resp
+
+    def getfeature_bygeom(
+        self,
+        geometry: Union[Polygon, MultiPolygon],
+        geo_crs: str = DEF_CRS,
+        always_xy: bool = False,
+        predicate: str = "INTERSECTS",
+    ) -> Response:
+        """Get features based on a geometry.
+
+        Parameters
+        ----------
+        geometry : shapely.geometry
+            The input geometry
+        geo_crs : str, optional
+            The CRS of the input geometry, default to epsg:4326.
+        always_xy : bool, optional
+            Whether to always use xy axis order, defaults to False. Some services change the axis
+            order from xy to yx, following the latest WFS version specifications but some don't.
+            If the returned value does not have any geometry, it indicates that most probably the
+            axis order does not match. You can set this to True in that case.
+        predicate : str, optional
+            The geometric prediacte to use for requesting the data, defaults to
+            INTERSECTS. Valid predicates are:
+            EQUALS, DISJOINT, INTERSECTS, TOUCHES, CROSSES, WITHIN, CONTAINS,
+            OVERLAPS, RELATE, DWITHIN, BEYOND
+
+        Returns
+        -------
+        requests.Response
+            WFS query response based on the given geometry.
+        """
+        geom = MatchCRS().geometry(geometry, geo_crs, self.crs)
+
+        if (
+            self.version != "1.1.1"
+            and pyproj.CRS.from_user_input(geo_crs).is_geographic
+            and not always_xy
+        ):
+            g_wkt = ops.transform(lambda x, y: (y, x), geom).wkt
+        else:
+            g_wkt = geom.wkt
+
+        valid_predicates = [
+            "EQUALS",
+            "DISJOINT",
+            "INTERSECTS",
+            "TOUCHES",
+            "CROSSES",
+            "WITHIN",
+            "CONTAINS",
+            "OVERLAPS",
+            "RELATE",
+            "DWITHIN",
+            "BEYOND",
+        ]
+        if predicate not in valid_predicates:
+            raise InvalidInputValue("predicate", valid_predicates)
+
+        return self.getfeature_byfilter(f"{predicate.upper()}(the_geom, {g_wkt})", method="POST")
 
     def getfeature_byid(
         self,
