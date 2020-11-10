@@ -49,17 +49,30 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .pytest_cache
 	rm -rf data
 
-lint: ## check style with pre-commit
+lint: ## check style with flake8
 	pre-commit run --all-files
 
 test: ## run tests quickly with the default Python
-	pytest --cov=pygeoogc -n 4 -v
+	pytest --no-cov -n 4 -v
 
 coverage: ## check code coverage quickly with the default Python
 	coverage run --source pygeoogc -m pytest -v
 	coverage report -m
 	coverage html
 	$(BROWSER) htmlcov/index.html
+
+apidocs: ## generate API docs
+	rm -f docs/pygeoogc.rst
+	rm -f docs/modules.rst
+	sphinx-apidoc -o docs/ -f -H "API Reference" pygeoogc
+
+docs: apidocs ## generate Sphinx HTML documentation, including API docs
+	$(MAKE) -C docs clean
+	$(MAKE) -C docs html
+	$(BROWSER) docs/_build/html/index.html
+
+servedocs: docs ## compile the docs watching for changes
+	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist
