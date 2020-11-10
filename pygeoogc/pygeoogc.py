@@ -464,7 +464,7 @@ class WFS(WFSBase):
         fid_list = ", ".join(f"'{fid}'" for fid in featureids)
         return self.getfeature_byfilter(f"{featurename} IN ({fid_list})")
 
-    def getfeature_byfilter(self, cql_filter: str) -> Response:
+    def getfeature_byfilter(self, cql_filter: str, method: str = "GET") -> Response:
         """Get features based on a valid CQL filter.
 
         Notes
@@ -477,11 +477,13 @@ class WFS(WFSBase):
         ----------
         cql_filter : str
             A valid CQL filter expression.
+        method : str
+            The request method, could be GET or POST (for long filters).
 
         Returns
         -------
         requests.Response
-            WMS query response
+            WFS query response
         """
         if not isinstance(cql_filter, str):
             raise InvalidInputType("cql_filter", "str")
@@ -496,7 +498,14 @@ class WFS(WFSBase):
             "cql_filter": cql_filter,
         }
 
-        resp = self.session.get(self.url, payload)
+        if method == "GET":
+            resp = self.session.get(self.url, payload)
+        elif method == "POST":
+            headers = {"content-type": "application/x-www-form-urlencoded"}
+            resp = self.session.post(self.url, payload, headers)
+        else:
+            raise InvalidInputValue("method", ["GET", "POST"])
+
         utils.check_response(resp)
 
         return resp
