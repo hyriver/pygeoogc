@@ -132,7 +132,6 @@ def test_decompose(geometry_urb):
     assert bboxs[0][-1] == 2828
 
 
-@pytest.mark.flaky(max_runs=3)
 def test_matchcrs(geometry_urb):
     bounds = geometry_urb.bounds
     points = ((bounds[0], bounds[2]), (bounds[1], bounds[3]))
@@ -140,7 +139,7 @@ def test_matchcrs(geometry_urb):
     bbox = MatchCRS.bounds(geometry_urb.bounds, DEF_CRS, ALT_CRS)
     geom = MatchCRS.geometry(geometry_urb, DEF_CRS, ALT_CRS)
     assert (
-        abs(geom.area - 2475726907.644) < 1e-3
+        abs(geom.centroid.x - (-3620993.37)) < 1e-3
         and abs(bbox[0] - (-3654031.190)) < 1e-3
         and abs(coords[0][-1] == (-2877067.244)) < 1e-3
     )
