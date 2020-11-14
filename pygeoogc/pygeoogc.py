@@ -512,6 +512,10 @@ class WFS(WFSBase):
             raise InvalidInputType("featureids", "int or str or list")
 
         fid_list = ", ".join(f"'{fid}'" for fid in featureids)
+
+        if len(featureids) > 200:
+            return self.getfeature_byfilter(f"{featurename} IN ({fid_list})", method="POST")
+
         return self.getfeature_byfilter(f"{featurename} IN ({fid_list})")
 
     def getfeature_byfilter(self, cql_filter: str, method: str = "GET") -> Response:
