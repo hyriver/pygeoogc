@@ -1,8 +1,13 @@
 # This file is auto-generated from py3.6.yml, do not modify.
 # See that file for comments about the need/usage of each dependency.
 
+aiodns
+aiohttp
+brotlipy
+chardet
 dataclasses
 defusedxml
+nest-asyncio
 orjson
 owslib
 pyproj
