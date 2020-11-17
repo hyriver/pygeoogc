@@ -272,9 +272,9 @@ def async_requests(
     results: List[Union[str, MutableMapping[str, Any], bytes]] = []
     for chunk in chunked_urls:
         loop = asyncio.get_event_loop()
-        results.append(*loop.run_until_complete(async_session(loop, chunk, read, request)))  # type: ignore
+        results.append(loop.run_until_complete(async_session(loop, chunk, read, request)))  # type: ignore
         del loop
-    return results
+    return [x for y in results for x in y]  # type: ignore
 
 
 def threading(
