@@ -11,3 +11,7 @@ dependencies:
   - defusedxml
   - requests
   - dataclasses
+  - aiohttp
+  - chardet
+  - aiodns
+  - brotlipy

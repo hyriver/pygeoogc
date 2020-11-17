@@ -10,8 +10,11 @@ dependencies:
   - shapely
   - defusedxml
   - requests
+  - aiohttp
+  - chardet
+  - aiodns
+  - brotlipy
 
-  - bump2version
   - pytest-cov
   - pytest-xdist
   - pre-commit

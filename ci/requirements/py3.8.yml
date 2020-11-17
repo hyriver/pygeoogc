@@ -10,3 +10,7 @@ dependencies:
   - orjson
   - defusedxml
   - requests
+  - aiohttp
+  - chardet
+  - aiodns
+  - brotlipy
