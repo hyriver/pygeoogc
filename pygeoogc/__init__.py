@@ -11,7 +11,7 @@ from .exceptions import (
 )
 from .print_versions import show_versions
 from .pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, ServiceURL
-from .utils import RetrySession
+from .utils import RetrySession, async_requests
 
 try:
     __version__ = get_distribution(__name__).version

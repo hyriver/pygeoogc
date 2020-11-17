@@ -171,6 +171,49 @@ def test_ipv4():
     assert sys.getsizeof(fname) == 4361682
 
 
+@pytest.mark.flaky(max_runs=3)
+def test_async():
+    url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/13281990/daymet_v3_prcp_1990_na.nc4"
+    payload = {
+        "var": "prcp",
+        "north": 45.03690024304768,
+        "west": -68.32580022647919,
+        "east": -67.85159909767978,
+        "south": 44.55340147224697,
+        "disableProjSubset": "on",
+        "horizStride": 1,
+        "time_start": "1990-01-01T12:00:00Z",
+        "time_end": "1990-01-10T12:00:00Z",
+        "timeStride": 1,
+        "addLatLon": "true",
+        "accept": "netcdf",
+    }
+    url_binary = {url: payload}
+
+    url_json = [
+        "".join(
+            [
+                "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/",
+                "position?coords=POINT%28-68.325%2045.0369%29",
+            ]
+        )
+    ]
+
+    url_text = [
+        "https://waterservices.usgs.gov/nwis/site/?format=rdb&sites=01646500&siteStatus=all"
+    ]
+
+    r_b = pygeoogc.async_requests(url_binary, "binary")
+    r_j = pygeoogc.async_requests(url_json, "json")
+    r_t = pygeoogc.async_requests(url_text, "text")
+
+    assert (
+        sys.getsizeof(r_b[0]) == 187205
+        and r_j[0]["features"][0]["properties"]["identifier"] == "2675320"
+        and r_t[0].split("\n")[-2].split("\t")[1] == "01646500"
+    )
+
+
 def test_urls():
     urls = ServiceURL()
     assert (

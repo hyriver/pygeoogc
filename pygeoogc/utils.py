@@ -1,7 +1,9 @@
 """Some utilities for PyGeoOGC."""
+import asyncio
 import socket
 from concurrent import futures
 from dataclasses import dataclass
+from itertools import zip_longest
 from typing import (
     Any,
     Callable,
@@ -16,6 +18,8 @@ from typing import (
 )
 from unittest.mock import _patch, patch
 
+import aiohttp
+import nest_asyncio
 import numpy as np
 import orjson as json
 import pyproj
@@ -27,8 +31,9 @@ from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box
 from shapely.ops import transform
 from urllib3 import Retry
 
-from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
+from .exceptions import InvalidInputType, InvalidInputValue, ThreadingException, ZeroMatched
 
+nest_asyncio.apply()
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
 
@@ -115,6 +120,161 @@ class RetrySession:
             )
 
         return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
+
+
+async def request_binary(
+    url: str,
+    session_req: aiohttp.ClientSession,
+    payload: Dict[str, Optional[MutableMapping[str, Any]]],
+) -> bytes:
+    """Create an async request and return the response as binary.
+
+    Parameters
+    ----------
+    url : str
+        URL to be retrieved
+    session_req : ClientSession
+        A ClientSession for sending the request
+    paylod: dict
+        The request payload
+
+    Returns
+    -------
+    bytes
+        The retrieved response as binary
+    """
+    async with session_req(url, **payload) as response:
+        return await response.read()
+
+
+async def request_json(
+    url: str,
+    session_req: aiohttp.ClientSession,
+    payload: Dict[str, Optional[MutableMapping[str, Any]]],
+) -> MutableMapping[str, Any]:
+    """Create an async request and return the response as json.
+
+    Parameters
+    ----------
+    url : str
+        URL to be retrieved
+    session_req : ClientSession
+        A ClientSession for sending the request
+    paylod: dict
+        The request payload
+
+    Returns
+    -------
+    dict
+        The retrieved response as json
+    """
+    async with session_req(url, **payload) as response:
+        return await response.json()
+
+
+async def request_text(
+    url: str,
+    session_req: aiohttp.ClientSession,
+    payload: Dict[str, Optional[MutableMapping[str, Any]]],
+) -> str:
+    """Create an async request and return the response as string.
+
+    Parameters
+    ----------
+    url : str
+        URL to be retrieved
+    session_req : ClientSession
+        A ClientSession for sending the request
+    paylod: dict
+        The request payload
+
+    Returns
+    -------
+    dict
+        The retrieved response as string
+    """
+    async with session_req(url, **payload) as response:
+        return await response.text()
+
+
+async def async_session(
+    loop: asyncio.AbstractEventLoop,
+    url_payload: Tuple[Tuple[str, Optional[MutableMapping[str, Any]]], ...],
+    read: str,
+    request: str = "GET",
+) -> Callable:
+    """Create an async session for sending requests.
+
+    Parameters
+    ----------
+    loop : asyncio.unix_events._UnixSelectorEventLoop
+        An async loop.
+    url_payload : list of tuples of urls and payloads
+        A list of URLs or URLs with their payloads to be retrieved.
+    read : str
+        The method for returning the request; binary, json, and text.
+    request : str
+        The request type; GET or POST.
+
+    Returns
+    -------
+    asyncio.gather
+        An async gather function
+    """
+    async with aiohttp.ClientSession(json_serialize=json.dumps) as session:
+        read_method = {"binary": request_binary, "json": request_json, "text": request_text}
+        if read not in read_method:
+            raise InvalidInputValue("read", list(read_method.keys()))
+
+        request_method = {"GET": session.get, "POST": session.post}
+        if request not in request_method:
+            raise InvalidInputValue("method", list(request_method.keys()))
+
+        paylod = {"GET": "params", "POST": "data"}
+        tasks = (
+            read_method[read](u, request_method[request], {paylod[request]: p})
+            for u, p in url_payload
+        )
+        return await asyncio.gather(*tasks, return_exceptions=True)  # type: ignore
+
+
+def async_requests(
+    urls: Union[List[str], Dict[str, Optional[MutableMapping[str, Any]]]],
+    read: str,
+    request: str = "GET",
+    max_workers: int = 8,
+) -> List[Union[str, MutableMapping[str, Any], bytes]]:
+    """Send async requests.
+
+    Parameters
+    ----------
+    urls : list of str or dict of str and dict
+        A list of URLs or URLs with their payloads to be retrieved.
+    read : str
+        The method for returning the request; binary, json, and text.
+    request : str
+        The request type; GET or POST.
+    max_workers : int
+        The maximum number of async processes.
+
+    Returns
+    -------
+    list
+        A list of responses
+    """
+    if not isinstance(urls, list) and not isinstance(urls, dict):
+        raise InvalidInputType("urls", "list of urls or dict of urls and payloads")
+
+    url_payload = urls if isinstance(urls, dict) else {u: None for u in urls}
+    chunked_urls = list(zip_longest(*[iter(url_payload.items())] * 2))
+    chunked_urls[-1] = tuple(i for i in chunked_urls[-1] if i is not None)
+
+    results: List[Union[str, MutableMapping[str, Any], bytes]] = []
+    for chunk in chunked_urls:
+        loop = asyncio.get_event_loop()
+        results.append(*loop.run_until_complete(async_session(loop, chunk, read, request)))  # type: ignore
+        del loop
+    return results
 
 
 def threading(
