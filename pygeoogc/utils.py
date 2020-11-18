@@ -396,7 +396,7 @@ class ESRIGeomQuery:
     wkid : int
         The Well-known ID (WKID) of the geometry's spatial reference e.g., for EPSG:4326,
         4326 should be passed. Check
-        `ArcGIS https://developers.arcgis.com/rest/services-reference/geographic-coordinate-systems.htm`__
+        `ArcGIS <https://developers.arcgis.com/rest/services-reference/geographic-coordinate-systems.htm>`__
         for reference.
     """
 
