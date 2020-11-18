@@ -122,7 +122,7 @@ class RetrySession:
         return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
 
 
-async def request_binary(
+async def _request_binary(
     url: str,
     session_req: aiohttp.ClientSession,
     payload: Dict[str, Optional[MutableMapping[str, Any]]],
@@ -147,7 +147,7 @@ async def request_binary(
         return await response.read()
 
 
-async def request_json(
+async def _request_json(
     url: str,
     session_req: aiohttp.ClientSession,
     payload: Dict[str, Optional[MutableMapping[str, Any]]],
@@ -172,7 +172,7 @@ async def request_json(
         return await response.json()
 
 
-async def request_text(
+async def _request_text(
     url: str,
     session_req: aiohttp.ClientSession,
     payload: Dict[str, Optional[MutableMapping[str, Any]]],
@@ -197,11 +197,11 @@ async def request_text(
         return await response.text()
 
 
-async def async_session(
+async def _async_session(
     loop: asyncio.AbstractEventLoop,
     url_payload: Tuple[Tuple[str, Optional[MutableMapping[str, Any]]], ...],
     read: str,
-    request: str = "GET",
+    request: str,
 ) -> Callable:
     """Create an async session for sending requests.
 
@@ -222,7 +222,7 @@ async def async_session(
         An async gather function
     """
     async with aiohttp.ClientSession(json_serialize=json.dumps) as session:
-        read_method = {"binary": request_binary, "json": request_json, "text": request_text}
+        read_method = {"binary": _request_binary, "json": _request_json, "text": _request_text}
         if read not in read_method:
             raise InvalidInputValue("read", list(read_method.keys()))
 
@@ -246,16 +246,20 @@ def async_requests(
 ) -> List[Union[str, MutableMapping[str, Any], bytes]]:
     """Send async requests.
 
+    This function is based on
+    `this <https://github.com/HydrologicEngineeringCenter/data-retrieval-scripts/blob/master/qpe_async_download.py>`__
+    script.
+
     Parameters
     ----------
     urls : list of str or dict of str and dict
         A list of URLs or URLs with their payloads to be retrieved.
     read : str
         The method for returning the request; binary, json, and text.
-    request : str
-        The request type; GET or POST.
-    max_workers : int
-        The maximum number of async processes.
+    request : str, optional
+        The request type; GET or POST, defaults to GET.
+    max_workers : int, optional
+        The maximum number of async processes, defaults to 8.
 
     Returns
     -------
@@ -272,7 +276,7 @@ def async_requests(
     results: List[Union[str, MutableMapping[str, Any], bytes]] = []
     for chunk in chunked_urls:
         loop = asyncio.get_event_loop()
-        results.append(loop.run_until_complete(async_session(loop, chunk, read, request)))  # type: ignore
+        results.append(loop.run_until_complete(_async_session(loop, chunk, read, request)))  # type: ignore
         del loop
     return [x for y in results for x in y]  # type: ignore
 
