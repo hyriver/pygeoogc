@@ -327,9 +327,7 @@ def traverse_json(
 ) -> List[Any]:
     """Extract an element from a JSON file along a specified path.
 
-    Notes
-    -----
-    Taken from `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__
+    This function is based on `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__.
 
     Parameters
     ----------
