@@ -2,6 +2,12 @@
 History
 =======
 
+0.2.1 (2020-12-06)
+-------------------
+
+- Remove unused variables in ``async_requests`` and use ``max_workers``.
+
+
 0.2.0 (2020-12-06)
 -------------------
 

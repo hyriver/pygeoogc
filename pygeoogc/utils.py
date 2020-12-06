@@ -198,7 +198,6 @@ async def _request_text(
 
 
 async def _async_session(
-    loop: asyncio.AbstractEventLoop,
     url_payload: Tuple[Tuple[str, Optional[MutableMapping[str, Any]]], ...],
     read: str,
     request: str,
@@ -207,8 +206,6 @@ async def _async_session(
 
     Parameters
     ----------
-    loop : asyncio.unix_events._UnixSelectorEventLoop
-        An async loop.
     url_payload : list of tuples of urls and payloads
         A list of URLs or URLs with their payloads to be retrieved.
     read : str
@@ -270,13 +267,13 @@ def async_requests(
         raise InvalidInputType("urls", "list of urls or dict of urls and payloads")
 
     url_payload = urls if isinstance(urls, dict) else {u: None for u in urls}
-    chunked_urls = list(zip_longest(*[iter(url_payload.items())] * 2))
+    chunked_urls = list(zip_longest(*[iter(url_payload.items())] * max_workers))
     chunked_urls[-1] = tuple(i for i in chunked_urls[-1] if i is not None)
 
     results: List[Union[str, MutableMapping[str, Any], bytes]] = []
     for chunk in chunked_urls:
         loop = asyncio.get_event_loop()
-        results.append(loop.run_until_complete(_async_session(loop, chunk, read, request)))  # type: ignore
+        results.append(loop.run_until_complete(_async_session(chunk, read, request)))  # type: ignore
         del loop
     return [x for y in results for x in y]  # type: ignore
 
