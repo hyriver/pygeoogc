@@ -2,7 +2,7 @@
 History
 =======
 
-0.1.11 (2020-12-06)
+0.2.0 (2020-12-06)
 -------------------
 
 - Added/Renamed three class methods in ``ArcGISRESTful``: ``oids_bygeom``, ``oids_byfield``,
