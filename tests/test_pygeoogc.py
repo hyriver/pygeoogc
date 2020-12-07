@@ -173,8 +173,8 @@ def test_ipv4():
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_async():
-    west, south, east, north = (-118.72044, 34.11825, -118.36889, 34.35481)
+def test_async(geometry_nat):
+    west, south, east, north = geometry_nat.bounds
     base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
     url_binary = []
     dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
@@ -185,7 +185,7 @@ def test_async():
             + "&".join(
                 [
                     f"MCD13.A{s.year}.unaccum.nc4?",
-                    f"var=NDVI",
+                    "var=NDVI",
                     f"north={north}",
                     f"west={west}",
                     f"east={east}",
@@ -217,7 +217,7 @@ def test_async():
     r_t = pygeoogc.async_requests(url_text, "text")
 
     assert (
-        sys.getsizeof(r_b[0]) == 460745
+        sys.getsizeof(r_b[0]) == 986161
         and r_j[0]["features"][0]["properties"]["identifier"] == "2675320"
         and r_t[0].split("\n")[-2].split("\t")[1] == "01646500"
     )
