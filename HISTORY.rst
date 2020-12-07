@@ -2,10 +2,11 @@
 History
 =======
 
-0.2.1 (2020-12-06)
+0.2.2 (2020-12-05)
 -------------------
 
 - Remove unused variables in ``async_requests`` and use ``max_workers``.
+- Fix the ``async_requests`` issue on Windows systems.
 
 
 0.2.0 (2020-12-06)
