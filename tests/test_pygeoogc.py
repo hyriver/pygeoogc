@@ -2,6 +2,7 @@
 import io
 import sys
 import zipfile
+from datetime import datetime
 
 import pytest
 from shapely.geometry import Polygon
@@ -173,31 +174,39 @@ def test_ipv4():
 
 @pytest.mark.flaky(max_runs=3)
 def test_async():
-    url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/13281990/daymet_v3_prcp_1990_na.nc4"
-    payload = {
-        "var": "prcp",
-        "north": 45.03690024304768,
-        "west": -68.32580022647919,
-        "east": -67.85159909767978,
-        "south": 44.55340147224697,
-        "disableProjSubset": "on",
-        "horizStride": 1,
-        "time_start": "1990-01-01T12:00:00Z",
-        "time_end": "1990-01-10T12:00:00Z",
-        "timeStride": 1,
-        "addLatLon": "true",
-        "accept": "netcdf",
-    }
-    url_binary = {url: payload}
+    west, south, east, north = (-118.72044, 34.11825, -118.36889, 34.35481)
+    base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
+    url_binary = []
+    dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
 
-    url_json = [
-        "".join(
-            [
-                "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/",
-                "position?coords=POINT%28-68.325%2045.0369%29",
-            ]
+    for s, e in dates_itr:
+        url_binary.append(
+            base_url
+            + "&".join(
+                [
+                    f"MCD13.A{s.year}.unaccum.nc4?",
+                    f"var=NDVI",
+                    f"north={north}",
+                    f"west={west}",
+                    f"east={east}",
+                    f"south={south}",
+                    "disableProjSubset=on",
+                    "horizStride=1",
+                    f'time_start={s.strftime("%Y-%m-%dT%H:%M:%SZ")}',
+                    f'time_end={e.strftime("%Y-%m-%dT%H:%M:%SZ")}',
+                    "timeStride=1",
+                    "addLatLon=true",
+                    "accept=netcdf",
+                ]
+            )
         )
-    ]
+
+    url_json = {
+        "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/position": {
+            "f": "json",
+            "coords": "POINT(-68.325 45.0369)",
+        }
+    }
 
     url_text = [
         "https://waterservices.usgs.gov/nwis/site/?format=rdb&sites=01646500&siteStatus=all"
@@ -208,7 +217,7 @@ def test_async():
     r_t = pygeoogc.async_requests(url_text, "text")
 
     assert (
-        sys.getsizeof(r_b[0]) == 187205
+        sys.getsizeof(r_b[0]) == 460745
         and r_j[0]["features"][0]["properties"]["identifier"] == "2675320"
         and r_t[0].split("\n")[-2].split("\t")[1] == "01646500"
     )
