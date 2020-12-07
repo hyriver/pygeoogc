@@ -263,6 +263,8 @@ def async_requests(
     list
         A list of responses
     """
+    import sys
+
     if not isinstance(urls, list) and not isinstance(urls, dict):
         raise InvalidInputType("urls", "list of urls or dict of urls and payloads")
 
@@ -272,6 +274,8 @@ def async_requests(
 
     results: List[Union[str, MutableMapping[str, Any], bytes]] = []
     for chunk in chunked_urls:
+        if sys.platform.startswith("win"):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.get_event_loop()
         results.append(loop.run_until_complete(_async_session(chunk, read, request)))  # type: ignore
         del loop
