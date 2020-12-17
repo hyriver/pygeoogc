@@ -73,7 +73,7 @@ class RetrySession:
             connect=retries,
             backoff_factor=backoff_factor,
             status_forcelist=status_to_retry,
-            method_whitelist=False,
+            allowed_methods=False,
         )
         adapter = HTTPAdapter(max_retries=r)
         for prefix in prefixes:
