@@ -187,11 +187,7 @@ within a geometry as follows:
     import pygeoutils as geoutils
     from pynhd import NLDI
 
-    basin_geom = NLDI().getfeature_byid(
-        "nwissite",
-        "USGS-11092450",
-        basin=True
-    ).geometry[0]
+    basin_geom = NLDI().get_basins("01031500").geometry[0]
 
     hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, outformat="json")
     hr.layer = 2
@@ -263,6 +259,41 @@ any valid `CQL filter <https://docs.geoserver.org/stable/en/user/tutorials/cql/c
     r = wfs.getfeature_byfilter(f"huc8 LIKE '13030%'")
     huc8 = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
+PyGeoOGC, has a function for asynchronous download which can help speed up sending/receiveing requests. For example, let's use this function to get [NDVI](https://daac.ornl.gov/VEGETATION/guides/US_MODIS_NDVI.html) data from DACC server. The function can be directly passed to ``xarray.open_mfdataset`` to get the data as an xarray Dataset.
+
+.. code-block:: python
+
+    import xarray as xr
+    import pygeoogc as ogc
+    from datetime import datetime
+
+    west, south, east, north = basin_geom.bounds
+    base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
+    urls = []
+    dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
+
+    for s, e in dates_itr:
+        urls.append(
+            base_url
+            + "&".join(
+                [
+                    f"MCD13.A{s.year}.unaccum.nc4?",
+                    f"var=NDVI",
+                    f"north={north}",
+                    f"west={west}",
+                    f"east={east}",
+                    f"south={south}",
+                    "disableProjSubset=on",
+                    "horizStride=1",
+                    f'time_start={s.strftime("%Y-%m-%dT%H:%M:%SZ")}',
+                    f'time_end={e.strftime("%Y-%m-%dT%H:%M:%SZ")}',
+                    "timeStride=1",
+                    "addLatLon=true",
+                    "accept=netcdf",
+                ]
+            )
+        )
+    data = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
 
 Contributing
 ------------
