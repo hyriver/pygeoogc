@@ -67,14 +67,19 @@ class RetrySession:
         self.session = Session()
         self.retries = retries
 
-        r = Retry(
-            total=retries,
-            read=retries,
-            connect=retries,
-            backoff_factor=backoff_factor,
-            status_forcelist=status_to_retry,
-            allowed_methods=False,
-        )
+        retry_args = {
+            "total": retries,
+            "read": retries,
+            "connect": retries,
+            "backoff_factor": backoff_factor,
+            "status_forcelist": status_to_retry,
+        }
+        if hasattr(Retry.DEFAULT, "allowed_methods"):
+            retry_args.update({"allowed_methods": False})
+        else:
+            retry_args.update({"method_whitelist": False})
+
+        r = Retry(**retry_args)
         adapter = HTTPAdapter(max_retries=r)
         for prefix in prefixes:
             self.session.mount(prefix, adapter)
