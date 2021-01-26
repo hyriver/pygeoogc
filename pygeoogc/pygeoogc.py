@@ -2,7 +2,8 @@
 from collections import defaultdict
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
+from types import SimpleNamespace
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import pyproj
@@ -578,22 +579,21 @@ class ServiceURL:
         with open(fpath) as fp:
             self.urls = yaml.safe_load(fp)
 
-    def _make_nt(self, service: str) -> NamedTuple:
-        services = NamedTuple("services", [(n, str) for n in self.urls[service]])  # type: ignore
-        return services(**self.urls[service])  # type: ignore
+    def _make_nt(self, service: str) -> SimpleNamespace:
+        return SimpleNamespace(**self.urls[service])
 
     @property
-    def restful(self) -> NamedTuple:
+    def restful(self) -> SimpleNamespace:
         return self._make_nt("restful")
 
     @property
-    def wms(self) -> NamedTuple:
+    def wms(self) -> SimpleNamespace:
         return self._make_nt("wms")
 
     @property
-    def wfs(self) -> NamedTuple:
+    def wfs(self) -> SimpleNamespace:
         return self._make_nt("wfs")
 
     @property
-    def http(self) -> NamedTuple:
+    def http(self) -> SimpleNamespace:
         return self._make_nt("http")
