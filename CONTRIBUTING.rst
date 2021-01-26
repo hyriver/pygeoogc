@@ -149,4 +149,3 @@ Then run:
 where ``X.X.X`` is the version number following the
 `semantic versioning spec <https://semver.org>`__ i.e., MAJOR.MINOR.PATCH.
 Then release the tag from Github and Github Actions will deploy it to PyPi.
-
