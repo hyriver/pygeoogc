@@ -298,7 +298,6 @@ def async_requests(
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.get_event_loop()
         results.append(loop.run_until_complete(_async_session(chunk, read, request)))  # type: ignore
-        del loop
     return [x for y in results for x in y]  # type: ignore
 
 
