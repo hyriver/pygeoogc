@@ -27,8 +27,8 @@ from defusedxml import cElementTree as etree
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
+from shapely import ops
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box
-from shapely.ops import transform
 from urllib3 import Retry
 
 from .exceptions import InvalidInputType, InvalidInputValue, ThreadingException, ZeroMatched
@@ -114,7 +114,22 @@ class RetrySession:
         """Disable IPv6 and only use IPv4."""
         orig_getaddrinfo = socket.getaddrinfo
 
-        def getaddrinfo_ipv4(host, port, family=socket.AF_INET, ptype=0, proto=0, flags=0):
+        def getaddrinfo_ipv4(
+            host: str,
+            port: str,
+            family: socket.AddressFamily = socket.AF_INET,
+            ptype: int = 0,
+            proto: int = 0,
+            flags: int = 0,
+        ) -> List[
+            Tuple[
+                socket.AddressFamily,
+                socket.SocketKind,
+                int,
+                str,
+                Union[Tuple[str, int], Tuple[str, int, int, int]],
+            ]
+        ]:
             return orig_getaddrinfo(
                 host=host,
                 port=port,
@@ -149,7 +164,7 @@ async def _request_binary(
         The retrieved response as binary
     """
     async with session_req(url, **payload) as response:
-        return await response.read()
+        return await response.read()  # type: ignore
 
 
 async def _request_json(
@@ -174,7 +189,7 @@ async def _request_json(
         The retrieved response as json
     """
     async with session_req(url, **payload) as response:
-        return await response.json()
+        return await response.json()  # type: ignore
 
 
 async def _request_text(
@@ -199,7 +214,7 @@ async def _request_text(
         The retrieved response as string
     """
     async with session_req(url, **payload) as response:
-        return await response.text()
+        return await response.text()  # type: ignore
 
 
 async def _async_session(
@@ -323,7 +338,7 @@ def threading(
             itr = future_to_itr[future]
             try:
                 data.append(future.result())
-            except Exception as exc:
+            except Exception as exc:  # noqa: B902
                 raise ThreadingException(itr, exc)
     return data
 
@@ -348,7 +363,12 @@ def traverse_json(
         The items founds in the JSON
     """
 
-    def extract(obj, path, ind, arr):
+    def extract(
+        obj: Optional[Union[List[Any], Dict[str, Any]]],
+        path: Union[str, List[str]],
+        ind: int,
+        arr: List[Any],
+    ) -> List[Any]:
         key = path[ind]
         if ind + 1 < len(path):
             if isinstance(obj, dict):
@@ -462,7 +482,7 @@ class MatchCRS:
             raise InvalidInputType("geom", "Polygon")
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        return transform(project, geom)
+        return ops.transform(project, geom)
 
     @staticmethod
     def bounds(
@@ -472,7 +492,7 @@ class MatchCRS:
             raise InvalidInputType("geom", "tuple of length 4", BOX_ORD)
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        return transform(project, box(*geom)).bounds
+        return ops.transform(project, box(*geom)).bounds  # type: ignore
 
     @staticmethod
     def coords(
@@ -561,12 +581,14 @@ def bbox_decompose(
     geod = pyproj.Geod(ellps="WGS84")
     west, south, east, north = _bbox
 
-    def directional_split(az: float, origin: float, dest: float, lvl: float, xy: bool, px: int):
+    def directional_split(
+        az: float, origin: float, dest: float, lvl: float, xy: bool, px: int
+    ) -> Tuple[List[Tuple[float, Any]], List[int]]:
         divs = [0]
         mul = 1.0
         coords = []
 
-        def get_args(dst, dx):
+        def get_args(dst: float, dx: float) -> Tuple[float, float, float, float, int]:
             return (dst, lvl, az, dx, 0) if xy else (lvl, dst, az, dx, 1)
 
         while divs[-1] < 1:

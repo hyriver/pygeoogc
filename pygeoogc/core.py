@@ -166,7 +166,7 @@ class ArcGISRESTfulBase:
                 self.units = resp["units"].replace("esri", "").lower()
             except KeyError:
                 self.units = None
-            self.maxrec_ount = resp["maxRecordCount"]
+            self.maxrec_ount = int(resp["maxRecordCount"])
             self.query_formats = resp["supportedQueryFormats"].replace(" ", "").lower().split(",")
             self.valid_fields = list(
                 set(
@@ -200,10 +200,10 @@ class ArcGISRESTfulBase:
             raise ValueError(
                 f"The server doesn't accept more than {self.maxrec_ount}" + " records per request."
             )
-        if value > 0:
-            self._max_nrecords = value
-        else:
+        if value < 0:
             raise InvalidInputType("max_nrecords", "positive int")
+
+        self._max_nrecords = value
 
     @property
     def featureids(self) -> List[Tuple[str, ...]]:
@@ -342,7 +342,7 @@ class WFSBase:
             + f"Output CRS: {self.crs}"
         )
 
-    def validate_wfs(self):
+    def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
         wfs = WebFeatureService(self.url, version=self.version)
 

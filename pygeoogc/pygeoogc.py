@@ -1,8 +1,8 @@
 """Base classes and function for REST, WMS, and WMF services."""
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple, Union
 from warnings import warn
 
 import pyproj
@@ -66,14 +66,15 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if not isinstance(sql_clause, str):
             raise InvalidInputType("sql_clause", str)
 
+        if not isinstance(geom, (tuple, Polygon)):
+            raise InvalidInputType("geom", "Polygon or tuple of length 4")
+
         if isinstance(geom, tuple):
             geom = MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).bbox()
         elif isinstance(geom, Polygon):
             geom = MatchCRS.geometry(geom, geo_crs, self.crs)
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
-        else:
-            raise InvalidInputType("geom", "tuple or Polgon")
 
         payload = {
             **geom_query,  # type: ignore
@@ -175,10 +176,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "f": self.outformat,
         }
 
-        def getter(ids: Tuple[str, ...]) -> Union[Response, Tuple[str, ...]]:
+        def getter(ids: Tuple[str, ...]) -> Union[Dict[str, Any], Tuple[str, ...]]:
             payload.update({"objectIds": ", ".join(ids)})
             resp = self.session.post(f"{self.base_url}/query", payload)
-            r_json = resp.json()
+            r_json: Dict[str, Any] = resp.json()
             try:
                 if "error" in r_json:
                     return ids
@@ -315,7 +316,9 @@ class WMS(WMSBase):
 
         geographic_crs = pyproj.CRS.from_user_input(self.crs).is_geographic
 
-        def _getmap(args):
+        def _getmap(
+            args: Tuple[str, Tuple[Tuple[float, float, float, float], str, int, int]]
+        ) -> Tuple[str, bytes]:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
@@ -323,8 +326,8 @@ class WMS(WMSBase):
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
 
             payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
-            payload["width"] = _width
-            payload["height"] = _height
+            payload["width"] = str(_width)
+            payload["height"] = str(_height)
             payload["layers"] = lyr
             resp = self.session.get(self.url, payload)
             return f"{lyr}_dd_{counter}", resp.content
@@ -542,6 +545,10 @@ class WFS(WFSBase):
         if not isinstance(cql_filter, str):
             raise InvalidInputType("cql_filter", "str")
 
+        valid_methods = ["GET", "POST"]
+        if method not in valid_methods:
+            raise InvalidInputValue("method", valid_methods)
+
         payload = {
             "service": "wfs",
             "version": self.version,
@@ -557,8 +564,6 @@ class WFS(WFSBase):
         elif method == "POST":
             headers = {"content-type": "application/x-www-form-urlencoded"}
             resp = self.session.post(self.url, payload, headers)
-        else:
-            raise InvalidInputValue("method", ["GET", "POST"])
 
         utils.check_response(resp)
 
@@ -568,26 +573,27 @@ class WFS(WFSBase):
 class ServiceURL:
     """Base URLs of the supported services."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         fpath = Path(__file__).parent.joinpath("static/urls.yml")
         with open(fpath) as fp:
             self.urls = yaml.safe_load(fp)
 
-    def _make_nt(self, service):
-        return namedtuple(service, self.urls[service].keys())(*self.urls[service].values())
+    def _make_nt(self, service: str) -> NamedTuple:
+        services = NamedTuple("services", [(n, str) for n in self.urls[service]])  # type: ignore
+        return services(**self.urls[service])  # type: ignore
 
     @property
-    def restful(self):
+    def restful(self) -> NamedTuple:
         return self._make_nt("restful")
 
     @property
-    def wms(self):
+    def wms(self) -> NamedTuple:
         return self._make_nt("wms")
 
     @property
-    def wfs(self):
+    def wfs(self) -> NamedTuple:
         return self._make_nt("wfs")
 
     @property
-    def http(self):
+    def http(self) -> NamedTuple:
         return self._make_nt("http")
