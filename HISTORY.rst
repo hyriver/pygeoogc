@@ -2,6 +2,15 @@
 History
 =======
 
+0.2.4 (2021-01-27)
+-------------------
+
+- Add support for query by point and multi-points to ``ArcGISRESTful.bygeom``.
+- Add support for buffer distance to ``ArcGISRESTful.bygeom``.
+- Add support for generating ESRI-based geometries for points and multi-points
+  to ``ESRIGeomQuery``.
+- Add all the missing type annotations.
+
 0.2.3 (2020-12-19)
 -------------------
 
@@ -63,7 +72,7 @@ History
 0.1.3 (2020-07-21)
 ------------------
 
-- Remove unneccassary transformation of the input bbox in WFS.
+- Remove unnecessary transformation of the input bbox in WFS.
 - Use ``setuptools_scm`` for versioning.
 
 0.1.2 (2020-07-16)
@@ -72,7 +81,7 @@ History
 - Add the missing ``max_pixel`` argument to the ``wms_bybox`` function.
 - Change the ``onlyIPv4`` method of ``RetrySession`` class to ``onlyipv4``
   to conform to the ``snake_case`` convention.
-- Improve docsctrings.
+- Improve docstrings.
 
 0.1.1 (2020-07-15)
 ------------------
