@@ -423,22 +423,33 @@ class ESRIGeomQuery:
         for reference.
     """
 
-    geometry: Union[Tuple[float, float], Tuple[float, float, float, float], Polygon]
+    geometry: Union[
+        Tuple[float, float], List[Tuple[float, float]], Tuple[float, float, float, float], Polygon
+    ]
     wkid: int
 
     def point(self) -> Dict[str, Union[str, bytes]]:
         """Query for a point."""
-        if len(self.geometry) != 2:
+        if not isinstance(self.geometry, tuple) and len(self.geometry) != 2:
             raise InvalidInputType("geometry (point)", "tuple", "(x, y)")
 
         geo_type = "esriGeometryPoint"
         geo_json = dict(zip(("x", "y"), self.geometry))
         return self.get_payload(geo_type, geo_json)
 
+    def multipoint(self) -> Dict[str, Union[str, bytes]]:
+        """Query for a multi-point."""
+        if not isinstance(self.geometry, list) and any(len(g) != 2 for g in self.geometry):  # type: ignore
+            raise InvalidInputType("geometry (multi-point)", "list of tuples", "[(x, y), ...]")
+
+        geo_type = "esriGeometryMultipoint"
+        geo_json = {"points": [[x, y] for x, y in self.geometry]}  # type: ignore
+        return self.get_payload(geo_type, geo_json)
+
     def bbox(self) -> Dict[str, Union[str, bytes]]:
         """Query for a bbox."""
-        if len(self.geometry) != 4:
-            raise InvalidInputType("geometry (bbox)", "tuple", BOX_ORD)
+        if not isinstance(self.geometry, (tuple, list)) and len(self.geometry) != 4:
+            raise InvalidInputType("geometry (bbox)", "tuple or list", BOX_ORD)
 
         geo_type = "esriGeometryEnvelope"
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
@@ -491,7 +502,8 @@ class MatchCRS:
             raise InvalidInputType("geom", "tuple of length 4", BOX_ORD)
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        return ops.transform(project, box(*geom)).bounds  # type: ignore
+        bbox: Tuple[float, float, float, float] = ops.transform(project, box(*geom)).bounds
+        return bbox
 
     @staticmethod
     def coords(
