@@ -49,33 +49,45 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
     def oids_bygeom(
         self,
-        geom: Union[Polygon, Tuple[float, float, float, float]],
+        geom: Union[Polygon, List[Tuple[float, float]], Tuple[float, float, float, float]],
         geo_crs: str = DEF_CRS,
         sql_clause: str = "",
+        distance: Optional[int] = None,
     ) -> None:
         """Get feature IDs within a geometry that can be combined with a SQL where clause.
 
         Parameters
         ----------
         geom : Polygon or tuple
-            A geometry (Polgon) or bounding box (tuple of length 4).
+            A geometry (Polygon) or bounding box (tuple of length 4).
         geo_crs : str
-            The spatial reference of the input geometry, defaults to EPSG:4326
+            The spatial reference of the input geometry, defaults to EPSG:4326.
         sql_clause : str, optional
-            A valid SQL 92 WHERE clause, default to an empty string i.e., no
+            A valid SQL 92 WHERE clause, default to an empty string.
+        distance : int, optional
+            The buffer distance for the input geometries in meters, default to None.
         """
         if not isinstance(sql_clause, str):
             raise InvalidInputType("sql_clause", str)
 
-        if not isinstance(geom, (tuple, Polygon)):
-            raise InvalidInputType("geom", "Polygon or tuple of length 4")
-
-        if isinstance(geom, tuple):
+        geom_query = None
+        if isinstance(geom, tuple) and len(geom) == 2:
+            _geom = MatchCRS.coords(((geom[0],), (geom[1],)), geo_crs, self.crs)
+            geom = (_geom[0][0], _geom[1][0])
+            geom_query = utils.ESRIGeomQuery(geom, self.out_sr).point()
+        elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
+            _geom = MatchCRS.coords(tuple(zip(*geom)), geo_crs, self.crs)  # type: ignore
+            geom = tuple(zip(*_geom))
+            geom_query = utils.ESRIGeomQuery(geom, self.out_sr).multipoint()
+        elif isinstance(geom, tuple) and len(geom) == 4:
             geom = MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).bbox()
         elif isinstance(geom, Polygon):
             geom = MatchCRS.geometry(geom, geo_crs, self.crs)
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
+
+        if geom_query is None:
+            raise InvalidInputType("geom", "Polygon, tuple, or list of tuple")
 
         payload = {
             **geom_query,  # type: ignore
@@ -84,6 +96,9 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "returnIdsOnly": "true",
             "f": self.outformat,
         }
+        if distance:
+            payload["distance"] = f"{distance}"
+            payload["units"] = "esriSRUnit_Meter"
 
         if len(sql_clause) > 0:
             payload.update({"where": sql_clause})
@@ -95,7 +110,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         except (KeyError, TypeError, IndexError, JSONDecodeError):
             raise ZeroMatched(self._zeromatched)
 
-    def oids_byfield(self, field: str, ids: Union[str, List[str]], return_m: bool = False) -> None:
+    def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> None:
         """Get Object IDs based on a list of field IDs.
 
         Parameters
@@ -104,8 +119,6 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             Name of the target field that IDs belong to.
         ids : str or list
             A list of target ID(s).
-        return_m : bool
-            Whether to activate the Return M (measure) in the request, defaults to False.
 
         Returns
         -------
@@ -451,7 +464,7 @@ class WFS(WFSBase):
             The geometric prediacte to use for requesting the data, defaults to
             INTERSECTS. Valid predicates are:
             EQUALS, DISJOINT, INTERSECTS, TOUCHES, CROSSES, WITHIN, CONTAINS,
-            OVERLAPS, RELATE, DWITHIN, BEYOND
+            OVERLAPS, RELATE, BEYOND
 
         Returns
         -------
@@ -479,7 +492,6 @@ class WFS(WFSBase):
             "CONTAINS",
             "OVERLAPS",
             "RELATE",
-            "DWITHIN",
             "BEYOND",
         ]
         if predicate not in valid_predicates:
