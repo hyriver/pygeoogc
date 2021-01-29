@@ -96,8 +96,8 @@ that are based on
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. It is noted that although
 all these web service have limits on the number of features per requests (e.g., 1000
-objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides the requests into
-smaller chunks under-the-hood and then merges the returned responses.
+objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides
+the requests into smaller chunks under-the-hood and then merges the returned responses.
 
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in three categories: ``ServiceURL().restful``,
