@@ -95,53 +95,54 @@ that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. It is noted that although
-all these web service have limits on the number of objects per requests (e.g., 1000
-objectIDs for RESTful and 8 million pixels for WMS), PyGeoOGC divides the requests into
+all these web service have limits on the number of features per requests (e.g., 1000
+objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides the requests into
 smaller chunks under-the-hood and then merges the returned responses.
 
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in three categories: ``ServiceURL().restful``,
 ``ServiceURL().wms``, and ``ServiceURL().wfs``. These URLs provide you with some examples
 of the services that PyGeoOGC supports. All the URLs are read from a YAML file located
-`here <pygeoogc/static/urls.yml>`_. If you had success using PyGeoOGC with a web service
+`here <pygeoogc/static/urls.yml>`_. If you have success using PyGeoOGC with a web service
 please consider adding its URL to this YAML file which is located at ``pygeoogc/static/urls.yml``.
 
 There are three main classes:
 
 * ``ArcGISRESTful``: This class can be instantiated by providing the target layer URL.
   For example, for getting Watershed Boundary Data we can use ``ServiceURL().restful.wbd``.
-  By looking at the web service website
-  (https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer) we see that there are 9
-  layers; 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. We can either
-  pass the base URL or concatenate the target layer number like so
+  By looking at the web service `website <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`_
+  we see that there are 9
+  layers. For example, 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. We can
+  pass the URL to the target layer like this
   ``f"{ServiceURL().restful.wbd}/6"``.
 
-  If you want to change the layer you can simply set the ``layer`` property of the class.
-  Afterward, we can request for the data in two steps. First, get the object IDs using
+  Another option is to pass the base URL, ``ServiceURL().restful.wbd``, then set the ``layer``
+  property of the class.
+  Afterward, we request for the data in two steps. First, we need to get the taget object IDs using
   ``oids_bygeom`` (within a geometry), ``oids_byfield`` (specific field IDs), or ``oids_bysql``
-  (any valid SQL 92 WHERE clause) class methods. Second, get the actual data using ``get_features``
-  class method. The returned response can be converted into a GeoDataFrame using ``json2geodf``
-  function from `PyGeoOGC <https://github.com/cheginit/pygeoutils>`__ package.
+  (any valid SQL 92 WHERE clause) class methods. Then, we can get the target features using
+  ``get_features`` class method. The returned response can be converted into a GeoDataFrame using
+  ``json2geodf`` function from `PyGeoUtils <https://github.com/cheginit/pygeoutils>`__ package.
 
-* ``WMS``: Instantiation of this class requires at least 3 arguments: service URL, layer(s)
+* ``WMS``: Instantiation of this class requires at least 3 arguments: service URL, layer
   name(s), and output format. Additionally, target CRS and the web service version can be provided.
-  Upon instantiation, we could use ``getmap_bybox`` method class to get the raster data within a
-  bounding box. The box can be any valid CRS and if it is different from the default EPSG:4326, it
-  should be passed to the function using ``box_crs`` argumnet. The service response can be
-  converted into a ``xarray.Dataset`` using ``gtiff2xarray`` function from PyGeoOGC package.
+  Upon instantiation, we could use ``getmap_bybox`` method class to get the target raster data
+  within a bounding box. The box can be in any valid CRS and if it is different from the default
+  CRS, EPSG:4326, it should be passed using ``box_crs`` argumnet. The service response can be
+  converted into a ``xarray.Dataset`` using ``gtiff2xarray`` function from PyGeoUtils package.
 
-* ``WFS``: Instantiation of this class is similar to ``WMS`` and the only difference is that
+* ``WFS``: Instantiation of this class is similar to ``WMS``. The only difference is that
   only one layer name can be passed. Upon instantiation there are three ways to get the data:
 
-  - ``getfeature_bybox``: Get all the features within a bounding box in any valid CRS.
-  - ``getfeature_byid``: Get all the features based on the IDs. Note that two arguments should be
-    provided: ``featurename``, and ``featureids``. You can get a list of valid feature names using
-    ``get_validnames`` class method.
-  - ``getfeature_byfilter``: Get the data based on a valid
+  - ``getfeature_bybox``: Get all the target features within a bounding box in any valid CRS.
+  - ``getfeature_byid``: Get all the target features based on the IDs. Note that two arguments
+    should be provided: ``featurename``, and ``featureids``. You can get a list of valid feature
+    names using ``get_validnames`` class method.
+  - ``getfeature_byfilter``: Get the data based on any valid
     `CQL <https://docs.geoserver.org/latest/en/user/tutorials/cql/cql_tutorial.html>`__ filter.
 
-  You can convert the returned response to a GeoDataFrame using ``json2geodf`` function
-  from PyGeoOGC package.
+  You can convert the returned response of this function to a GeoDataFrame using ``json2geodf``
+  function from PyGeoUtils package.
 
 You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
 below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
@@ -176,7 +177,7 @@ via RESTful service,
 `FEMA National Flood Hazard <https://www.fema.gov/national-flood-hazard-layer-nfhl>`__
 via WFS. The output for these functions are of type ``requests.Response`` that
 can be converted to ``GeoDataFrame`` or ``xarray.Dataset`` using
-`PyGeoOGC <https://github.com/cheginit/pygeoogc>`__.
+`PyGeoUtils <https://github.com/cheginit/pygeoutils>`__.
 
 Let's start the National Map's NHDPlus HR web service. We can query the flowlines that are
 within a geometry as follows:
