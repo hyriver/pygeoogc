@@ -23,7 +23,7 @@ repos:
     - id: end-of-file-fixer
 
   - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.7.0
+    rev: v1.7.1
     hooks:
     - id: rst-backticks
     - id: rst-directive-colons
@@ -54,10 +54,10 @@ repos:
       - id: mypy
         name: Static type checking with mypy
         exclude: tests
-        files: pygeoogc
+        files: pynhd
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.4
+    rev: v2.9.0
     hooks:
       - id: pyupgrade
         name: Upgrade synax to python 3.6+ with pyupgrade
@@ -68,5 +68,5 @@ repos:
     hooks:
       - id: bandit
         name: Check for security issues with bandit
-        args: [-lll, --recursive, pygeoogc]
+        args: [-lll, --recursive, pynhd]
         files: .py$
