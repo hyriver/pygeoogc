@@ -10,9 +10,9 @@ dependencies:
   - orjson
   - defusedxml
   - requests
-  - dataclasses
   - aiohttp
   - chardet
   - aiodns
   - brotlipy
   - nest-asyncio
+  - cytoolz

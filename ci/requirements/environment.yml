@@ -15,6 +15,7 @@ dependencies:
   - aiodns
   - brotlipy
   - nest-asyncio
+  - cytoolz
 
   - pytest-cov
   - pytest-xdist

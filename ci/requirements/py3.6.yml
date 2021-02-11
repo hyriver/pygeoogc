@@ -16,3 +16,4 @@ dependencies:
   - aiodns
   - brotlipy
   - nest-asyncio
+  - cytoolz
