@@ -87,7 +87,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
 
         if geom_query is None:
-            raise InvalidInputType("geom", "Polygon, tuple, or list of tuple")
+            raise InvalidInputType("geom", "Polygon, tuple, or list of tuples")
 
         payload = {
             **geom_query,  # type: ignore

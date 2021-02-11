@@ -2,7 +2,7 @@ http:
   ssebopeta: https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads
 
 restful:
-  daymet_grid: https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1328
+  daymet_grid: https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1840
   daymet_point: https://daymet.ornl.gov/single-pixel/api/data
   fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer
   fws: https://www.fws.gov/wetlands/arcgis/rest/services

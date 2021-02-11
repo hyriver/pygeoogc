@@ -201,35 +201,41 @@ def test_async(geometry_nat):
 
     for s, e in dates_itr:
         url_binary.append(
-            base_url
-            + "&".join(
-                [
-                    f"MCD13.A{s.year}.unaccum.nc4?",
-                    "var=NDVI",
-                    f"north={north}",
-                    f"west={west}",
-                    f"east={east}",
-                    f"south={south}",
-                    "disableProjSubset=on",
-                    "horizStride=1",
-                    f'time_start={s.strftime("%Y-%m-%dT%H:%M:%SZ")}',
-                    f'time_end={e.strftime("%Y-%m-%dT%H:%M:%SZ")}',
-                    "timeStride=1",
-                    "addLatLon=true",
-                    "accept=netcdf",
-                ]
+            (
+                base_url
+                + "&".join(
+                    [
+                        f"MCD13.A{s.year}.unaccum.nc4?",
+                        "var=NDVI",
+                        f"north={north}",
+                        f"west={west}",
+                        f"east={east}",
+                        f"south={south}",
+                        "disableProjSubset=on",
+                        "horizStride=1",
+                        f'time_start={s.strftime("%Y-%m-%dT%H:%M:%SZ")}',
+                        f'time_end={e.strftime("%Y-%m-%dT%H:%M:%SZ")}',
+                        "timeStride=1",
+                        "addLatLon=true",
+                        "accept=netcdf",
+                    ]
+                ),
+                None,
             )
         )
 
-    url_json = {
-        "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/position": {
-            "f": "json",
-            "coords": "POINT(-68.325 45.0369)",
-        }
-    }
+    url_json = [
+        (
+            "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/position",
+            {
+                "f": "json",
+                "coords": "POINT(-68.325 45.0369)",
+            },
+        )
+    ]
 
     url_text = [
-        "https://waterservices.usgs.gov/nwis/site/?format=rdb&sites=01646500&siteStatus=all"
+        ("https://waterservices.usgs.gov/nwis/site/?format=rdb&sites=01646500&siteStatus=all", None)
     ]
 
     r_b = pygeoogc.async_requests(url_binary, "binary")
@@ -249,7 +255,7 @@ def test_urls():
         urls.restful.nwis == "https://waterservices.usgs.gov/nwis"
         and urls.restful.nldi == "https://labs.waterdata.usgs.gov/api/nldi"
         and urls.restful.daymet_point == "https://daymet.ornl.gov/single-pixel/api/data"
-        and urls.restful.daymet_grid == "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1328"
+        and urls.restful.daymet_grid == "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1840"
         and urls.restful.wbd == "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
         and urls.restful.fws == "https://www.fws.gov/wetlands/arcgis/rest/services"
         and urls.restful.fema

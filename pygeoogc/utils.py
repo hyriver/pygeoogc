@@ -3,7 +3,6 @@ import asyncio
 import socket
 from concurrent import futures
 from dataclasses import dataclass
-from itertools import zip_longest
 from typing import (
     Any,
     Callable,
@@ -19,6 +18,7 @@ from typing import (
 from unittest.mock import _patch, patch
 
 import aiohttp
+import cytoolz as tlz
 import nest_asyncio
 import numpy as np
 import orjson as json
@@ -256,7 +256,7 @@ async def _async_session(
 
 
 def async_requests(
-    urls: Union[List[str], Dict[str, Optional[MutableMapping[str, Any]]]],
+    url_payload: List[Tuple[str, Optional[MutableMapping[str, Any]]]],
     read: str,
     request: str = "GET",
     max_workers: int = 8,
@@ -269,8 +269,8 @@ def async_requests(
 
     Parameters
     ----------
-    urls : list of str or dict of str and dict
-        A list of URLs or URLs with their payloads to be retrieved.
+    url_payload : list of tuples
+        A list of URLs and payloads as a tuple.
     read : str
         The method for returning the request; binary, json, and text.
     request : str, optional
@@ -283,22 +283,13 @@ def async_requests(
     list
         A list of responses
     """
-    import sys
-
-    if not isinstance(urls, list) and not isinstance(urls, dict):
-        raise InvalidInputType("urls", "list of urls or dict of urls and payloads")
-
-    url_payload = urls if isinstance(urls, dict) else {u: None for u in urls}
-    chunked_urls = list(zip_longest(*[iter(url_payload.items())] * max_workers))
-    chunked_urls[-1] = tuple(i for i in chunked_urls[-1] if i is not None)
+    chunked_urls = tlz.partition_all(max_workers, url_payload)
 
     results: List[Union[str, MutableMapping[str, Any], bytes]] = []
     for chunk in chunked_urls:
-        if sys.platform.startswith("win"):
-            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         loop = asyncio.get_event_loop()
         results.append(loop.run_until_complete(_async_session(chunk, read, request)))  # type: ignore
-    return [x for y in results for x in y]  # type: ignore
+    return list(tlz.concat(results))
 
 
 def threading(

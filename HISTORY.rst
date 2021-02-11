@@ -10,6 +10,9 @@ History
 - Add support for generating ESRI-based geometries for points and multi-points
   to ``ESRIGeomQuery``.
 - Add all the missing type annotations.
+- Update the Daymet url to version 4. You can check the release information
+  `here <https://daac.ornl.gov/DAYMET/guides/Daymet_Daily_V4.html>`_
+- Use ``cytoolz`` library for some of the operations for improving performance.
 
 0.2.3 (2020-12-19)
 -------------------

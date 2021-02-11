@@ -1,8 +1,8 @@
 """Base classes and function for REST, WMS, and WMF services."""
 from dataclasses import dataclass
-from itertools import zip_longest
 from typing import Dict, List, Optional, Tuple, Union
 
+import cytoolz as tlz
 import pyproj
 from orjson import JSONDecodeError
 from owslib.wfs import WebFeatureService
@@ -214,15 +214,13 @@ class ArcGISRESTfulBase:
         if not isinstance(value, (list, int)):
             raise InvalidInputType("featureids", "int or list")
 
-        oids = [str(value)] if isinstance(value, int) else [str(v) for v in value]
+        oids = [str(value)] if isinstance(value, (int, str)) else [str(v) for v in value]
 
         self.nfeatures = len(oids)
         if self.nfeatures == 0:
             raise ZeroMatched(self._zeromatched)
 
-        oid_list = list(zip_longest(*[iter(oids)] * self.max_nrecords))
-        oid_list[-1] = tuple(i for i in oid_list[-1] if i is not None)
-        self._featureids = oid_list
+        self._featureids = list(tlz.partition_all(self.max_nrecords, oids))
 
     def __repr__(self) -> str:
         """Print the service configuration."""
