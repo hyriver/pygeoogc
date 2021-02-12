@@ -11,6 +11,7 @@ restful:
   wbd: https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer
   nhdhr: https://edits.nationalmap.gov/arcgis/rest/services/HEM/NHDHigh/MapServer
   nhdplushr: https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer
+  airmap: https://api.airmap.com/elevation/v1/ele
 
 wfs:
   fema: https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer

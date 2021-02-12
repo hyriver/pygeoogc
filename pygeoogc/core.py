@@ -175,6 +175,13 @@ class ArcGISRESTfulBase:
                     + ["*"]
                 )
             )
+            try:
+                extent = resp["extent"]
+                bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
+                crs = extent["spatialReference"]["latestWkid"]
+                self.extent = utils.MatchCRS.bounds(bounds, crs, DEF_CRS)
+            except KeyError:
+                self.extent = None
         except KeyError:
             raise ServerError(self.base_url)
 

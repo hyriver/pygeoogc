@@ -13,6 +13,9 @@ History
 - Update the Daymet url to version 4. You can check the release information
   `here <https://daac.ornl.gov/DAYMET/guides/Daymet_Daily_V4.html>`_
 - Use ``cytoolz`` library for some of the operations for improving performance.
+- Add ``extent`` property to ``ArcGISRESTful`` class that get the spatial extent
+  of the service.
+- Add url to ``airmap`` service for getting elevation data at 30 m resolution.
 
 0.2.3 (2020-12-19)
 -------------------

@@ -106,7 +106,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         resp = self.session.post(f"{self.base_url}/query", payload)
 
         try:
-            self.featureids = resp.json()["objectIds"]
+            r_json = resp.json()["objectIds"]
+            if r_json is None:
+                raise ZeroMatched(self._zeromatched)
+            self.featureids = r_json
         except (KeyError, TypeError, IndexError, JSONDecodeError):
             raise ZeroMatched(self._zeromatched)
 
@@ -162,7 +165,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         resp = self.session.post(f"{self.base_url}/query", payload)
 
         try:
-            self.featureids = resp.json()["objectIds"]
+            r_json = resp.json()["objectIds"]
+            if r_json is None:
+                raise ZeroMatched(self._zeromatched)
+            self.featureids = r_json
         except (KeyError, TypeError, IndexError, JSONDecodeError):
             raise ZeroMatched(self._zeromatched)
 
