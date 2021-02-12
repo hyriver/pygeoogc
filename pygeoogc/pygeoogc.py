@@ -11,7 +11,7 @@ import shapely.ops as ops
 import yaml
 from requests import Response
 from shapely.geometry import MultiPolygon, Polygon
-from simplejson.decoder import JSONDecodeError
+from simplejson import JSONDecodeError
 
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
