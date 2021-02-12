@@ -9,9 +9,9 @@ from warnings import warn
 import pyproj
 import shapely.ops as ops
 import yaml
-from orjson import JSONDecodeError
 from requests import Response
 from shapely.geometry import MultiPolygon, Polygon
+from simplejson.decoder import JSONDecodeError
 
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase

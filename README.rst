@@ -260,7 +260,7 @@ any valid `CQL filter <https://docs.geoserver.org/stable/en/user/tutorials/cql/c
     r = wfs.getfeature_byfilter(f"huc8 LIKE '13030%'")
     huc8 = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
-PyGeoOGC, has a function for asynchronous download which can help speed up sending/receiveing requests. For example, let's use this function to get [NDVI](https://daac.ornl.gov/VEGETATION/guides/US_MODIS_NDVI.html) data from DACC server. The function can be directly passed to ``xarray.open_mfdataset`` to get the data as an xarray Dataset.
+PyGeoOGC, has a function for asynchronous download which can help speed up sending/receiveing requests. For example, let's use this function to get `NDVI <https://daac.ornl.gov/VEGETATION/guides/US_MODIS_NDVI.html>`_ data from DACC server. The function can be directly passed to ``xarray.open_mfdataset`` to get the data as an xarray Dataset.
 
 .. code-block:: python
 
