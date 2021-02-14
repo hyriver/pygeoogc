@@ -2,7 +2,7 @@
 History
 =======
 
-0.2.4 (2021-01-27)
+0.2.4 (2021-02-14)
 -------------------
 
 - Add support for query by point and multi-points to ``ArcGISRESTful.bygeom``.
