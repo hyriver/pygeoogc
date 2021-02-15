@@ -2,14 +2,14 @@ http:
   ssebopeta: https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads
 
 restful:
-  daymet_grid: https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1840
+  daymet: https://thredds.daac.ornl.gov/thredds/ncss/ornldaac
   daymet_point: https://daymet.ornl.gov/single-pixel/api/data
   fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer
   fws: https://www.fws.gov/wetlands/arcgis/rest/services
   nldi: https://labs.waterdata.usgs.gov/api/nldi
   nwis: https://waterservices.usgs.gov/nwis
   wbd: https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer
-  nhdhr: https://edits.nationalmap.gov/arcgis/rest/services/HEM/NHDHigh/MapServer
+  nhd: https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer
   nhdplushr: https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer
   airmap: https://api.airmap.com/elevation/v1/ele
 
