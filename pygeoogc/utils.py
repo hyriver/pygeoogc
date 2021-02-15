@@ -28,7 +28,7 @@ from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from shapely import ops
-from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box
+from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon, box
 from urllib3 import Retry
 
 from .exceptions import InvalidInputType, InvalidInputValue, ThreadingException, ZeroMatched
@@ -405,7 +405,7 @@ class ESRIGeomQuery:
     Parameters
     ----------
     geometry : tuple or Polygon
-        The input geometry which can be a point (x, y),
+        The input geometry which can be a point (x, y), a list of points [(x, y), ...],
         bbox (xmin, ymin, xmax, ymax), or a Shapely's Polygon.
     wkid : int
         The Well-known ID (WKID) of the geometry's spatial reference e.g., for EPSG:4326,
@@ -478,9 +478,11 @@ class MatchCRS:
     """
 
     @staticmethod
-    def geometry(geom: Union[Polygon, MultiPolygon], in_crs: str, out_crs: str) -> Polygon:
-        if not isinstance(geom, (Polygon, MultiPolygon)):
-            raise InvalidInputType("geom", "Polygon")
+    def geometry(
+        geom: Union[Polygon, MultiPolygon, Point, MultiPoint], in_crs: str, out_crs: str
+    ) -> Union[Polygon, MultiPolygon, Point, MultiPoint]:
+        if not isinstance(geom, (Polygon, MultiPolygon, Point, MultiPoint)):
+            raise InvalidInputType("geom", "Polygon, MultiPolygon, Point, or MultiPoint")
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
         return ops.transform(project, geom)

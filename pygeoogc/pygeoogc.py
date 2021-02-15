@@ -10,7 +10,7 @@ import pyproj
 import shapely.ops as ops
 import yaml
 from requests import Response
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import MultiPoint, MultiPolygon, Point, Polygon
 from simplejson import JSONDecodeError
 
 from . import utils
@@ -49,7 +49,14 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
     def oids_bygeom(
         self,
-        geom: Union[Polygon, List[Tuple[float, float]], Tuple[float, float, float, float]],
+        geom: Union[
+            Polygon,
+            Point,
+            MultiPoint,
+            Tuple[float, float],
+            List[Tuple[float, float]],
+            Tuple[float, float, float, float],
+        ],
         geo_crs: str = DEF_CRS,
         sql_clause: str = "",
         distance: Optional[int] = None,
@@ -58,8 +65,9 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
         Parameters
         ----------
-        geom : Polygon or tuple
-            A geometry (Polygon) or bounding box (tuple of length 4).
+        geom : Polygon, Point, MultiPoint, tuple, or list of tuples
+            A geometry (Polygon, Point, MultiPoint), tuple of length 2 (x, y),
+            a list of tuples of length 2 [(x, y), ...], or bounding box (tuple of length 4).
         geo_crs : str
             The spatial reference of the input geometry, defaults to EPSG:4326.
         sql_clause : str, optional
@@ -70,24 +78,27 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if not isinstance(sql_clause, str):
             raise InvalidInputType("sql_clause", str)
 
-        geom_query = None
         if isinstance(geom, tuple) and len(geom) == 2:
-            _geom = MatchCRS.coords(((geom[0],), (geom[1],)), geo_crs, self.crs)
-            geom = (_geom[0][0], _geom[1][0])
-            geom_query = utils.ESRIGeomQuery(geom, self.out_sr).point()
+            geom = Point(geom)
         elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
-            _geom = MatchCRS.coords(tuple(zip(*geom)), geo_crs, self.crs)  # type: ignore
-            geom = tuple(zip(*_geom))
-            geom_query = utils.ESRIGeomQuery(geom, self.out_sr).multipoint()
-        elif isinstance(geom, tuple) and len(geom) == 4:
+            geom = MultiPoint(geom)
+
+        geom_query = None
+        if isinstance(geom, tuple) and len(geom) == 4:
             geom = MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).bbox()
+        elif isinstance(geom, Point):
+            geom = MatchCRS.geometry(geom, geo_crs, self.crs)
+            geom_query = utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
+        elif isinstance(geom, MultiPoint):
+            geom = MatchCRS.geometry(geom, geo_crs, self.crs)
+            geom_query = utils.ESRIGeomQuery([(g.x, g.y) for g in geom], self.out_sr).multipoint()
         elif isinstance(geom, Polygon):
             geom = MatchCRS.geometry(geom, geo_crs, self.crs)
             geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
 
         if geom_query is None:
-            raise InvalidInputType("geom", "Polygon, tuple, or list of tuples")
+            raise InvalidInputType("geom", "Polygon, Point, MultiPoint, tuple, or list of tuples")
 
         payload = {
             **geom_query,  # type: ignore

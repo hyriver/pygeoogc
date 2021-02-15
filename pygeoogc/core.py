@@ -166,7 +166,7 @@ class ArcGISRESTfulBase:
                 self.units = resp["units"].replace("esri", "").lower()
             except KeyError:
                 self.units = None
-            self.maxrec_ount = int(resp["maxRecordCount"])
+            self.max_records = int(resp["maxRecordCount"])
             self.query_formats = resp["supportedQueryFormats"].replace(" ", "").lower().split(",")
             self.valid_fields = list(
                 set(
@@ -185,7 +185,7 @@ class ArcGISRESTfulBase:
         except KeyError:
             raise ServerError(self.base_url)
 
-        self._max_nrecords = self.maxrec_ount
+        self._max_nrecords = self.max_records
 
     @property
     def n_threads(self) -> int:
@@ -203,9 +203,9 @@ class ArcGISRESTfulBase:
 
     @max_nrecords.setter
     def max_nrecords(self, value: int) -> None:
-        if value > self.maxrec_ount:
+        if value > self.max_records:
             raise ValueError(
-                f"The server doesn't accept more than {self.maxrec_ount}" + " records per request."
+                f"The server doesn't accept more than {self.max_records}" + " records per request."
             )
         if value < 0:
             raise InvalidInputType("max_nrecords", "positive int")
@@ -231,12 +231,16 @@ class ArcGISRESTfulBase:
 
     def __repr__(self) -> str:
         """Print the service configuration."""
-        return (
-            "Service configurations:\n"
-            + f"URL: {self.base_url}\n"
-            + f"Max Record Count: {self.maxrec_ount}\n"
-            + f"Supported Query Formats: {self.query_formats}\n"
-            + f"Units: {self.units}"
+        extent = ", ".join(f"{c:.3f}" for c in self.extent) if self.extent else None
+        return "\n".join(
+            [
+                "Service configurations:",
+                f"URL: {self.base_url}",
+                f"Max Record Count: {self.max_records}",
+                f"Supported Query Formats: {self.query_formats}",
+                f"Units: {self.units}",
+                f"Extent: ({extent})",
+            ]
         )
 
 
