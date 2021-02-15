@@ -2,12 +2,13 @@
 History
 =======
 
-0.2.4 (2021-02-14)
--------------------
+0.9.0 (2021-02-14)
+------------------
 
+- Bump version to the same version as Hydrodata.
 - Add support for query by point and multi-points to ``ArcGISRESTful.bygeom``.
 - Add support for buffer distance to ``ArcGISRESTful.bygeom``.
-- Add support for generating ESRI-based geometries for points and multi-points
+- Add support for generating ESRI-based queries for points and multi-points
   to ``ESRIGeomQuery``.
 - Add all the missing type annotations.
 - Update the Daymet url to version 4. You can check the release information
