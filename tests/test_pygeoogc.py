@@ -102,9 +102,9 @@ def test_restful_bysql():
     hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, outformat="json")
     hr.layer = 1
     hr.layer = 2
-    hr.oids_bysql("NHDPLUSID IN (5000500013223, 5000400039708, 5000500004825)")
+    hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
     resp_sql = hr.get_features(return_m=True)
-    hr.oids_byfield("NHDPLUSID", [5000500013223, 5000400039708, 5000500004825])
+    hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
     resp_ids = hr.get_features()
 
     assert len(resp_sql[0]["features"]) == len(resp_ids[0]["features"])
@@ -250,29 +250,7 @@ def test_async(geometry_nat):
 
 
 def test_urls():
-    urls = ServiceURL()
-    assert (
-        urls.restful.nwis == "https://waterservices.usgs.gov/nwis"
-        and urls.restful.nldi == "https://labs.waterdata.usgs.gov/api/nldi"
-        and urls.restful.daymet_point == "https://daymet.ornl.gov/single-pixel/api/data"
-        and urls.restful.daymet_grid == "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1840"
-        and urls.restful.wbd == "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
-        and urls.restful.fws == "https://www.fws.gov/wetlands/arcgis/rest/services"
-        and urls.restful.fema
-        == "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer"
-        and urls.wms.mrlc == "https://www.mrlc.gov/geoserver/mrlc_download/wms"
-        and urls.wms.fema
-        == "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer"
-        and urls.wms.nm_3dep
-        == "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
-        and urls.wms.fws
-        == "https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer"
-        and urls.wfs.waterdata == "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows"
-        and urls.wfs.fema
-        == "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
-        and urls.http.ssebopeta
-        == "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads"
-    )
+    assert len(ServiceURL().__dict__["urls"]) == 4
 
 
 def test_show_versions():
