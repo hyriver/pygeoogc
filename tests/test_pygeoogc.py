@@ -99,12 +99,12 @@ def test_restful_bymultipoint():
 
 @pytest.mark.flaky(max_runs=3)
 def test_restful_bysql():
-    hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, outformat="json")
+    hr = ArcGISRESTful(ServiceURL().restful.nhdplushr_edits, outformat="json")
     hr.layer = 1
     hr.layer = 2
-    hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
+    hr.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
     resp_sql = hr.get_features(return_m=True)
-    hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
+    hr.oids_byfield("NHDFlowline.PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
     resp_ids = hr.get_features()
 
     assert len(resp_sql[0]["features"]) == len(resp_ids[0]["features"])
