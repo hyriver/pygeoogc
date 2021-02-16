@@ -67,14 +67,14 @@ def test_restful_byid(geometry_nat):
 
 @pytest.mark.flaky(max_runs=3)
 def test_restful_bygeom(geometry_nat):
-    wbd8 = ArcGISRESTful(f"{ServiceURL().restful.wbd}/4")
-    wbd8.n_threads = 4
-    wbd8.oids_bygeom(geometry_nat.bounds)
-    wbd8.oids_bygeom(geometry_nat)
-    huc8_all = wbd8.get_features()
-    wbd8.oids_bygeom(geometry_nat, sql_clause="areasqkm > 5000")
-    huc8_large = wbd8.get_features()
-    assert len(huc8_all[0]["features"]) - len(huc8_large[0]["features"]) == 2
+    geofab = ArcGISRESTful(f"{ServiceURL().restful.nhd_fabric}/1")
+    geofab.n_threads = 4
+    geofab.oids_bygeom(geometry_nat.bounds)
+    geofab.oids_bygeom(geometry_nat)
+    wb_all = geofab.get_features()
+    geofab.oids_bygeom(geometry_nat, sql_clause="areasqkm > 20")
+    wb_large = geofab.get_features()
+    assert len(wb_all[0]["features"]) - len(wb_large[0]["features"]) == 915
 
 
 @pytest.mark.flaky(max_runs=3)
