@@ -207,7 +207,7 @@ property is desired you can pass ``return_m`` as ``True`` to the ``get_features`
 
 .. code-block:: python
 
-    hr.oids_byfield("NHDPLUSID", [5000500013223, 5000400039708, 5000500004825])
+    hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
     resp = hr.get_features(return_m=True)
     flowlines = geoutils.json2geodf(resp)
 
@@ -216,7 +216,7 @@ Additionally, any valid SQL 92 WHERE clause can be used. For more details look
 
 .. code-block:: python
 
-    hr.oids_bysql("NHDPLUSID IN (5000500013223, 5000400039708, 5000500004825)")
+    hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
     resp = hr.get_features()
     flowlines = geoutils.json2geodf(resp)
 
@@ -274,28 +274,26 @@ PyGeoOGC, has a function for asynchronous download which can help speed up sendi
     base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
     urls = []
     dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
-
-    for s, e in dates_itr:
-        urls.append(
-            base_url
-            + "&".join(
-                [
-                    f"MCD13.A{s.year}.unaccum.nc4?",
-                    f"var=NDVI",
-                    f"north={north}",
-                    f"west={west}",
-                    f"east={east}",
-                    f"south={south}",
-                    "disableProjSubset=on",
-                    "horizStride=1",
-                    f'time_start={s.strftime("%Y-%m-%dT%H:%M:%SZ")}',
-                    f'time_end={e.strftime("%Y-%m-%dT%H:%M:%SZ")}',
-                    "timeStride=1",
-                    "addLatLon=true",
-                    "accept=netcdf",
-                ]
-            )
+    urls = (
+        (
+            f"{base_url}/MCD13.A{s.year}.unaccum.nc4",
+            {
+                "var": "NDVI",
+                "north": f"{north}",
+                "west": f"{west}",
+                "east": f"{east}",
+                "south": f"{south}",
+                "disableProjSubset": "on",
+                "horizStride": "1",
+                "time_start": s.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "time_end": e.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "timeStride": "1",
+                "addLatLon": "true",
+                "accept": "netcdf",
+            },
         )
+        for s, e in dates_itr
+    )
     data = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
 
 Contributing
