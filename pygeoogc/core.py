@@ -79,7 +79,6 @@ class ArcGISRESTfulBase:
         except ValueError:
             pass
 
-        self.valid_layers = self.get_validlayers()
         if value not in self.valid_layers:
             valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
             raise InvalidInputValue("layer", valids)
@@ -136,6 +135,48 @@ class ArcGISRESTfulBase:
 
         self._outfields = value if isinstance(value, list) else [value]
 
+    @property
+    def n_threads(self) -> int:
+        return self._n_threads
+
+    @n_threads.setter
+    def n_threads(self, value: int) -> None:
+        if not isinstance(value, int) or value < 0:
+            raise InvalidInputType("n_threads", "positive int")
+        self._n_threads = value
+
+    @property
+    def max_nrecords(self) -> int:
+        return self._max_nrecords
+
+    @max_nrecords.setter
+    def max_nrecords(self, value: int) -> None:
+        if value > self.max_nrecords:
+            raise ValueError(
+                f"The server doesn't accept more than {self.max_nrecords}" + " records per request."
+            )
+        if value < 0:
+            raise InvalidInputType("max_nrecords", "positive int")
+
+        self._max_nrecords = value
+
+    @property
+    def featureids(self) -> List[Tuple[str, ...]]:
+        return self._featureids
+
+    @featureids.setter
+    def featureids(self, value: Union[List[int], int]) -> None:
+        if not isinstance(value, (list, int)):
+            raise InvalidInputType("featureids", "int or list")
+
+        oids = [str(value)] if isinstance(value, (int, str)) else [str(v) for v in value]
+
+        self.nfeatures = len(oids)
+        if self.nfeatures == 0:
+            raise ZeroMatched(self._zeromatched)
+
+        self._featureids = list(tlz.partition_all(self.max_nrecords, oids))
+
     def get_validlayers(self) -> Dict[str, str]:
         try:
             existing_lyr = int(self.base_url.split("/")[-1])
@@ -166,7 +207,7 @@ class ArcGISRESTfulBase:
                 self.units = resp["units"].replace("esri", "").lower()
             except KeyError:
                 self.units = None
-            self.max_records = int(resp["maxRecordCount"])
+            self._max_nrecords = int(resp["maxRecordCount"])
             self.query_formats = resp["supportedQueryFormats"].replace(" ", "").lower().split(",")
             self.valid_fields = list(
                 set(
@@ -185,50 +226,6 @@ class ArcGISRESTfulBase:
         except KeyError:
             raise ServerError(self.base_url)
 
-        self._max_nrecords = self.max_records
-
-    @property
-    def n_threads(self) -> int:
-        return self._n_threads
-
-    @n_threads.setter
-    def n_threads(self, value: int) -> None:
-        if not isinstance(value, int) or value < 0:
-            raise InvalidInputType("n_threads", "positive int")
-        self._n_threads = value
-
-    @property
-    def max_nrecords(self) -> int:
-        return self._max_nrecords
-
-    @max_nrecords.setter
-    def max_nrecords(self, value: int) -> None:
-        if value > self.max_records:
-            raise ValueError(
-                f"The server doesn't accept more than {self.max_records}" + " records per request."
-            )
-        if value < 0:
-            raise InvalidInputType("max_nrecords", "positive int")
-
-        self._max_nrecords = value
-
-    @property
-    def featureids(self) -> List[Tuple[str, ...]]:
-        return self._featureids
-
-    @featureids.setter
-    def featureids(self, value: Union[List[int], int]) -> None:
-        if not isinstance(value, (list, int)):
-            raise InvalidInputType("featureids", "int or list")
-
-        oids = [str(value)] if isinstance(value, (int, str)) else [str(v) for v in value]
-
-        self.nfeatures = len(oids)
-        if self.nfeatures == 0:
-            raise ZeroMatched(self._zeromatched)
-
-        self._featureids = list(tlz.partition_all(self.max_nrecords, oids))
-
     def __repr__(self) -> str:
         """Print the service configuration."""
         extent = ", ".join(f"{c:.3f}" for c in self.extent) if self.extent else None
@@ -236,7 +233,7 @@ class ArcGISRESTfulBase:
             [
                 "Service configurations:",
                 f"URL: {self.base_url}",
-                f"Max Record Count: {self.max_records}",
+                f"Max Record Count: {self.max_nrecords}",
                 f"Supported Query Formats: {self.query_formats}",
                 f"Units: {self.units}",
                 f"Extent: ({extent})",

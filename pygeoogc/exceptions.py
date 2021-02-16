@@ -12,7 +12,7 @@ class ServerError(Exception):
     """
 
     def __init__(self, url: str) -> None:
-        self.message = f"The requested server is no available in the URL:\n{url}"
+        self.message = f"The requested server is no available at:\n{url}"
         super().__init__(self.message)
 
     def __str__(self) -> str:
