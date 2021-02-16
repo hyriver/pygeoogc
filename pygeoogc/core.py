@@ -217,7 +217,7 @@ class ArcGISRESTfulBase:
                 )
             )
             try:
-                extent = resp["extent"]
+                extent = resp["extent"] if "extent" in resp else resp["fullExtent"]
                 bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
                 crs = extent["spatialReference"]["latestWkid"]
                 self.extent = utils.MatchCRS.bounds(bounds, crs, DEF_CRS)
