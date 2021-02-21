@@ -62,7 +62,10 @@ class ArcGISRESTfulBase:
         self._n_threads = n_threads
         self.nfeatures = 0
         self.crs = crs
-        self.out_sr = pyproj.CRS(self.crs).to_epsg()
+        out_sr = pyproj.CRS(self.crs).to_epsg()
+        if out_sr is None:
+            raise InvalidInputType("crs", "a valid CRS")
+        self.out_sr = out_sr
         self.valid_layers = self.get_validlayers()
 
         self._zeromatched = "No feature ID were found within the requested region."
@@ -165,7 +168,10 @@ class ArcGISRESTfulBase:
         return self._featureids
 
     @featureids.setter
-    def featureids(self, value: Union[List[int], int]) -> None:
+    def featureids(self, value: Union[List[int], int, None]) -> None:
+        if value is None:
+            raise ZeroMatched(self._zeromatched)
+
         if not isinstance(value, (list, int)):
             raise InvalidInputType("featureids", "int or list")
 
