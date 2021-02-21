@@ -272,8 +272,7 @@ PyGeoOGC, has a function for asynchronous download which can help speed up sendi
 
     west, south, east, north = basin_geom.bounds
     base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
-    urls = []
-    dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
+    dates_itr = ((datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005))
     urls = (
         (
             f"{base_url}/MCD13.A{s.year}.unaccum.nc4",
