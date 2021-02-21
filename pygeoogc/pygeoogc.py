@@ -80,22 +80,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
             geom = MultiPoint(geom)
 
-        geom_query = None
-        if isinstance(geom, tuple) and len(geom) == 4:
-            geom = MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
-            geom_query = utils.ESRIGeomQuery(geom, self.out_sr).bbox()
-        elif isinstance(geom, Point):
-            geom = MatchCRS.geometry(geom, geo_crs, self.crs)
-            geom_query = utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
-        elif isinstance(geom, MultiPoint):
-            geom = MatchCRS.geometry(geom, geo_crs, self.crs)
-            geom_query = utils.ESRIGeomQuery([(g.x, g.y) for g in geom], self.out_sr).multipoint()
-        elif isinstance(geom, Polygon):
-            geom = MatchCRS.geometry(geom, geo_crs, self.crs)
-            geom_query = utils.ESRIGeomQuery(geom, self.out_sr).polygon()
-
-        if geom_query is None:
-            raise InvalidInputType("geom", "Polygon, Point, MultiPoint, tuple, or list of tuples")
+        geom_query = self._esri_query(geom, geo_crs)
 
         payload = {
             **geom_query,  # type: ignore
@@ -158,7 +143,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             A valid SQL 92 WHERE clause.
         """
         if not isinstance(sql_clause, str):
-            raise InvalidInputType("sql_clause", str)
+            raise InvalidInputType("sql_clause", "str")
 
         payload = {
             "where": sql_clause,

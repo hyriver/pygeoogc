@@ -7,6 +7,7 @@ import pyproj
 from orjson import JSONDecodeError
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
+from shapely.geometry import MultiPoint, Point, Polygon
 
 from . import utils
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
@@ -231,6 +232,34 @@ class ArcGISRESTfulBase:
                 self.extent = None
         except KeyError:
             raise ServerError(self.base_url)
+
+    def _esri_query(
+        self,
+        geom: Union[
+            Polygon,
+            Point,
+            MultiPoint,
+            Tuple[float, float, float, float],
+        ],
+        geo_crs: str = DEF_CRS,
+    ) -> Dict[str, Union[str, bytes]]:
+        if isinstance(geom, tuple) and len(geom) == 4:
+            geom = utils.MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
+            return utils.ESRIGeomQuery(geom, self.out_sr).bbox()
+
+        if isinstance(geom, Point):
+            geom = utils.MatchCRS.geometry(geom, geo_crs, self.crs)
+            return utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
+
+        if isinstance(geom, MultiPoint):
+            geom = utils.MatchCRS.geometry(geom, geo_crs, self.crs)
+            return utils.ESRIGeomQuery([(g.x, g.y) for g in geom], self.out_sr).multipoint()
+
+        if isinstance(geom, Polygon):
+            geom = utils.MatchCRS.geometry(geom, geo_crs, self.crs)
+            return utils.ESRIGeomQuery(geom, self.out_sr).polygon()
+
+        raise InvalidInputType("geom", "Polygon, Point, MultiPoint, tuple, or list of tuples")
 
     def __repr__(self) -> str:
         """Print the service configuration."""
