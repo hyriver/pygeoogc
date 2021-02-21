@@ -58,7 +58,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             Tuple[float, float, float, float],
         ],
         geo_crs: str = DEF_CRS,
-        sql_clause: str = "",
+        sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
     ) -> None:
         """Get feature IDs within a geometry that can be combined with a SQL where clause.
@@ -71,13 +71,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         geo_crs : str
             The spatial reference of the input geometry, defaults to EPSG:4326.
         sql_clause : str, optional
-            A valid SQL 92 WHERE clause, default to an empty string.
+            A valid SQL 92 WHERE clause, default to None.
         distance : int, optional
             The buffer distance for the input geometries in meters, default to None.
         """
-        if not isinstance(sql_clause, str):
-            raise InvalidInputType("sql_clause", str)
-
         if isinstance(geom, tuple) and len(geom) == 2:
             geom = Point(geom)
         elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
@@ -108,19 +105,15 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "f": self.outformat,
         }
         if distance:
-            payload["distance"] = f"{distance}"
-            payload["units"] = "esriSRUnit_Meter"
+            payload.update({"distance": f"{distance}", "units": "esriSRUnit_Meter"})
 
-        if len(sql_clause) > 0:
+        if sql_clause:
             payload.update({"where": sql_clause})
 
         resp = self.session.post(f"{self.base_url}/query", payload)
 
         try:
-            r_json = resp.json()["objectIds"]
-            if r_json is None:
-                raise ZeroMatched(self._zeromatched)
-            self.featureids = r_json
+            self.featureids = resp.json()["objectIds"]
         except (KeyError, TypeError, IndexError, JSONDecodeError):
             raise ZeroMatched(self._zeromatched)
 

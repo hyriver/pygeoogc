@@ -421,7 +421,7 @@ class ESRIGeomQuery:
 
     def point(self) -> Dict[str, Union[str, bytes]]:
         """Query for a point."""
-        if not isinstance(self.geometry, tuple) and len(self.geometry) != 2:
+        if not (isinstance(self.geometry, tuple) and len(self.geometry) == 2):
             raise InvalidInputType("geometry (point)", "tuple", "(x, y)")
 
         geo_type = "esriGeometryPoint"
@@ -430,7 +430,7 @@ class ESRIGeomQuery:
 
     def multipoint(self) -> Dict[str, Union[str, bytes]]:
         """Query for a multi-point."""
-        if not isinstance(self.geometry, list) and any(len(g) != 2 for g in self.geometry):  # type: ignore
+        if not (isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry)):
             raise InvalidInputType("geometry (multi-point)", "list of tuples", "[(x, y), ...]")
 
         geo_type = "esriGeometryMultipoint"
@@ -439,7 +439,7 @@ class ESRIGeomQuery:
 
     def bbox(self) -> Dict[str, Union[str, bytes]]:
         """Query for a bbox."""
-        if not isinstance(self.geometry, (tuple, list)) and len(self.geometry) != 4:
+        if not (isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4):
             raise InvalidInputType("geometry (bbox)", "tuple or list", BOX_ORD)
 
         geo_type = "esriGeometryEnvelope"
