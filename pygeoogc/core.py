@@ -55,7 +55,7 @@ class ArcGISRESTfulBase:
         self.base_url = base_url[:-1] if base_url[-1] == "/" else base_url
         self.test_url()
 
-        self._layer = ""
+        self._layer = 99
         self._outformat = outformat
         self._spatial_relation = spatial_relation
         self._outfields = outfields if isinstance(outfields, list) else [outfields]
@@ -67,11 +67,12 @@ class ArcGISRESTfulBase:
             raise InvalidInputType("crs", "a valid CRS")
         self.out_sr = out_sr
         self.valid_layers = self.get_validlayers()
+        self.extent: Optional[Tuple[float, float, float, float]] = None
 
         self._zeromatched = "No feature ID were found within the requested region."
 
     @property
-    def layer(self) -> str:
+    def layer(self) -> int:
         """Set service layer."""
         return self._layer
 
@@ -84,11 +85,11 @@ class ArcGISRESTfulBase:
         except ValueError:
             pass
 
-        if value not in self.valid_layers:
+        if f"{value}" not in self.valid_layers:
             valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
             raise InvalidInputValue("layer", valids)
 
-        self._layer = f"{value}"
+        self._layer = value
         try:
             existing_lyr = int(self.base_url.split("/")[-1])
             self.base_url = self.base_url.replace(f"/{existing_lyr}", f"/{value}")

@@ -163,7 +163,7 @@ async def _request_binary(
         The retrieved response as binary
     """
     async with session_req(url, **payload) as response:
-        return await response.read()  # type: ignore
+        return await response.read()
 
 
 async def _request_json(
@@ -188,7 +188,7 @@ async def _request_json(
         The retrieved response as json
     """
     async with session_req(url, **payload) as response:
-        return await response.json()  # type: ignore
+        return await response.json()
 
 
 async def _request_text(
@@ -213,7 +213,7 @@ async def _request_text(
         The retrieved response as string
     """
     async with session_req(url, **payload) as response:
-        return await response.text()  # type: ignore
+        return await response.text()
 
 
 async def _async_session(
@@ -284,10 +284,10 @@ def async_requests(
     """
     chunked_urls = tlz.partition_all(max_workers, url_payload)
 
-    results: List[Union[str, MutableMapping[str, Any], bytes]] = []
-    for chunk in chunked_urls:
-        loop = asyncio.get_event_loop()
-        results.append(loop.run_until_complete(_async_session(chunk, read, request)))  # type: ignore
+    results = (
+        asyncio.get_event_loop().run_until_complete(_async_session(c, read, request))
+        for c in chunked_urls
+    )
     return list(tlz.concat(results))
 
 
@@ -440,7 +440,7 @@ class ESRIGeomQuery:
             raise InvalidInputType("geometry (multi-point)", "list of tuples", "[(x, y), ...]")
 
         geo_type = "esriGeometryMultipoint"
-        geo_json = {"points": [[x, y] for x, y in self.geometry]}  # type: ignore
+        geo_json = {"points": [[x, y] for x, y in self.geometry]}
         return self.get_payload(geo_type, geo_json)
 
     def bbox(self) -> Dict[str, Union[str, bytes]]:
@@ -508,7 +508,7 @@ class MatchCRS:
         geom: Tuple[float, float, float, float], in_crs: str, out_crs: str
     ) -> Tuple[float, float, float, float]:
         """Reproject a bounding box to the specified output CRS."""
-        if not isinstance(geom, tuple) and len(geom) != 4:
+        if not (isinstance(geom, tuple) and len(geom) == 4):
             raise InvalidInputType("geom", "tuple of length 4", BOX_ORD)
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
@@ -520,7 +520,7 @@ class MatchCRS:
         geom: Tuple[Tuple[float, ...], Tuple[float, ...]], in_crs: str, out_crs: str
     ) -> Tuple[Any, ...]:
         """Reproject a list of coordinates to the specified output CRS."""
-        if not isinstance(geom, tuple) and len(geom) != 2:
+        if not (isinstance(geom, tuple) and len(geom) == 2):
             raise InvalidInputType("geom", "tuple of length 2", "((xs), (ys))")
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
