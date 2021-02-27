@@ -211,7 +211,7 @@ class ArcGISRESTfulBase:
 
         layers = {"No layer": ""}
         try:
-            layers = {lyr["id"]: lyr["name"] for lyr in resp.json()["layers"]}
+            layers = {f"{lyr['id']}": lyr["name"] for lyr in resp.json()["layers"]}
         except (JSONDecodeError, KeyError):
             raise ZeroMatched(f"The requested layer does not exists in:\n{self.base_url}")
 
