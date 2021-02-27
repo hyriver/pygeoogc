@@ -2,7 +2,6 @@
 import asyncio
 import socket
 from concurrent import futures
-from dataclasses import dataclass
 from typing import (
     Any,
     Callable,
@@ -362,7 +361,7 @@ def traverse_json(
         key = path[ind]
         if ind + 1 < len(path):
             if isinstance(obj, dict):
-                if key in obj.keys():
+                if key in obj:
                     extract(obj.get(key), path, ind + 1, arr)
                 else:
                     arr.append(None)
@@ -398,7 +397,6 @@ def traverse_json(
     return []
 
 
-@dataclass
 class ESRIGeomQuery:
     """Generate input geometry query for ArcGIS RESTful services.
 
@@ -414,10 +412,18 @@ class ESRIGeomQuery:
         for reference.
     """
 
-    geometry: Union[
-        Tuple[float, float], List[Tuple[float, float]], Tuple[float, float, float, float], Polygon
-    ]
-    wkid: int
+    def __init__(
+        self,
+        geometry: Union[
+            Tuple[float, float],
+            List[Tuple[float, float]],
+            Tuple[float, float, float, float],
+            Polygon,
+        ],
+        wkid: int,
+    ) -> None:
+        self.geometry = geometry
+        self.wkid = wkid
 
     def point(self) -> Dict[str, Union[str, bytes]]:
         """Query for a point."""
@@ -456,6 +462,15 @@ class ESRIGeomQuery:
         return self.get_payload(geo_type, geo_json)
 
     def get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
+        """Generate a request payload based on ESRI template.
+
+        Parameters
+        ----------
+        geo_type : str
+            Type of the input geometry
+        geo_json : dict
+            Geometry in GeoJson format.
+        """
         esri_json = json.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
         return {
             "geometryType": geo_type,
@@ -481,6 +496,7 @@ class MatchCRS:
     def geometry(
         geom: Union[Polygon, MultiPolygon, Point, MultiPoint], in_crs: str, out_crs: str
     ) -> Union[Polygon, MultiPolygon, Point, MultiPoint]:
+        """Reproject a geometry to the specified output CRS."""
         if not isinstance(geom, (Polygon, MultiPolygon, Point, MultiPoint)):
             raise InvalidInputType("geom", "Polygon, MultiPolygon, Point, or MultiPoint")
 
@@ -491,6 +507,7 @@ class MatchCRS:
     def bounds(
         geom: Tuple[float, float, float, float], in_crs: str, out_crs: str
     ) -> Tuple[float, float, float, float]:
+        """Reproject a bounding box to the specified output CRS."""
         if not isinstance(geom, tuple) and len(geom) != 4:
             raise InvalidInputType("geom", "tuple of length 4", BOX_ORD)
 
@@ -502,6 +519,7 @@ class MatchCRS:
     def coords(
         geom: Tuple[Tuple[float, ...], Tuple[float, ...]], in_crs: str, out_crs: str
     ) -> Tuple[Any, ...]:
+        """Reproject a list of coordinates to the specified output CRS."""
         if not isinstance(geom, tuple) and len(geom) != 2:
             raise InvalidInputType("geom", "tuple of length 2", "((xs), (ys))")
 

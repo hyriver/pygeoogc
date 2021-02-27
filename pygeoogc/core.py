@@ -1,5 +1,4 @@
 """Base classes and function for REST, WMS, and WMF services."""
-from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
 import cytoolz as tlz
@@ -73,10 +72,12 @@ class ArcGISRESTfulBase:
 
     @property
     def layer(self) -> str:
+        """Set service layer."""
         return self._layer
 
     @layer.setter
     def layer(self, value: int) -> None:
+        """Set service layer."""
         try:
             existing_lyr = int(self.base_url.split("/")[-1])
             self.base_url = self.base_url.replace(f"/{existing_lyr}", "")
@@ -98,10 +99,12 @@ class ArcGISRESTfulBase:
 
     @property
     def outformat(self) -> str:
+        """Set service output format."""
         return self._outformat
 
     @outformat.setter
     def outformat(self, value: str) -> None:
+        """Set service output format."""
         if self.base_url is not None and value.lower() not in self.query_formats:
             raise InvalidInputValue("outformat", self.query_formats)
 
@@ -109,10 +112,12 @@ class ArcGISRESTfulBase:
 
     @property
     def spatial_relation(self) -> str:
+        """Set spatial relationship of the input geometry with the source data."""
         return self._spatial_relation
 
     @spatial_relation.setter
     def spatial_relation(self, value: str) -> None:
+        """Set spatial relationship of the input geometry with the source data."""
         valid_spatialrels = [
             "esriSpatialRelIntersects",
             "esriSpatialRelContains",
@@ -130,10 +135,12 @@ class ArcGISRESTfulBase:
 
     @property
     def outfields(self) -> List[str]:
+        """Set service output field(s)."""
         return self._outfields
 
     @outfields.setter
     def outfields(self, value: Union[List[str], str]) -> None:
+        """Set service output field(s)."""
         if not isinstance(value, (list, str)):
             raise InvalidInputType("outfields", "str or list")
 
@@ -141,20 +148,24 @@ class ArcGISRESTfulBase:
 
     @property
     def n_threads(self) -> int:
+        """Set number of threads."""
         return self._n_threads
 
     @n_threads.setter
     def n_threads(self, value: int) -> None:
+        """Set number of threads."""
         if not isinstance(value, int) or value < 0:
             raise InvalidInputType("n_threads", "positive int")
         self._n_threads = value
 
     @property
     def max_nrecords(self) -> int:
+        """Set maximum number of features per request."""
         return self._max_nrecords
 
     @max_nrecords.setter
     def max_nrecords(self, value: int) -> None:
+        """Set maximum number of features per request."""
         if value > self.max_nrecords:
             raise ValueError(
                 f"The server doesn't accept more than {self.max_nrecords}" + " records per request."
@@ -166,10 +177,12 @@ class ArcGISRESTfulBase:
 
     @property
     def featureids(self) -> List[Tuple[str, ...]]:
+        """Set feature ID(s)."""
         return self._featureids
 
     @featureids.setter
     def featureids(self, value: Union[List[int], int, None]) -> None:
+        """Set feature ID(s)."""
         if value is None:
             raise ZeroMatched(self._zeromatched)
 
@@ -185,6 +198,7 @@ class ArcGISRESTfulBase:
         self._featureids = list(tlz.partition_all(self.max_nrecords, oids))
 
     def get_validlayers(self) -> Dict[str, str]:
+        """Get all the valid service layer."""
         try:
             existing_lyr = int(self.base_url.split("/")[-1])
             url = self.base_url.replace(f"/{existing_lyr}", "")
@@ -203,6 +217,7 @@ class ArcGISRESTfulBase:
         return layers
 
     def get_validfields(self) -> Dict[str, str]:
+        """Get all the valid service output fields."""
         resp = self.session.get(self.base_url, {"f": "json"}).json()
         return {f["name"]: f["type"].replace("esriFieldType", "").lower() for f in resp["fields"]}
 
@@ -243,6 +258,7 @@ class ArcGISRESTfulBase:
         ],
         geo_crs: str = DEF_CRS,
     ) -> Dict[str, Union[str, bytes]]:
+        """Generate geometry queries based on ESRI template."""
         if isinstance(geom, tuple) and len(geom) == 4:
             geom = utils.MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
             return utils.ESRIGeomQuery(geom, self.out_sr).bbox()
@@ -276,7 +292,6 @@ class ArcGISRESTfulBase:
         )
 
 
-@dataclass
 class WMSBase:
     """Base class for accessing a WMS service.
 
@@ -297,11 +312,19 @@ class WMSBase:
         epsg:4326.
     """
 
-    url: str
-    layers: Union[str, List[str]]
-    outformat: str
-    version: str = "1.3.0"
-    crs: str = DEF_CRS
+    def __init__(
+        self,
+        url: str,
+        layers: Union[str, List[str]],
+        outformat: str,
+        version: str = "1.3.0",
+        crs: str = DEF_CRS,
+    ) -> None:
+        self.url = url
+        self.layers = layers
+        self.outformat = outformat
+        self.version = version
+        self.crs = crs
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -343,7 +366,6 @@ class WMSBase:
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
 
-@dataclass
 class WFSBase:
     """Base class for WFS service.
 
@@ -366,11 +388,19 @@ class WFSBase:
         epsg:4326.
     """
 
-    url: str
-    layer: Optional[str] = None
-    outformat: Optional[str] = None
-    version: str = "2.0.0"
-    crs: str = DEF_CRS
+    def __init__(
+        self,
+        url: str,
+        layer: Optional[str] = None,
+        outformat: Optional[str] = None,
+        version: str = "2.0.0",
+        crs: str = DEF_CRS,
+    ) -> None:
+        self.url = url
+        self.layer = layer
+        self.outformat = outformat
+        self.version = version
+        self.crs = crs
 
     def __repr__(self) -> str:
         """Print the services properties."""

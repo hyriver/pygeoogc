@@ -591,16 +591,20 @@ class ServiceURL:
 
     @property
     def restful(self) -> SimpleNamespace:
+        """Read RESTful URLs from the source yml file."""
         return self._make_nt("restful")
 
     @property
     def wms(self) -> SimpleNamespace:
+        """Read WMS URLs from the source yml file."""
         return self._make_nt("wms")
 
     @property
     def wfs(self) -> SimpleNamespace:
+        """Read WFS URLs from the source yml file."""
         return self._make_nt("wfs")
 
     @property
     def http(self) -> SimpleNamespace:
+        """Read HTTP URLs from the source yml file."""
         return self._make_nt("http")
