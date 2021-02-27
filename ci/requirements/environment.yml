@@ -1,14 +1,14 @@
-name: pygeoogc-dev
+name: pygeoogc-tests
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
-  - python>=3.8
   - setuptools
   - owslib
   - pyproj
+  - shapely
   - orjson
   - simplejson
-  - shapely
   - defusedxml
   - requests
   - aiohttp
@@ -17,9 +17,3 @@ dependencies:
   - brotlipy
   - nest-asyncio
   - cytoolz
-
-  - pytest-cov
-  - pytest-xdist
-  - pre-commit
-  - codecov
-  - coverage
