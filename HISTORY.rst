@@ -2,10 +2,18 @@
 History
 =======
 
+0.10.0 (unreleased)
+-------------------
+
+- The first release after renaming hydrodata to pygeohydro.
+- Fix ``extent`` property of ``ArcGISRESTful`` being set to ``None`` incorrectly.
+- Add ``types`` property to ``ArcGISRESTFul`` for getting names and IDs of types
+  of features in the database.
+
 0.9.0 (2021-02-14)
 ------------------
 
-- Bump version to the same version as Hydrodata.
+- Bump version to the same version as pygeohydro.
 - Add support for query by point and multi-points to ``ArcGISRESTful.bygeom``.
 - Add support for buffer distance to ``ArcGISRESTful.bygeom``.
 - Add support for generating ESRI-based queries for points and multi-points
