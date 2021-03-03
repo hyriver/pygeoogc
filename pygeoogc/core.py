@@ -297,7 +297,7 @@ class ArcGISRESTfulBase:
                 f"Supported Query Formats: {self.query_formats}",
                 f"Units: {self.units}",
                 f"Extent: ({extent})",
-                f"Types: {ftypes}",
+                f"Feature Types: {ftypes}",
             ]
         )
 
