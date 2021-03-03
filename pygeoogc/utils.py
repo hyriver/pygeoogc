@@ -379,9 +379,9 @@ def traverse_json(
                     arr.append(None)
                 else:
                     for item in obj:
-                        arr.append(item.get(key, None))
+                        arr.append(item.get(key))
             elif isinstance(obj, dict):
-                arr.append(obj.get(key, None))
+                arr.append(obj.get(key))
             else:
                 arr.append(None)
         return arr
