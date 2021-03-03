@@ -53,7 +53,6 @@ class ArcGISRESTfulBase:
 
         self.session = RetrySession()
         self.base_url = base_url[:-1] if base_url[-1] == "/" else base_url
-        self.test_url()
 
         self._layer = 99
         self._outformat = outformat
@@ -68,8 +67,10 @@ class ArcGISRESTfulBase:
         self.out_sr = out_sr
         self.valid_layers = self.get_validlayers()
         self.extent: Optional[Tuple[float, float, float, float]] = None
+        self.types: Optional[Dict[int, str]] = None
 
         self._zeromatched = "No feature ID were found within the requested region."
+        self.test_url()
 
     @property
     def layer(self) -> int:
@@ -246,6 +247,12 @@ class ArcGISRESTfulBase:
                 self.extent = utils.MatchCRS.bounds(bounds, crs, DEF_CRS)
             except KeyError:
                 self.extent = None
+            try:
+                self.types = dict(
+                    zip((tlz.pluck("id", resp["types"])), tlz.pluck("name", resp["types"]))
+                )
+            except KeyError:
+                self.types = None
         except KeyError:
             raise ServerError(self.base_url)
 
@@ -281,6 +288,7 @@ class ArcGISRESTfulBase:
     def __repr__(self) -> str:
         """Print the service configuration."""
         extent = ", ".join(f"{c:.3f}" for c in self.extent) if self.extent else None
+        types = ", ".join(self.types.values()) if self.types else None
         return "\n".join(
             [
                 "Service configurations:",
@@ -288,7 +296,8 @@ class ArcGISRESTfulBase:
                 f"Max Record Count: {self.max_nrecords}",
                 f"Supported Query Formats: {self.query_formats}",
                 f"Units: {self.units}",
-                f"Extent: ({extent})",
+                f"Extent: {extent}",
+                f"Types: {types}",
             ]
         )
 
