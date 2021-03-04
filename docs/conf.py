@@ -42,7 +42,7 @@ else:
     print("pip environment:")
     subprocess.run(["pip", "list"])
 
-print(f"Hydrodata: {pygeoogc.__version__}, {pygeoogc.__file__}")
+print(f"pygeohydro: {pygeoogc.__version__}, {pygeoogc.__file__}")
 
 with suppress(ImportError):
     import matplotlib
@@ -52,10 +52,10 @@ with suppress(ImportError):
 
 # -- Project information -----------------------------------------------------
 
-project = "Hydrodata"
+project = "pygeohydro"
 author = "Taher Chegini"
 copyright = f"2019-{datetime.datetime.now().year}, {author}"
-html_title = "Hydrodata"
+html_title = "pygeohydro"
 
 # The full version, including alpha/beta/rc tags
 release = LooseVersion(pygeoogc.__version__).vstring
