@@ -18,13 +18,6 @@ repos:
       - id: blackdoc
         name: Autoformat example codes in docstrings with blackdoc
 
-  - repo: https://github.com/PyCQA/doc8
-    rev: 0.9.0a1
-    hooks:
-    - id: doc8
-      name: Autoformat with doc8
-      args: [--max-line-length, "100"]
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
