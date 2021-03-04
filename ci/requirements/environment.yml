@@ -3,17 +3,17 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - setuptools
+  - aiodns
+  - aiohttp
+  - brotlipy
+  - chardet
+  - cytoolz
+  - defusedxml
+  - nest-asyncio
+  - orjson
   - owslib
   - pyproj
-  - shapely
-  - orjson
-  - simplejson
-  - defusedxml
   - requests
-  - aiohttp
-  - chardet
-  - aiodns
-  - brotlipy
-  - nest-asyncio
-  - cytoolz
+  - setuptools
+  - shapely
+  - simplejson
