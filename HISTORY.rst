@@ -7,8 +7,11 @@ History
 
 - The first release after renaming hydrodata to pygeohydro.
 - Fix ``extent`` property of ``ArcGISRESTful`` being set to ``None`` incorrectly.
-- Add ``types`` property to ``ArcGISRESTFul`` for getting names and IDs of types
+- Add ``feature types`` property to ``ArcGISRESTFul`` for getting names and IDs of types
   of features in the database.
+- Replace ``cElementTree`` with ``ElementTree`` since it's been deprecated by ``defusedxml``.
+- Remove dependency on ``dataclasses`` since its benefits and usage in the code was minimal.
+- Speed up CI testing by using ``mamba`` and caching.
 
 0.9.0 (2021-02-14)
 ------------------
