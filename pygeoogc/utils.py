@@ -18,11 +18,11 @@ from unittest.mock import _patch, patch
 
 import aiohttp
 import cytoolz as tlz
+import defusedxml.ElementTree as etree
 import nest_asyncio
 import numpy as np
 import orjson as json
 import pyproj
-from defusedxml import cElementTree as etree
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
