@@ -292,12 +292,12 @@ class ArcGISRESTfulBase:
         return "\n".join(
             [
                 "Service configurations:",
-                f"URL: {self.base_url}",
-                f"Max Record Count: {self.max_nrecords}",
-                f"Supported Query Formats: {self.query_formats}",
-                f"Units: {self.units}",
-                f"Extent: ({extent})",
-                f"Feature Types: {ftypes}",
+                f"    URL: {self.base_url}",
+                f"    Max Record Count: {self.max_nrecords}",
+                f"    Supported Query Formats: {self.query_formats}",
+                f"    Units: {self.units}",
+                f"    Extent: ({extent})",
+                f"    Feature Types: {ftypes}",
             ]
         )
 
