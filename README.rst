@@ -1,11 +1,11 @@
-.. image:: https://raw.githubusercontent.com/cheginit/hydrodata/master/docs/_static/pygeoogc_logo.png
-    :target: https://github.com/cheginit/pygeoogc
-    :align: center
+.. .. image:: https://raw.githubusercontent.com/cheginit/pygeohydro/master/docs/_static/pygeoogc_logo.png
+..     :target: https://github.com/cheginit/pygeoogc
+..     :align: center
 
-|
+.. |
 
-.. |hydrodata| image:: https://github.com/cheginit/hydrodata/actions/workflows/test.yml/badge.svg
-    :target: https://github.com/cheginit/hydrodata/actions?query=workflow%3Apytest
+.. |pygeohydro| image:: https://github.com/cheginit/pygeohydro/actions/workflows/test.yml/badge.svg
+    :target: https://github.com/cheginit/pygeohydro/actions?query=workflow%3Apytest
     :alt: Github Actions
 
 .. |pygeoogc| image:: https://github.com/cheginit/pygeoogc/actions/workflows/test.yml/badge.svg
@@ -31,7 +31,7 @@
 =========== ==================================================================== ============
 Package     Description                                                          Status
 =========== ==================================================================== ============
-Hydrodata_  Access NWIS, NID, HCDN 2009, NLCD, and SSEBop databases              |hydrodata|
+PyGeoHydro_ Access NWIS, NID, HCDN 2009, NLCD, and SSEBop databases              |pygeohydro|
 PyGeoOGC_   Send queries to any ArcGIS RESTful-, WMS-, and WFS-based services    |pygeoogc|
 PyGeoUtils_ Convert responses from PyGeoOGC's supported web services to datasets |pygeoutils|
 PyNHD_      Navigate and subset NHDPlus (MR and HR) using web services           |pynhd|
@@ -39,15 +39,15 @@ Py3DEP_     Access topographic data through National Map's 3DEP web service     
 PyDaymet_   Access Daymet for daily climate data both single pixel and gridded   |pydaymet|
 =========== ==================================================================== ============
 
-.. _Hydrodata: https://github.com/cheginit/hydrodata
+.. _PyGeoHydro: https://github.com/cheginit/pygeohydro
 .. _PyGeoOGC: https://github.com/cheginit/pygeoogc
 .. _PyGeoUtils: https://github.com/cheginit/pygeoutils
 .. _PyNHD: https://github.com/cheginit/pynhd
 .. _Py3DEP: https://github.com/cheginit/py3dep
 .. _PyDaymet: https://github.com/cheginit/pydaymet
 
-PyGeoOGC: Query ArcGIS RESTful, WMS, and WFS
---------------------------------------------
+PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
+-----------------------------------------------------------
 
 .. image:: https://img.shields.io/pypi/v/pygeoogc.svg
     :target: https://pypi.python.org/pypi/pygeoogc
@@ -62,7 +62,7 @@ PyGeoOGC: Query ArcGIS RESTful, WMS, and WFS
     :alt: CodeCov
 
 .. image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/cheginit/hydrodata/master?filepath=docs%2Fexamples
+    :target: https://mybinder.org/v2/gh/cheginit/pygeohydro/master?filepath=docs%2Fexamples
     :alt: Binder
 
 |
@@ -88,46 +88,47 @@ PyGeoOGC: Query ArcGIS RESTful, WMS, and WFS
 Features
 --------
 
-PyGeoOGC is a part of Hydrodata software stack and provides interfaces to web services
-that are based on
+PyGeoOGC is a part a software stack for retrieving and processing hydrology and climatology
+dataset. This package provides general interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
-`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. It is noted that although
+`WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. Although
 all these web service have limits on the number of features per requests (e.g., 1000
 objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides
-the requests into smaller chunks under-the-hood and then merges the returned responses.
+the requests into smaller chunks, under-the-hood, and then merges the results.
 
 There is also an inventory of URLs for some of these web services in form of a class called
-``ServiceURL``. These URLs are in three categories: ``ServiceURL().restful``,
-``ServiceURL().wms``, and ``ServiceURL().wfs``. These URLs provide you with some examples
-of the services that PyGeoOGC supports. All the URLs are read from a YAML file located
-`here <pygeoogc/static/urls.yml>`_. If you have success using PyGeoOGC with a web service
-please consider adding its URL to this YAML file which is located at ``pygeoogc/static/urls.yml``.
+``ServiceURL``. These URLs are in four categories: ``ServiceURL().restful``,
+``ServiceURL().wms``, ``ServiceURL().wfs``, and ``ServiceURL().http``. These URLs provide you
+with some examples of the services that PyGeoOGC supports. All the URLs are read from a YAML
+file located `here <pygeoogc/static/urls.yml>`_. If you have success using PyGeoOGC with a web
+service please consider submitting a request to be added to this URL inventory, located at
+``pygeoogc/static/urls.yml``.
 
-There are three main classes:
+PyGeoOGC has three main classes:
 
 * ``ArcGISRESTful``: This class can be instantiated by providing the target layer URL.
   For example, for getting Watershed Boundary Data we can use ``ServiceURL().restful.wbd``.
-  By looking at the web service `website <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`_
-  we see that there are 9
-  layers. For example, 1 for 2-digit HU (Region), 6 for 12-digit HU (Subregion), and so on. We can
-  pass the URL to the target layer like this
+  By looking at the web service's
+  `website <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`_
+  we see that there are nine layers. For example, 1 for 2-digit HU (Region), 6 for 12-digit HU
+  (Subregion), and so on. We can pass the URL to the target layer like this
   ``f"{ServiceURL().restful.wbd}/6"``.
 
   Another option is to pass the base URL, ``ServiceURL().restful.wbd``, then set the ``layer``
-  property of the class.
-  Afterward, we request for the data in two steps. First, we need to get the taget object IDs using
-  ``oids_bygeom`` (within a geometry), ``oids_byfield`` (specific field IDs), or ``oids_bysql``
-  (any valid SQL 92 WHERE clause) class methods. Then, we can get the target features using
-  ``get_features`` class method. The returned response can be converted into a GeoDataFrame using
-  ``json2geodf`` function from `PyGeoUtils <https://github.com/cheginit/pygeoutils>`__ package.
+  property of the class. Afterward, we request for the data in two steps. First, we need to get
+  the target object IDs using ``oids_bygeom`` (within a geometry), ``oids_byfield`` (specific
+  field IDs), or ``oids_bysql`` (any valid SQL 92 WHERE clause) class methods. Then, we can get
+  the target features using ``get_features`` class method. The returned response can be converted
+  into a GeoDataFrame using ``json2geodf`` function from
+  `PyGeoUtils <https://github.com/cheginit/pygeoutils>`__.
 
 * ``WMS``: Instantiation of this class requires at least 3 arguments: service URL, layer
   name(s), and output format. Additionally, target CRS and the web service version can be provided.
-  Upon instantiation, we could use ``getmap_bybox`` method class to get the target raster data
+  Upon instantiation, we can use ``getmap_bybox`` method class to get the target raster data
   within a bounding box. The box can be in any valid CRS and if it is different from the default
-  CRS, EPSG:4326, it should be passed using ``box_crs`` argumnet. The service response can be
-  converted into a ``xarray.Dataset`` using ``gtiff2xarray`` function from PyGeoUtils package.
+  CRS, EPSG:4326, it should be passed using ``box_crs`` argument. The service response can be
+  converted into a ``xarray.Dataset`` using ``gtiff2xarray`` function from PyGeoUtils.
 
 * ``WFS``: Instantiation of this class is similar to ``WMS``. The only difference is that
   only one layer name can be passed. Upon instantiation there are three ways to get the data:
@@ -142,12 +143,14 @@ There are three main classes:
   You can convert the returned response of this function to a GeoDataFrame using ``json2geodf``
   function from PyGeoUtils package.
 
-You can try using PyGeoOGC without installing it on you system by clicking on the binder badge
-below the PyGeoOGC banner. A Jupyter notebook instance with the Hydrodata software stack
+You can find some example notebooks `here <https://github.com/cheginit/geohydrohub-examples>`__.
+
+You can even try using PyGeoOGC without installing it on you system by clicking on the binder
+badge below the PyGeoOGC banner. A Jupyter notebook instance with the software stack
 pre-installed will be launched in your web browser and you can start coding!
 
-Please note that since Hydrodata is in early development stages, while the provided
-functionaities should be stable, changes in APIs are possible in new releases. But we
+Please note that since this project is in early development stages, while the provided
+functionalities should be stable, changes in APIs are possible in new releases. But we
 appreciate it if you give this project a try and provide feedback. Contributions are most welcome.
 
 Moreover, requests for additional functionalities can be submitted via
@@ -262,7 +265,11 @@ any valid `CQL filter <https://docs.geoserver.org/stable/en/user/tutorials/cql/c
     r = wfs.getfeature_byfilter(f"huc8 LIKE '13030%'")
     huc8 = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
-PyGeoOGC, has a function for asynchronous download which can help speed up sending/receiveing requests. For example, let's use this function to get `NDVI <https://daac.ornl.gov/VEGETATION/guides/US_MODIS_NDVI.html>`_ data from DACC server. The function can be directly passed to ``xarray.open_mfdataset`` to get the data as an xarray Dataset.
+PyGeoOGC, has a function for asynchronous download which can help speed up sending/receiveing
+requests. For example, let's use this function to get
+`NDVI <https://daac.ornl.gov/VEGETATION/guides/US_MODIS_NDVI.html>`_
+data from DACC server. The function can be directly passed to ``xarray.open_mfdataset``
+to get the data as an xarray Dataset.
 
 .. code-block:: python
 
@@ -294,6 +301,10 @@ PyGeoOGC, has a function for asynchronous download which can help speed up sendi
         for s, e in dates_itr
     )
     data = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
+
+.. image:: https://raw.githubusercontent.com/cheginit/geohydrohub-examples/main/notebooks/_static/ndvi.png
+    :target: https://github.com/cheginit/geohydrohub-examples/blob/main/notebooks/webservices.ipynb
+
 
 Contributing
 ------------
