@@ -88,7 +88,7 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
 Features
 --------
 
-PyGeoOGC is a part a software stack for retrieving and processing hydrology and climatology
+PyGeoOGC is a part of a software stack for retrieving and processing hydrology and climatology
 dataset. This package provides general interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
