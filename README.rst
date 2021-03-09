@@ -1,8 +1,7 @@
-.. .. image:: https://raw.githubusercontent.com/cheginit/pygeohydro/master/docs/_static/pygeoogc_logo.png
-..     :target: https://github.com/cheginit/pygeoogc
-..     :align: center
+.. image:: https://raw.githubusercontent.com/cheginit/HydRiver-examples/main/notebooks/_static/pygeoogc_logo.png
+    :target: https://github.com/cheginit/pygeoogc
 
-.. |
+|
 
 .. |pygeohydro| image:: https://github.com/cheginit/pygeohydro/actions/workflows/test.yml/badge.svg
     :target: https://github.com/cheginit/pygeohydro/actions?query=workflow%3Apytest
@@ -88,8 +87,9 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
 Features
 --------
 
-PyGeoOGC is a part of a software stack for retrieving and processing hydrology and climatology
-dataset. This package provides general interfaces to web services that are based on
+PyGeoOGC is a part of `HydRiver <https://github.com/cheginit/HydRiver>`__ software stack that
+is designed to aid in watershed analysis through web services. This package provides
+general interfaces to web services that are based on
 `ArcGIS RESTful <https://en.wikipedia.org/wiki/Representational_state_transfer>`__,
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. Although
@@ -143,7 +143,7 @@ PyGeoOGC has three main classes:
   You can convert the returned response of this function to a GeoDataFrame using ``json2geodf``
   function from PyGeoUtils package.
 
-You can find some example notebooks `here <https://github.com/cheginit/geohydrohub-examples>`__.
+You can find some example notebooks `here <https://github.com/cheginit/HydRiver-examples>`__.
 
 You can even try using PyGeoOGC without installing it on you system by clicking on the binder
 badge below the PyGeoOGC banner. A Jupyter notebook instance with the software stack
@@ -302,8 +302,8 @@ to get the data as an xarray Dataset.
     )
     data = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
 
-.. image:: https://raw.githubusercontent.com/cheginit/geohydrohub-examples/main/notebooks/_static/ndvi.png
-    :target: https://github.com/cheginit/geohydrohub-examples/blob/main/notebooks/webservices.ipynb
+.. image:: https://raw.githubusercontent.com/cheginit/HydRiver-examples/main/notebooks/_static/ndvi.png
+    :target: https://github.com/cheginit/HydRiver-examples/blob/main/notebooks/webservices.ipynb
 
 
 Contributing
