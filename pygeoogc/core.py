@@ -61,7 +61,7 @@ class ArcGISRESTfulBase:
         self._n_threads = n_threads
         self.nfeatures = 0
         self.crs = crs
-        out_sr = pyproj.CRS(self.crs).to_wkt()
+        out_sr = pyproj.CRS(self.crs).to_epsg()
         if out_sr is None:
             raise InvalidInputType("crs", "a valid CRS")
         self.out_sr = out_sr
