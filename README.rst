@@ -1,5 +1,5 @@
 .. image:: https://raw.githubusercontent.com/cheginit/HydRiver-examples/main/notebooks/_static/pygeoogc_logo.png
-    :target: https://github.com/cheginit/pygeoogc
+    :target: https://github.com/cheginit/HydRiver
 
 |
 
