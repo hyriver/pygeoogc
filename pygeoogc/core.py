@@ -1,4 +1,6 @@
 """Base classes and function for REST, WMS, and WMF services."""
+import logging
+import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import cytoolz as tlz
@@ -12,6 +14,8 @@ from . import utils
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
 from .utils import RetrySession
 
+logging.basicConfig(stream=sys.stdout, format="", level=logging.INFO, datefmt=None)
+logger = logging.getLogger(__name__)
 DEF_CRS = "epsg:4326"
 
 
@@ -197,6 +201,7 @@ class ArcGISRESTfulBase:
         if self.nfeatures == 0:
             raise ZeroMatched(self._zeromatched)
 
+        logger.info(f"{self.nfeatures:,} features found in the requested region.")
         self._featureids = list(tlz.partition_all(self.max_nrecords, oids))
 
     def get_validlayers(self) -> Dict[str, str]:
