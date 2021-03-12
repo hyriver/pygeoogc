@@ -14,8 +14,12 @@ from . import utils
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
 from .utils import RetrySession
 
-logging.basicConfig(stream=sys.stdout, format="", level=logging.INFO, datefmt=None)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter(""))
+logger.handlers = [handler]
+logger.propagate = False
 DEF_CRS = "epsg:4326"
 
 
