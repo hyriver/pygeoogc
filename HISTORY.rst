@@ -12,6 +12,8 @@ History
 - Replace ``cElementTree`` with ``ElementTree`` since it's been deprecated by ``defusedxml``.
 - Remove dependency on ``dataclasses`` since its benefits and usage in the code was minimal.
 - Speed up CI testing by using ``mamba`` and caching.
+- ``ArcGISRESTFull`` now prints number of found features before attempting to retrieve them.
+- User ``logging`` module for printing information.
 
 0.9.0 (2021-02-14)
 ------------------
