@@ -56,12 +56,12 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
     :target: https://anaconda.org/conda-forge/pygeoogc
     :alt: Conda Version
 
-.. image:: https://codecov.io/gh/cheginit/pygeoogc/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/cheginit/pygeoogc/branch/main/graph/badge.svg
     :target: https://codecov.io/gh/cheginit/pygeoogc
     :alt: CodeCov
 
 .. image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/cheginit/pygeohydro/master?filepath=docs%2Fexamples
+    :target: https://mybinder.org/v2/gh/cheginit/HyRiver-examples/main?urlpath=lab/tree/notebooks
     :alt: Binder
 
 |
@@ -310,5 +310,5 @@ Contributing
 ------------
 
 Contributions are appreciated and very welcomed. Please read
-`CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/master/CONTRIBUTING.rst>`__
+`CONTRIBUTING.rst <https://github.com/cheginit/pygeoogc/blob/main/CONTRIBUTING.rst>`__
 for instructions.
