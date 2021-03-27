@@ -1,5 +1,6 @@
 """Some utilities for PyGeoOGC."""
 import asyncio
+import math
 import socket
 from concurrent import futures
 from typing import (
@@ -20,7 +21,6 @@ import aiohttp
 import cytoolz as tlz
 import defusedxml.ElementTree as etree
 import nest_asyncio
-import numpy as np
 import orjson as json
 import pyproj
 from requests import Response, Session
@@ -614,7 +614,7 @@ def bbox_decompose(
             return (dst, lvl, az, dx, 0) if xy else (lvl, dst, az, dx, 1)
 
         while divs[-1] < 1:
-            dim = int(np.sqrt(max_px) * mul)
+            dim = int(math.sqrt(max_px) * mul)
             step = (dim - 1) * resolution
 
             _dest = origin
