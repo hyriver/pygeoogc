@@ -2,7 +2,13 @@
 History
 =======
 
-0.10.0 (unreleased)
+0.10.1 (2021-03-27)
+-------------------
+
+- Add annoucement regarding the new name for the softwate stack, HyRiver.
+- Improve ``pip`` installation and release workflow.
+
+0.10.0 (2021-03-06)
 -------------------
 
 - The first release after renaming hydrodata to pygeohydro.
@@ -14,6 +20,7 @@ History
 - Speed up CI testing by using ``mamba`` and caching.
 - ``ArcGISRESTFull`` now prints number of found features before attempting to retrieve them.
 - User ``logging`` module for printing information.
+
 
 0.9.0 (2021-02-14)
 ------------------
