@@ -4,7 +4,7 @@
 |
 
 .. |pygeohydro| image:: https://github.com/cheginit/pygeohydro/actions/workflows/test.yml/badge.svg
-    :target: https://github.com/cheginit/pygeohydro/actions?query=workflow%3Apytest
+    :target: https://github.com/cheginit/pygeohydro/actions/workflows/test.yml
     :alt: Github Actions
 
 .. |pygeoogc| image:: https://github.com/cheginit/pygeoogc/actions/workflows/test.yml/badge.svg
