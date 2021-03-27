@@ -60,9 +60,9 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
     :target: https://codecov.io/gh/cheginit/pygeoogc
     :alt: CodeCov
 
-.. image:: https://mybinder.org/badge_logo.svg
-    :target: https://mybinder.org/v2/gh/cheginit/HyRiver-examples/main?urlpath=lab/tree/notebooks
-    :alt: Binder
+.. image:: https://img.shields.io/pypi/pyversions/pydaymet.svg
+    :target: https://pypi.python.org/pypi/pydaymet
+    :alt: Python Versions
 
 |
 
@@ -81,6 +81,10 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
 .. image:: https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white
     :target: https://github.com/pre-commit/pre-commit
     :alt: pre-commit
+
+.. image:: https://mybinder.org/badge_logo.svg
+    :target: https://mybinder.org/v2/gh/cheginit/HyRiver-examples/main?urlpath=lab/tree/notebooks
+    :alt: Binder
 
 |
 
