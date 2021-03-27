@@ -60,8 +60,8 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
     :target: https://codecov.io/gh/cheginit/pygeoogc
     :alt: CodeCov
 
-.. image:: https://img.shields.io/pypi/pyversions/pydaymet.svg
-    :target: https://pypi.python.org/pypi/pydaymet
+.. image:: https://img.shields.io/pypi/pyversions/pygeoogc.svg
+    :target: https://pypi.python.org/pypi/pygeoogc
     :alt: Python Versions
 
 |
