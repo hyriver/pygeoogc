@@ -17,3 +17,8 @@ dependencies:
   - setuptools
   - shapely
   - simplejson
+
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - flaky
