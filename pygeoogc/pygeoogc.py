@@ -111,11 +111,6 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             Name of the target field that IDs belong to.
         ids : str or list
             A list of target ID(s).
-
-        Returns
-        -------
-        geopandas.GeoDataFrame
-            The requested features as a GeoDataFrame.
         """
         valid_fields = self.get_validfields()
         if field not in valid_fields:
@@ -283,7 +278,7 @@ class WMS(WMSBase):
 
         Parameters
         ----------
-        box : tuple
+        bbox : tuple
             A bounding box for getting the data.
         resolution : float
             The output resolution in meters. The width and height of output are computed in pixel
@@ -408,7 +403,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        requests.Response
+        Response
             WFS query response within a bounding box.
         """
         utils.check_bbox(bbox)
@@ -463,7 +458,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        requests.Response
+        Response
             WFS query response based on the given geometry.
         """
         geom = MatchCRS().geometry(geometry, geo_crs, self.crs)
@@ -510,7 +505,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        requests.Response
+        Response
             WMS query response
         """
         valid_features = self.get_validnames()
@@ -547,7 +542,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        requests.Response
+        Response
             WFS query response
         """
         if not isinstance(cql_filter, str):

@@ -470,6 +470,11 @@ class ESRIGeomQuery:
             Type of the input geometry
         geo_json : dict
             Geometry in GeoJson format.
+
+        Returns
+        -------
+        dict
+            An ESRI geometry payload.
         """
         esri_json = json.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
         return {
