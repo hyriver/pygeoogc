@@ -1,4 +1,4 @@
-name: dev
+name: hyriver-dev
 channels:
   - conda-forge
   - nodefaults
@@ -44,9 +44,10 @@ dependencies:
   - dask-core
   - scipy
 
-  # deps to speed up xarray and geopandas
-  - pygeos
+  # optional deps to speed up xarray and geopandas
   - bottleneck
+  - rtree
+  - pygeos
 
   # plotting deps
   - contextily
@@ -57,7 +58,6 @@ dependencies:
   # dev deps
   - setuptools_scm
   - pytest-xdist
-  - pytest-sugar
   - pre-commit
 
   - pip

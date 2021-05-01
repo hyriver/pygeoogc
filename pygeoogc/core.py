@@ -219,7 +219,6 @@ class ArcGISRESTfulBase:
         resp = self.session.get(url, {"f": "json"})
         utils.check_response(resp)
 
-        layers = {"No layer": ""}
         try:
             layers = {f"{lyr['id']}": lyr["name"] for lyr in resp.json()["layers"]}
         except (JSONDecodeError, KeyError):
