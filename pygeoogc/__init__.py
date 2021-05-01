@@ -4,6 +4,7 @@ import sys
 
 from pkg_resources import DistributionNotFound, get_distribution
 
+from .async_requests import async_requests
 from .exceptions import (
     InvalidInputType,
     InvalidInputValue,
@@ -14,7 +15,7 @@ from .exceptions import (
 )
 from .print_versions import show_versions
 from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
-from .utils import MatchCRS, RetrySession, async_requests
+from .utils import MatchCRS, RetrySession
 
 try:
     __version__ = get_distribution(__name__).version

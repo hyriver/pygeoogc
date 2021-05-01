@@ -1,5 +1,4 @@
 """Some utilities for PyGeoOGC."""
-import asyncio
 import math
 import socket
 from concurrent import futures
@@ -17,10 +16,7 @@ from typing import (
 )
 from unittest.mock import _patch, patch
 
-import aiohttp
-import cytoolz as tlz
 import defusedxml.ElementTree as etree
-import nest_asyncio
 import orjson as json
 import pyproj
 from requests import Response, Session
@@ -30,9 +26,8 @@ from shapely import ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon, box
 from urllib3 import Retry
 
-from .exceptions import InvalidInputType, InvalidInputValue, ThreadingException, ZeroMatched
+from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
 
-nest_asyncio.apply()
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
 
@@ -54,6 +49,10 @@ class RetrySession:
         A tuple of status codes that trigger the reply behaviour, defaults to (500, 502, 504).
     prefixes : tuple, optional
         The prefixes to consider, defaults to ("http://", "https://")
+    cache_name : str, optional
+        Path to a folder for caching the session, default to None (no caching).
+        It is recommended to use caching when you're going to make multiple
+        requests with a session. It can significantly speed up the function.
     """
 
     def __init__(
@@ -62,10 +61,19 @@ class RetrySession:
         backoff_factor: float = 0.3,
         status_to_retry: Tuple[int, ...] = (500, 502, 504),
         prefixes: Tuple[str, ...] = ("https://",),
+        cache_name: Optional[str] = None,
     ) -> None:
-        self.session = Session()
-        self.retries = retries
+        if cache_name is None:
+            self.session = Session()
+        else:
+            try:
+                from requests_cache import CachedSession
+            except ImportError:
+                raise ImportError("For using cache you need to install requests_cache.")
 
+            self.session = CachedSession(cache_name, backend="sqlite")
+
+        self.retries = retries
         retry_args = {
             "total": retries,
             "read": retries,
@@ -139,156 +147,6 @@ class RetrySession:
             )
 
         return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
-
-
-async def _request_binary(
-    url: str,
-    session_req: aiohttp.ClientSession,
-    payload: Dict[str, Optional[MutableMapping[str, Any]]],
-) -> bytes:
-    """Create an async request and return the response as binary.
-
-    Parameters
-    ----------
-    url : str
-        URL to be retrieved
-    session_req : ClientSession
-        A ClientSession for sending the request
-    paylod: dict
-        The request payload
-
-    Returns
-    -------
-    bytes
-        The retrieved response as binary
-    """
-    async with session_req(url, **payload) as response:
-        return await response.read()
-
-
-async def _request_json(
-    url: str,
-    session_req: aiohttp.ClientSession,
-    payload: Dict[str, Optional[MutableMapping[str, Any]]],
-) -> MutableMapping[str, Any]:
-    """Create an async request and return the response as json.
-
-    Parameters
-    ----------
-    url : str
-        URL to be retrieved
-    session_req : ClientSession
-        A ClientSession for sending the request
-    paylod: dict
-        The request payload
-
-    Returns
-    -------
-    dict
-        The retrieved response as json
-    """
-    async with session_req(url, **payload) as response:
-        return await response.json()
-
-
-async def _request_text(
-    url: str,
-    session_req: aiohttp.ClientSession,
-    payload: Dict[str, Optional[MutableMapping[str, Any]]],
-) -> str:
-    """Create an async request and return the response as string.
-
-    Parameters
-    ----------
-    url : str
-        URL to be retrieved
-    session_req : ClientSession
-        A ClientSession for sending the request
-    paylod: dict
-        The request payload
-
-    Returns
-    -------
-    dict
-        The retrieved response as string
-    """
-    async with session_req(url, **payload) as response:
-        return await response.text()
-
-
-async def _async_session(
-    url_payload: Tuple[Tuple[str, Optional[MutableMapping[str, Any]]], ...],
-    read: str,
-    request: str,
-) -> Callable:
-    """Create an async session for sending requests.
-
-    Parameters
-    ----------
-    url_payload : list of tuples of urls and payloads
-        A list of URLs or URLs with their payloads to be retrieved.
-    read : str
-        The method for returning the request; binary, json, and text.
-    request : str
-        The request type; GET or POST.
-
-    Returns
-    -------
-    asyncio.gather
-        An async gather function
-    """
-    async with aiohttp.ClientSession(json_serialize=json.dumps) as session:
-        read_method = {"binary": _request_binary, "json": _request_json, "text": _request_text}
-        if read not in read_method:
-            raise InvalidInputValue("read", list(read_method.keys()))
-
-        request_method = {"GET": session.get, "POST": session.post}
-        if request not in request_method:
-            raise InvalidInputValue("method", list(request_method.keys()))
-
-        paylod = {"GET": "params", "POST": "data"}
-        tasks = (
-            read_method[read](u, request_method[request], {paylod[request]: p})
-            for u, p in url_payload
-        )
-        return await asyncio.gather(*tasks, return_exceptions=True)  # type: ignore
-
-
-def async_requests(
-    url_payload: List[Tuple[str, Optional[MutableMapping[str, Any]]]],
-    read: str,
-    request: str = "GET",
-    max_workers: int = 8,
-) -> List[Union[str, MutableMapping[str, Any], bytes]]:
-    """Send async requests.
-
-    This function is based on
-    `this <https://github.com/HydrologicEngineeringCenter/data-retrieval-scripts/blob/master/qpe_async_download.py>`__
-    script.
-
-    Parameters
-    ----------
-    url_payload : list of tuples
-        A list of URLs and payloads as a tuple.
-    read : str
-        The method for returning the request; binary, json, and text.
-    request : str, optional
-        The request type; GET or POST, defaults to GET.
-    max_workers : int, optional
-        The maximum number of async processes, defaults to 8.
-
-    Returns
-    -------
-    list
-        A list of responses
-    """
-    chunked_urls = tlz.partition_all(max_workers, url_payload)
-
-    results = (
-        asyncio.get_event_loop().run_until_complete(_async_session(c, read, request))
-        for c in chunked_urls
-    )
-    return list(tlz.concat(results))
 
 
 def threading(
