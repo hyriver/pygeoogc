@@ -183,7 +183,7 @@ def test_ipv4():
         + "/eta/modis_eta/daily/downloads/det2004003.modisSSEBopETactual.zip"
     )
 
-    session = RetrySession()
+    session = RetrySession(cache_name="~/.cache/ipv4.db")
     with session.onlyipv4():
         r = session.get(url)
         z = zipfile.ZipFile(io.BytesIO(r.content))
@@ -196,49 +196,50 @@ def test_ipv4():
 def test_async(geometry_nat):
     west, south, east, north = geometry_nat.bounds
     base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
-    url_binary = []
     dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
-    url_binary = (
-        (
-            f"{base_url}/MCD13.A{s.year}.unaccum.nc4",
-            {
-                "var": "NDVI",
-                "north": f"{north}",
-                "west": f"{west}",
-                "east": f"{east}",
-                "south": f"{south}",
-                "disableProjSubset": "on",
-                "horizStride": "1",
-                "time_start": s.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "time_end": e.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "timeStride": "1",
-                "addLatLon": "true",
-                "accept": "netcdf",
-            },
-        )
-        for s, e in dates_itr
+    url_binary, req_binary = zip(
+        *[
+            (
+                f"{base_url}/MCD13.A{s.year}.unaccum.nc4",
+                {
+                    "params": {
+                        "var": "NDVI",
+                        "north": f"{north}",
+                        "west": f"{west}",
+                        "east": f"{east}",
+                        "south": f"{south}",
+                        "disableProjSubset": "on",
+                        "horizStride": "1",
+                        "time_start": s.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "time_end": e.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "timeStride": "1",
+                        "addLatLon": "true",
+                        "accept": "netcdf",
+                    }
+                },
+            )
+            for s, e in dates_itr
+        ]
     )
 
-    url_json = [
-        (
-            "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/position",
-            {
+    url_json = ["https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/position"]
+    req_json = [
+        {
+            "params": {
                 "f": "json",
                 "coords": "POINT(-68.325 45.0369)",
-            },
-        )
+            }
+        }
     ]
 
-    url_text = [
-        (
-            "https://waterservices.usgs.gov/nwis/site/",
-            {"format": "rdb", "sites": "01646500", "siteStatus": "all"},
-        )
-    ]
+    url_text = ["https://waterservices.usgs.gov/nwis/site/"]
+    req_text = [{"params": {"format": "rdb", "sites": "01646500", "siteStatus": "all"}}]
 
-    r_b = pygeoogc.async_requests(url_binary, "binary")
-    r_j = pygeoogc.async_requests(url_json, "json")
-    r_t = pygeoogc.async_requests(url_text, "text")
+    r_b = pygeoogc.async_requests(
+        url_binary, "binary", request_args=req_binary, cache_name="~/.cache/bin.db"
+    )
+    r_j = pygeoogc.async_requests(url_json, "json", request_args=req_json)
+    r_t = pygeoogc.async_requests(url_text, "text", request_args=req_text)
 
     assert (
         sys.getsizeof(r_b[0]) == 986161
