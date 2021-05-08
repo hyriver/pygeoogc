@@ -2,6 +2,14 @@
 History
 =======
 
+0.11.0 (unreleased)
+-------------------
+
+- Remove ``async_requests`` function, since it has been packaged as a new
+  python library called
+  [``async_retriever``](https://github.com/cheginit/async_retriever).
+
+
 0.10.1 (2021-03-27)
 -------------------
 
