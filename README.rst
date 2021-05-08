@@ -224,12 +224,14 @@ property is desired you can pass ``return_m`` as ``True`` to the ``get_features`
 
 Additionally, any valid SQL 92 WHERE clause can be used. For more details look
 `here <https://developers.arcgis.com/rest/services-reference/query-feature-service-.htm#ESRI_SECTION2_07DD2C5127674F6A814CE6C07D39AD46>`__.
+For example, let's limit our first request to only include catchments with
+areas larger than 0.5 sqkm.
 
 .. code-block:: python
 
-    hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
+    hr.oids_bygeom(basin_geom, geo_crs="epsg:4326", sql_clause="AREASQKM > 0.5")
     resp = hr.get_features()
-    flowlines = geoutils.json2geodf(resp)
+    catchments = geoutils.json2geodf(resp)
 
 A WMS-based example is shown below:
 
@@ -273,44 +275,7 @@ any valid `CQL filter <https://docs.geoserver.org/stable/en/user/tutorials/cql/c
     r = wfs.getfeature_byfilter(f"huc8 LIKE '13030%'")
     huc8 = geoutils.json2geodf(r.json(), "epsg:4269", "epsg:4326")
 
-PyGeoOGC, has a function for asynchronous download which can help speed up sending/receiveing
-requests. For example, let's use this function to get
-`NDVI <https://daac.ornl.gov/VEGETATION/guides/US_MODIS_NDVI.html>`_
-data from DACC server. The function can be directly passed to ``xarray.open_mfdataset``
-to get the data as an xarray Dataset.
-
-.. code-block:: python
-
-    import xarray as xr
-    import pygeoogc as ogc
-    from datetime import datetime
-
-    west, south, east, north = basin_geom.bounds
-    base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
-    dates_itr = ((datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005))
-    urls = (
-        (
-            f"{base_url}/MCD13.A{s.year}.unaccum.nc4",
-            {
-                "var": "NDVI",
-                "north": f"{north}",
-                "west": f"{west}",
-                "east": f"{east}",
-                "south": f"{south}",
-                "disableProjSubset": "on",
-                "horizStride": "1",
-                "time_start": s.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "time_end": e.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "timeStride": "1",
-                "addLatLon": "true",
-                "accept": "netcdf",
-            },
-        )
-        for s, e in dates_itr
-    )
-    data = xr.open_mfdataset(ogc.async_requests(urls, "binary", max_workers=8))
-
-.. image:: https://raw.githubusercontent.com/cheginit/HyRiver-examples/main/notebooks/_static/ndvi.png
+.. image:: https://raw.githubusercontent.com/cheginit/HyRiver-examples/main/notebooks/_static/sql_clause.png
     :target: https://github.com/cheginit/HyRiver-examples/blob/main/notebooks/webservices.ipynb
 
 
