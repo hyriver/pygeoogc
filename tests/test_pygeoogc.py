@@ -1,8 +1,8 @@
 """Tests for PyGeoOGC package."""
 import io
 import sys
+import tempfile
 import zipfile
-from datetime import datetime
 
 import pytest
 from shapely.geometry import Polygon
@@ -14,24 +14,18 @@ DEF_CRS = "epsg:4326"
 ALT_CRS = "epsg:2149"
 
 
-@pytest.fixture
-def geometry_nat():
-    return Polygon(
-        [[-69.77, 45.07], [-69.31, 45.07], [-69.31, 45.45], [-69.77, 45.45], [-69.77, 45.07]]
-    )
-
-
-@pytest.fixture
-def geometry_urb():
-    return Polygon(
-        [
-            [-118.72, 34.118],
-            [-118.31, 34.118],
-            [-118.31, 34.518],
-            [-118.72, 34.518],
-            [-118.72, 34.118],
-        ]
-    )
+GEO_NAT = Polygon(
+    [[-69.77, 45.07], [-69.31, 45.07], [-69.31, 45.45], [-69.77, 45.45], [-69.77, 45.07]]
+)
+GEO_URB = Polygon(
+    [
+        [-118.72, 34.118],
+        [-118.31, 34.118],
+        [-118.31, 34.518],
+        [-118.72, 34.518],
+        [-118.72, 34.118],
+    ]
+)
 
 
 @pytest.fixture
@@ -46,7 +40,7 @@ def wfs():
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_restful_byid(geometry_nat):
+def test_restful_byid():
     wbd2 = ArcGISRESTful(ServiceURL().restful.wbd)
     wbd2.layer = 1
     print(wbd2)
@@ -66,13 +60,13 @@ def test_restful_byid(geometry_nat):
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_restful_bygeom(geometry_nat):
+def test_restful_bygeom():
     geofab = ArcGISRESTful(f"{ServiceURL().restful.nhd_fabric}/1")
     geofab.n_threads = 4
-    geofab.oids_bygeom(geometry_nat.bounds)
-    geofab.oids_bygeom(geometry_nat)
+    geofab.oids_bygeom(GEO_NAT.bounds)
+    geofab.oids_bygeom(GEO_NAT)
     wb_all = geofab.get_features()
-    geofab.oids_bygeom(geometry_nat, sql_clause="areasqkm > 20")
+    geofab.oids_bygeom(GEO_NAT, sql_clause="areasqkm > 20")
     wb_large = geofab.get_features()
     assert len(wb_all[0]["features"]) - len(wb_large[0]["features"]) == 915
 
@@ -111,16 +105,16 @@ def test_restful_bysql():
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wms(geometry_nat):
+def test_wms():
     url_wms = ServiceURL().wms.fws
 
     wms_111 = WMS(
         url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS, version="1.1.1", validation=False
     )
-    r_dict_111 = wms_111.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
+    r_dict_111 = wms_111.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
     wms = WMS(url_wms, layers="0", outformat="image/tiff", crs=DEF_CRS)
     print(wms)
-    r_dict = wms.getmap_bybox(geometry_nat.bounds, 20, DEF_CRS)
+    r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
     assert (
         wms_111.get_validlayers()["0"] == "Wetlands_Raster"
         and sys.getsizeof(r_dict_111["0_dd_0_0"]) == 12536763
@@ -136,14 +130,14 @@ def test_wfsbyid(wfs):
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wfsbygeom(wfs, geometry_urb):
-    r = wfs.getfeature_bygeom(geometry_urb, geo_crs=DEF_CRS, always_xy=False)
+def test_wfsbygeom(wfs):
+    r = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
     assert len(r.json()["features"]) == 7
 
 
 @pytest.mark.flaky(max_runs=3)
-def test_wfsbybox(wfs, geometry_urb):
-    bbox = geometry_urb.bounds
+def test_wfsbybox(wfs):
+    bbox = GEO_URB.bounds
     r = wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
     assert len(r.json()["features"]) == 7
 
@@ -154,17 +148,17 @@ def test_wfsbyfilter(wfs):
     assert len(utils.traverse_json(wb.json(), ["features", "geometry", "coordinates"])) == 2
 
 
-def test_decompose(geometry_urb):
-    bboxs = utils.bbox_decompose(geometry_urb.bounds, 10)
+def test_decompose():
+    bboxs = utils.bbox_decompose(GEO_URB.bounds, 10)
     assert bboxs[0][-1] == 2828
 
 
-def test_matchcrs(geometry_urb):
-    bounds = geometry_urb.bounds
+def test_matchcrs():
+    bounds = GEO_URB.bounds
     points = ((bounds[0], bounds[2]), (bounds[1], bounds[3]))
     coords = MatchCRS.coords(points, DEF_CRS, ALT_CRS)
-    bbox = MatchCRS.bounds(geometry_urb.bounds, DEF_CRS, ALT_CRS)
-    geom = MatchCRS.geometry(geometry_urb, DEF_CRS, ALT_CRS)
+    bbox = MatchCRS.bounds(GEO_URB.bounds, DEF_CRS, ALT_CRS)
+    geom = MatchCRS.geometry(GEO_URB, DEF_CRS, ALT_CRS)
     assert (
         abs(geom.centroid.x * 1e-4 - (-362.099)) < 1e-3
         and abs(bbox[0] * 1e-4 - (-365.403)) < 1e-3
@@ -182,69 +176,14 @@ def test_ipv4():
         "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus"
         + "/eta/modis_eta/daily/downloads/det2004003.modisSSEBopETactual.zip"
     )
-
-    session = RetrySession()
-    with session.onlyipv4():
-        r = session.get(url)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        fname = z.read(z.filelist[0].filename)
+    with tempfile.NamedTemporaryFile() as cache:
+        session = RetrySession(cache_name=cache.name)
+        with session.onlyipv4():
+            r = session.get(url)
+            z = zipfile.ZipFile(io.BytesIO(r.content))
+            fname = z.read(z.filelist[0].filename)
 
     assert sys.getsizeof(fname) == 4361682
-
-
-@pytest.mark.flaky(max_runs=3)
-def test_async(geometry_nat):
-    west, south, east, north = geometry_nat.bounds
-    base_url = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac/1299"
-    url_binary = []
-    dates_itr = [(datetime(y, 1, 1), datetime(y, 1, 31)) for y in range(2000, 2005)]
-    url_binary = (
-        (
-            f"{base_url}/MCD13.A{s.year}.unaccum.nc4",
-            {
-                "var": "NDVI",
-                "north": f"{north}",
-                "west": f"{west}",
-                "east": f"{east}",
-                "south": f"{south}",
-                "disableProjSubset": "on",
-                "horizStride": "1",
-                "time_start": s.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "time_end": e.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "timeStride": "1",
-                "addLatLon": "true",
-                "accept": "netcdf",
-            },
-        )
-        for s, e in dates_itr
-    )
-
-    url_json = [
-        (
-            "https://labs.waterdata.usgs.gov/api/nldi/linked-data/comid/position",
-            {
-                "f": "json",
-                "coords": "POINT(-68.325 45.0369)",
-            },
-        )
-    ]
-
-    url_text = [
-        (
-            "https://waterservices.usgs.gov/nwis/site/",
-            {"format": "rdb", "sites": "01646500", "siteStatus": "all"},
-        )
-    ]
-
-    r_b = pygeoogc.async_requests(url_binary, "binary")
-    r_j = pygeoogc.async_requests(url_json, "json")
-    r_t = pygeoogc.async_requests(url_text, "text")
-
-    assert (
-        sys.getsizeof(r_b[0]) == 986161
-        and r_j[0]["features"][0]["properties"]["identifier"] == "2675320"
-        and r_t[0].split("\n")[-2].split("\t")[1] == "01646500"
-    )
 
 
 def test_urls():

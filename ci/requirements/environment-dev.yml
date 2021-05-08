@@ -8,6 +8,7 @@ dependencies:
   # pygeoogc deps
   - aiodns
   - aiohttp
+  - aiosqlite
   - brotlipy
   - chardet
   - cytoolz
@@ -17,6 +18,7 @@ dependencies:
   - owslib
   - pyproj
   - requests
+  - requests_cache
   - setuptools
   - shapely
   - simplejson
@@ -47,6 +49,12 @@ dependencies:
   - rtree
   - pygeos
 
+  # plotting deps
+  - contextily
+  - mapclassify
+  - cartopy
+  - colorcet
+
   # dev deps
   - setuptools_scm
   - pytest-xdist
@@ -54,6 +62,8 @@ dependencies:
 
   - pip
   - pip:
+    - aiohttp-client-cache
+
     - git+https://github.com/cheginit/pygeoogc.git
     - git+https://github.com/cheginit/pygeoutils.git
     - git+https://github.com/cheginit/pynhd.git

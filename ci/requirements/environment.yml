@@ -5,6 +5,7 @@ channels:
 dependencies:
   - aiodns
   - aiohttp
+  - aiosqlite
   - brotlipy
   - chardet
   - cytoolz
@@ -14,6 +15,7 @@ dependencies:
   - owslib
   - pyproj
   - requests
+  - requests_cache
   - setuptools
   - shapely
   - simplejson
@@ -22,3 +24,7 @@ dependencies:
   - pytest-cov
   - pytest-xdist
   - flaky
+
+  - pip
+  - pip:
+    - aiohttp-client-cache
