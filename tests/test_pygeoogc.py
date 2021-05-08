@@ -1,6 +1,7 @@
 """Tests for PyGeoOGC package."""
 import io
 import sys
+import tempfile
 import zipfile
 
 import pytest
