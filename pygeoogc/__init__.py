@@ -1,10 +1,8 @@
 """Top-level package for PyGeoOGC."""
-import asyncio
 import sys
 
 from pkg_resources import DistributionNotFound, get_distribution
 
-from .async_requests import async_requests
 from .exceptions import (
     InvalidInputType,
     InvalidInputValue,
@@ -22,6 +20,3 @@ try:
 except DistributionNotFound:
     # package is not installed
     pass
-
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
