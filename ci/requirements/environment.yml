@@ -3,15 +3,8 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - aiodns
-  - aiohttp
-  - aiosqlite
-  - brotlipy
-  - chardet
   - cytoolz
   - defusedxml
-  - nest-asyncio
-  - orjson
   - owslib
   - pyproj
   - requests
@@ -24,7 +17,3 @@ dependencies:
   - pytest-cov
   - pytest-xdist
   - flaky
-
-  - pip
-  - pip:
-    - aiohttp-client-cache
