@@ -5,10 +5,10 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import cytoolz as tlz
 import pyproj
-from orjson import JSONDecodeError
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from shapely.geometry import MultiPoint, Point, Polygon
+from simplejson import JSONDecodeError
 
 from . import utils
 from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched

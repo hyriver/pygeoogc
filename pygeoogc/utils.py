@@ -17,8 +17,8 @@ from typing import (
 from unittest.mock import _patch, patch
 
 import defusedxml.ElementTree as etree
-import orjson as json
 import pyproj
+import simplejson as json
 from requests import Response, Session
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
@@ -71,7 +71,7 @@ class RetrySession:
             except ImportError:
                 raise ImportError("For using cache you need to install requests_cache.")
 
-            self.session = CachedSession(cache_name, backend="sqlite")
+            self.session = CachedSession(str(cache_name), backend="sqlite")
 
         self.retries = retries
         retry_args = {

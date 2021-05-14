@@ -193,7 +193,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
                 if self.outformat == "geojson":
                     raise ZeroMatched(
                         "There was a problem processing the request with geojson outformat. "
-                        + "Your can set the outformat to json and retry."
+                        + "You can set the outformat to json and retry."
                     )
 
                 raise ZeroMatched("No matching data was found on the server.")
