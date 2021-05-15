@@ -176,7 +176,7 @@ def test_ipv4():
         "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus"
         + "/eta/modis_eta/daily/downloads/det2004003.modisSSEBopETactual.zip"
     )
-    session = RetrySession(cache_name=utils.create_cachefile().resolve())
+    session = RetrySession(cache_name=utils.create_cachefile())
     with session.onlyipv4():
         r = session.get(url)
         z = zipfile.ZipFile(io.BytesIO(r.content))

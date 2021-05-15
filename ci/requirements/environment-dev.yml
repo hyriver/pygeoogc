@@ -6,7 +6,7 @@ dependencies:
   - python>=3.8
   - setuptools
 
-  # async_retiriever
+  # async_retriever
   - aiodns
   - aiohttp
   - aiohttp-client-cache
@@ -18,12 +18,11 @@ dependencies:
   - orjson
 
   # pygeoogc deps
-  # - cytoolz
   - defusedxml
   - owslib
   - pyproj
   - requests
-  - requests_cache
+  - requests-cache
   - shapely
   - simplejson
 
@@ -44,7 +43,6 @@ dependencies:
   - openpyxl
 
   # pydaymet deps
-  # - lxml
   - dask-core
   - scipy
 
@@ -60,7 +58,7 @@ dependencies:
   - colorcet
 
   # dev deps
-  - setuptools_scm
+  - setuptools-scm
   - pytest-xdist
   - pre-commit
   - flaky
