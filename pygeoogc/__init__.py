@@ -1,6 +1,4 @@
 """Top-level package for PyGeoOGC."""
-import sys
-
 from pkg_resources import DistributionNotFound, get_distribution
 
 from .exceptions import (

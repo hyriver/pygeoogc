@@ -1,7 +1,10 @@
 """Some utilities for PyGeoOGC."""
 import math
+import os
 import socket
 from concurrent import futures
+from datetime import datetime
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -30,6 +33,15 @@ from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
 
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
+EXPIRE = 24 * 60 * 60
+
+
+def _check_cache_file(cache_name: Optional[Union[str, Path]]) -> None:
+    """Check if more than 24 hr has passed since cache was created. If so delete it."""
+    creation_date = datetime.fromtimestamp(os.path.getctime(cache_name))
+    elapsed = datetime.now() - creation_date
+    if elapsed.seconds > EXPIRE:
+        Path(cache_name).unlink
 
 
 class RetrySession:
@@ -61,7 +73,7 @@ class RetrySession:
         backoff_factor: float = 0.3,
         status_to_retry: Tuple[int, ...] = (500, 502, 504),
         prefixes: Tuple[str, ...] = ("https://",),
-        cache_name: Optional[str] = None,
+        cache_name: Optional[Union[str, Path]] = None,
     ) -> None:
         if cache_name is None:
             self.session = Session()
@@ -71,7 +83,10 @@ class RetrySession:
             except ImportError:
                 raise ImportError("For using cache you need to install requests_cache.")
 
-            self.session = CachedSession(str(cache_name), backend="sqlite")
+            if Path(cache_name).exists():
+                _check_cache_file(cache_name)
+
+            self.session = CachedSession(str(Path(cache_name).resolve()), backend="sqlite")
 
         self.retries = retries
         retry_args = {
