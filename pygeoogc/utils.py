@@ -39,7 +39,7 @@ EXPIRE = 24 * 60 * 60
 def create_cachefile(db_name: str = "http_cache") -> Optional[Path]:
     """Create a cache file if dependecies are met."""
     try:
-        from requests_cache import CachedSession  # noqa: F401
+        import requests_cache  # noqa: F401
 
         if sys.platform.startswith("win"):
             return Path(tempfile.gettempdir(), f"{db_name}.sqlite")
