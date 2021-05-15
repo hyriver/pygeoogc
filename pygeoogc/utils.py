@@ -41,7 +41,7 @@ def _check_cache_file(cache_name: Optional[Union[str, Path]]) -> None:
     creation_date = datetime.fromtimestamp(os.path.getctime(cache_name))
     elapsed = datetime.now() - creation_date
     if elapsed.seconds > EXPIRE:
-        Path(cache_name).unlink
+        Path(cache_name).unlink()
 
 
 class RetrySession:
