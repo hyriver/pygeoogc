@@ -7,7 +7,7 @@ import zipfile
 import pytest
 from shapely.geometry import Polygon
 
-import pygeoogc
+import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
 
 DEF_CRS = "epsg:4326"
@@ -176,12 +176,11 @@ def test_ipv4():
         "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus"
         + "/eta/modis_eta/daily/downloads/det2004003.modisSSEBopETactual.zip"
     )
-    with tempfile.NamedTemporaryFile() as cache:
-        session = RetrySession(cache_name=cache.name)
-        with session.onlyipv4():
-            r = session.get(url)
-            z = zipfile.ZipFile(io.BytesIO(r.content))
-            fname = z.read(z.filelist[0].filename)
+    session = RetrySession(cache_name=utils.create_cachefile())
+    with session.onlyipv4():
+        r = session.get(url)
+        z = zipfile.ZipFile(io.BytesIO(r.content))
+        fname = z.read(z.filelist[0].filename)
 
     assert sys.getsizeof(fname) == 4361682
 
@@ -192,5 +191,5 @@ def test_urls():
 
 def test_show_versions():
     f = io.StringIO()
-    pygeoogc.show_versions(file=f)
+    ogc.show_versions(file=f)
     assert "INSTALLED VERSIONS" in f.getvalue()

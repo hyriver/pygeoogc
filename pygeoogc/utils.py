@@ -1,9 +1,9 @@
 """Some utilities for PyGeoOGC."""
 import math
-import os
 import socket
+import sys
+import tempfile
 from concurrent import futures
-from datetime import datetime
 from pathlib import Path
 from typing import (
     Any,
@@ -36,12 +36,18 @@ BOX_ORD = "(west, south, east, north)"
 EXPIRE = 24 * 60 * 60
 
 
-def _check_cache_file(cache_name: Optional[Union[str, Path]]) -> None:
-    """Check if more than 24 hr has passed since cache was created. If so delete it."""
-    creation_date = datetime.fromtimestamp(os.path.getctime(cache_name))
-    elapsed = datetime.now() - creation_date
-    if elapsed.seconds > EXPIRE:
-        Path(cache_name).unlink()
+def create_cachefile(db_name: str = "http_cache") -> Optional[Path]:
+    """Create a cache file if dependecies are met."""
+    try:
+        from requests_cache import CachedSession  # noqa: F401
+
+        if sys.platform.startswith("win"):
+            return Path(tempfile.gettempdir(), f"{db_name}.sqlite")
+
+        return Path(f"~/.cache/{db_name}.sqlite")
+
+    except ImportError:
+        return None
 
 
 class RetrySession:
@@ -63,8 +69,7 @@ class RetrySession:
         The prefixes to consider, defaults to ("http://", "https://")
     cache_name : str, optional
         Path to a folder for caching the session, default to None (no caching).
-        It is recommended to use caching when you're going to make multiple
-        requests with a session. It can significantly speed up the function.
+        It is recommended to use caching as it can significantly speed up the function.
     """
 
     def __init__(
@@ -83,10 +88,8 @@ class RetrySession:
             except ImportError:
                 raise ImportError("For using cache you need to install requests_cache.")
 
-            if Path(cache_name).exists():
-                _check_cache_file(cache_name)
-
-            self.session = CachedSession(str(Path(cache_name).resolve()), backend="sqlite")
+            self.session = CachedSession(Path(cache_name), expire_after=EXPIRE, backend="sqlite")
+            self.session.remove_expired_responses()
 
         self.retries = retries
         retry_args = {
