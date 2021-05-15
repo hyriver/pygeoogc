@@ -44,7 +44,7 @@ def create_cachefile(db_name: str = "http_cache") -> Optional[Path]:
         if sys.platform.startswith("win"):
             return Path(tempfile.gettempdir(), f"{db_name}.sqlite")
 
-        return Path(f"~/.cache/{db_name}.sqlite")
+        return Path(Path.home(), ".cache", f"{db_name}.sqlite")
 
     except ImportError:
         return None
