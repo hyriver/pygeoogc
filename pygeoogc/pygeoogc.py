@@ -261,7 +261,8 @@ class WMS(WMSBase):
     ) -> None:
         super().__init__(url, layers, outformat, version, crs)
 
-        self.session = RetrySession()
+        cache_name = utils.create_cachefile()
+        self.session = RetrySession(cache_name=cache_name)
         self.layers = [self.layers] if isinstance(self.layers, str) else self.layers
         if validation:
             self.validate_wms()
@@ -376,7 +377,8 @@ class WFS(WFSBase):
     ) -> None:
         super().__init__(url, layer, outformat, version, crs)
 
-        self.session = RetrySession()
+        cache_name = utils.create_cachefile()
+        self.session = RetrySession(cache_name=cache_name)
         if validation:
             self.validate_wfs()
 

@@ -28,7 +28,7 @@ dependencies:
 
   # pygeoutils deps
   - geopandas
-  - netCDF4
+  - netcdf4
   - rasterio
   - xarray
 
@@ -60,11 +60,12 @@ dependencies:
   # dev deps
   - setuptools-scm
   - pytest-xdist
-  - pre-commit
   - flaky
+  - pre-commit
 
   - pip
   - pip:
+    - git+https://github.com/cheginit/async_retriever.git
     - git+https://github.com/cheginit/pygeoogc.git
     - git+https://github.com/cheginit/pygeoutils.git
     - git+https://github.com/cheginit/pynhd.git

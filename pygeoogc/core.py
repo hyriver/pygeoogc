@@ -59,7 +59,8 @@ class ArcGISRESTfulBase:
         n_threads: int = 1,
     ) -> None:
 
-        self.session = RetrySession()
+        cache_name = utils.create_cachefile()
+        self.session = RetrySession(cache_name=cache_name)
         self.base_url = base_url[:-1] if base_url[-1] == "/" else base_url
 
         self._layer = 99
@@ -475,7 +476,9 @@ class WFSBase:
             max_features: 1,
         }
 
-        resp = RetrySession().get(self.url, payload)
+        cache_name = utils.create_cachefile()
+        session = RetrySession(cache_name=cache_name)
+        resp = session.get(self.url, payload)
         utils.check_response(resp)
 
         r_json = resp.json()
