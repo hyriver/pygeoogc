@@ -36,12 +36,12 @@
 =========== ==================================================================== ============
 Package     Description                                                          Status
 =========== ==================================================================== ============
-PyGeoHydro_ Access NWIS, NID, HCDN 2009, NLCD, and SSEBop databases              |pygeohydro|
-PyGeoOGC_   Send queries to any ArcGIS RESTful-, WMS-, and WFS-based services    |pygeoogc|
-PyGeoUtils_ Convert responses from PyGeoOGC's supported web services to datasets |pygeoutils|
 PyNHD_      Navigate and subset NHDPlus (MR and HR) using web services           |pynhd|
 Py3DEP_     Access topographic data through National Map's 3DEP web service      |py3dep|
+PyGeoHydro_ Access NWIS, NID, HCDN 2009, NLCD, and SSEBop databases              |pygeohydro|
 PyDaymet_   Access Daymet for daily climate data both single pixel and gridded   |pydaymet|
+PyGeoOGC_   Send queries to any ArcGIS RESTful-, WMS-, and WFS-based services    |pygeoogc|
+PyGeoUtils_ Convert responses from PyGeoOGC's supported web services to datasets |pygeoutils|
 =========== ==================================================================== ============
 
 .. _PyGeoHydro: https://github.com/cheginit/pygeohydro
@@ -173,11 +173,15 @@ Moreover, requests for additional functionalities can be submitted via
 Installation
 ------------
 
-You can install PyGeoOGC using ``pip``:
+You can install PyGeoOGC using ``pip``. Moreover, PyGeoOGC has an optional
+dependecy for using persistent caching, ``requests-cache``. We highly recommend to install
+this package as it can significantly speedup send/recieve queries. You don't have to change
+anything in your code, since PyGeoOGC under-the-hood looks for ``requests-cache`` and
+if available, it will automatically use persistent caching:
 
 .. code-block:: console
 
-    $ pip install pygeoogc
+    $ pip install pygeoogc[cache]
 
 Alternatively, PyGeoOGC can be installed from the ``conda-forge`` repository
 using `Conda <https://docs.conda.io/en/latest/>`__:
