@@ -3,15 +3,18 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
+  # pygeoogc deps
   - cytoolz
   - defusedxml
   - owslib
+  - pyyaml
   - pyproj
   - requests
   - requests-cache
   - setuptools
   - shapely
   - simplejson
+  - urllib3
 
   - pytest
   - pytest-cov
