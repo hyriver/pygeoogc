@@ -22,9 +22,10 @@ from unittest.mock import _patch, patch
 import defusedxml.ElementTree as etree
 import pyproj
 import simplejson as json
-from requests import Response, Session
+from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
+from requests_cache import CachedSession
 from shapely import ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon, box
 from urllib3 import Retry
@@ -37,17 +38,11 @@ EXPIRE = 24 * 60 * 60
 
 
 def create_cachefile(db_name: str = "http_cache") -> Optional[Path]:
-    """Create a cache file if dependecies are met."""
-    try:
-        import requests_cache  # noqa: F401
+    """Create a cache file if dependencies are met."""
+    if sys.platform.startswith("win"):
+        return Path(tempfile.gettempdir(), f"{db_name}.sqlite")
 
-        if sys.platform.startswith("win"):
-            return Path(tempfile.gettempdir(), f"{db_name}.sqlite")
-
-        return Path(Path.home(), ".cache", f"{db_name}.sqlite")
-
-    except ImportError:
-        return None
+    return Path(Path.home(), ".cache", f"{db_name}.sqlite")
 
 
 class RetrySession:
@@ -80,16 +75,9 @@ class RetrySession:
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
     ) -> None:
-        if cache_name is None:
-            self.session = Session()
-        else:
-            try:
-                from requests_cache import CachedSession
-            except ImportError:
-                raise ImportError("For using cache you need to install requests_cache.")
-
-            self.session = CachedSession(Path(cache_name), expire_after=EXPIRE, backend="sqlite")
-            self.session.remove_expired_responses()
+        cache_name = create_cachefile() if cache_name is None else Path(cache_name)
+        self.session = CachedSession(cache_name, expire_after=EXPIRE, backend="sqlite")
+        self.session.remove_expired_responses()
 
         self.retries = retries
         retry_args = {
@@ -331,7 +319,7 @@ class ESRIGeomQuery:
     def polygon(self) -> Dict[str, Union[str, bytes]]:
         """Query for a polygon."""
         if not isinstance(self.geometry, Polygon):
-            raise InvalidInputType("geomtry", "Shapely's Polygon")
+            raise InvalidInputType("geometry", "Shapely's Polygon")
 
         geo_type = "esriGeometryPolygon"
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
@@ -508,9 +496,9 @@ def bbox_decompose(
 
             coords[-1] = (coords[-1][0], dest)
 
-            nd = len(coords)
-            divs = [dim for _ in range(nd)]
-            divs[-1] = px - (nd - 1) * dim
+            n_dim = len(coords)
+            divs = [dim for _ in range(n_dim)]
+            divs[-1] = px - (n_dim - 1) * dim
             mul -= 0.1
         return coords, divs
 

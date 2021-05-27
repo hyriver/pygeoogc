@@ -379,7 +379,7 @@ class WMSBase:
             raise InvalidInputValue("CRS", _valid_crss)
 
     def get_validlayers(self) -> Dict[str, str]:
-        """Get the layers supportted by the WMS service."""
+        """Get the layers supported by the WMS service."""
         wms = WebMapService(self.url, version=self.version)
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}

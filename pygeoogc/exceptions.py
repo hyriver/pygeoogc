@@ -25,7 +25,7 @@ class ThreadingException(Exception):
     Parameters
     ----------
     itr : int
-        The number of iteration where the exception occured
+        The number of iteration where the exception occurred
     msg : str
         The exception error message
     """
