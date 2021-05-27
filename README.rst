@@ -109,7 +109,9 @@ general interfaces to web services that are based on
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. Although
 all these web service have limits on the number of features per requests (e.g., 1000
 objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides
-the requests into smaller chunks, under-the-hood, and then merges the results.
+the requests into smaller chunks, under-the-hood, and then merges the results. Moreover,
+under-the-hood, this package uses ``requests-cache`` for persistent caching that can improve
+the performance significantly.
 
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in four categories: ``ServiceURL().restful``,
@@ -173,15 +175,11 @@ Moreover, requests for additional functionalities can be submitted via
 Installation
 ------------
 
-You can install PyGeoOGC using ``pip``. Moreover, PyGeoOGC has an optional
-dependecy for using persistent caching, ``requests-cache``. We highly recommend to install
-this package as it can significantly speedup send/recieve queries. You don't have to change
-anything in your code, since PyGeoOGC under-the-hood looks for ``requests-cache`` and
-if available, it will automatically use persistent caching:
+You can install PyGeoOGC using ``pip``:
 
 .. code-block:: console
 
-    $ pip install pygeoogc[cache]
+    $ pip install pygeoogc
 
 Alternatively, PyGeoOGC can be installed from the ``conda-forge`` repository
 using `Conda <https://docs.conda.io/en/latest/>`__:

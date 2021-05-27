@@ -7,13 +7,13 @@ History
 
 - Remove ``async_requests`` function, since it has been packaged as a new
   python library called
-  [``async_retriever``](https://github.com/cheginit/async_retriever).
+  `AsyncRetriever <https://github.com/cheginit/async_retriever>`__`
 
 
 0.10.1 (2021-03-27)
 -------------------
 
-- Add annoucement regarding the new name for the softwate stack, HyRiver.
+- Add announcement regarding the new name for the softwate stack, HyRiver.
 - Improve ``pip`` installation and release workflow.
 
 0.10.0 (2021-03-06)
