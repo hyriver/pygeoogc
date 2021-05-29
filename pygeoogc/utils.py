@@ -1,22 +1,10 @@
 """Some utilities for PyGeoOGC."""
 import math
+import os
 import socket
-import sys
-import tempfile
 from concurrent import futures
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 from unittest.mock import _patch, patch
 
 import defusedxml.ElementTree as etree
@@ -37,12 +25,10 @@ BOX_ORD = "(west, south, east, north)"
 EXPIRE = 24 * 60 * 60
 
 
-def create_cachefile(db_name: str = "http_cache") -> Optional[Path]:
-    """Create a cache file if dependencies are met."""
-    if sys.platform.startswith("win"):
-        return Path(tempfile.gettempdir(), f"{db_name}.sqlite")
-
-    return Path(Path.home(), ".cache", f"{db_name}.sqlite")
+def create_cachefile(db_name: str = "http_cache") -> Path:
+    """Create a cache folder in the current working directory."""
+    os.makedirs("cache", exist_ok=True)
+    return Path("cache", f"{db_name}.sqlite")
 
 
 class RetrySession:
@@ -63,8 +49,8 @@ class RetrySession:
     prefixes : tuple, optional
         The prefixes to consider, defaults to ("http://", "https://")
     cache_name : str, optional
-        Path to a folder for caching the session, default to None (no caching).
-        It is recommended to use caching as it can significantly speed up the function.
+        Path to a folder for caching the session, default to None which uses
+        system's temp directory.
     """
 
     def __init__(
@@ -102,7 +88,7 @@ class RetrySession:
         self,
         url: str,
         payload: Optional[Mapping[str, Any]] = None,
-        headers: Optional[MutableMapping[str, Any]] = None,
+        headers: Optional[Mapping[str, Any]] = None,
     ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
         try:
@@ -113,8 +99,8 @@ class RetrySession:
     def post(
         self,
         url: str,
-        payload: Optional[MutableMapping[str, Any]] = None,
-        headers: Optional[MutableMapping[str, Any]] = None,
+        payload: Optional[Mapping[str, Any]] = None,
+        headers: Optional[Mapping[str, Any]] = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
         try:
