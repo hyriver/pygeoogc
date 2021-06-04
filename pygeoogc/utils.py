@@ -3,6 +3,7 @@ import math
 import socket
 from concurrent import futures
 from pathlib import Path
+from sqlite3 import OperationalError
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
 from unittest.mock import _patch, patch
 
@@ -90,6 +91,9 @@ class RetrySession:
             return self.session.get(url, params=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
+        except OperationalError:
+            self.session.cache.clear()
+            return self.session.get(url, params=payload, headers=headers)
 
     def post(
         self,
@@ -102,6 +106,9 @@ class RetrySession:
             return self.session.post(url, data=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
+        except OperationalError:
+            self.session.cache.clear()
+            return self.session.post(url, data=payload, headers=headers)
 
     @staticmethod
     def onlyipv4() -> _patch:
