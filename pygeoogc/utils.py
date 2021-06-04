@@ -378,7 +378,7 @@ class MatchCRS:
             raise InvalidInputType("geom", "tuple of length 2", "((xs), (ys))")
 
         project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        return tuple(zip(*[project(x, y) for x, y in zip(*geom)]))
+        return tuple(zip(*(project(x, y) for x, y in zip(*geom))))
 
 
 def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
