@@ -1,6 +1,5 @@
 """Some utilities for PyGeoOGC."""
 import math
-import os
 import socket
 from concurrent import futures
 from pathlib import Path
@@ -25,9 +24,9 @@ BOX_ORD = "(west, south, east, north)"
 EXPIRE = 24 * 60 * 60
 
 
-def create_cachefile(db_name: str = "http_cache") -> Path:
+def _create_cachefile(db_name: str = "http_cache") -> Path:
     """Create a cache folder in the current working directory."""
-    os.makedirs("cache", exist_ok=True)
+    Path("cache").mkdir(exist_ok=True)
     return Path("cache", f"{db_name}.sqlite")
 
 
@@ -61,7 +60,7 @@ class RetrySession:
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
     ) -> None:
-        cache_name = create_cachefile() if cache_name is None else Path(cache_name)
+        cache_name = _create_cachefile() if cache_name is None else Path(cache_name)
         self.session = CachedSession(cache_name, expire_after=EXPIRE, backend="sqlite")
         self.session.remove_expired_responses()
 
