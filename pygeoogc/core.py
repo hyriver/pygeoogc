@@ -1,6 +1,7 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import logging
 import sys
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
 import cytoolz as tlz
@@ -59,8 +60,7 @@ class ArcGISRESTfulBase:
         n_threads: int = 1,
     ) -> None:
 
-        cache_name = utils.create_cachefile()
-        self.session = RetrySession(cache_name=cache_name)
+        self.session = RetrySession()
         self.base_url = base_url[:-1] if base_url[-1] == "/" else base_url
 
         self._layer = 99
@@ -240,7 +240,12 @@ class ArcGISRESTfulBase:
                 self.units = resp["units"].replace("esri", "").lower()
             except KeyError:
                 self.units = None
-            self._max_nrecords = int(resp["maxRecordCount"])
+
+            try:
+                self._max_nrecords = int(resp["maxRecordCount"])
+            except KeyError:
+                self._max_nrecords = 1000
+
             self.query_formats = resp["supportedQueryFormats"].replace(" ", "").lower().split(",")
             self.valid_fields = list(
                 set(
@@ -311,6 +316,7 @@ class ArcGISRESTfulBase:
         )
 
 
+@dataclass
 class WMSBase:
     """Base class for accessing a WMS service.
 
@@ -331,19 +337,11 @@ class WMSBase:
         epsg:4326.
     """
 
-    def __init__(
-        self,
-        url: str,
-        layers: Union[str, List[str]],
-        outformat: str,
-        version: str = "1.3.0",
-        crs: str = DEF_CRS,
-    ) -> None:
-        self.url = url
-        self.layers = layers
-        self.outformat = outformat
-        self.version = version
-        self.crs = crs
+    url: str
+    layers: Union[str, List[str]]
+    outformat: str
+    version: str = "1.3.0"
+    crs: str = DEF_CRS
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -385,6 +383,7 @@ class WMSBase:
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
 
+@dataclass
 class WFSBase:
     """Base class for WFS service.
 
@@ -407,19 +406,11 @@ class WFSBase:
         epsg:4326.
     """
 
-    def __init__(
-        self,
-        url: str,
-        layer: Optional[str] = None,
-        outformat: Optional[str] = None,
-        version: str = "2.0.0",
-        crs: str = DEF_CRS,
-    ) -> None:
-        self.url = url
-        self.layer = layer
-        self.outformat = outformat
-        self.version = version
-        self.crs = crs
+    url: str
+    layer: Optional[str] = None
+    outformat: Optional[str] = None
+    version: str = "2.0.0"
+    crs: str = DEF_CRS
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -476,8 +467,7 @@ class WFSBase:
             max_features: 1,
         }
 
-        cache_name = utils.create_cachefile()
-        session = RetrySession(cache_name=cache_name)
+        session = RetrySession()
         resp = session.get(self.url, payload)
         utils.check_response(resp)
 
