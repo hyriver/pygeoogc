@@ -5,10 +5,20 @@ History
 0.11.0 (unreleased)
 -------------------
 
-- Remove ``async_requests`` function, since it has been packaged as a new
-  python library called
-  `AsyncRetriever <https://github.com/cheginit/async_retriever>`__`
+Breaking Changes
+~~~~~~~~~~~~~~~~
+- Drop support for Python 3.6 since many of the dependencies have done so, such as
+  ``xarray`` and ``pandas``.
+- Remove ``async_requests`` function, since it has been packaged as a new Python library called
+  `AsyncRetriever <https://github.com/cheginit/async_retriever>`__.
 
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Use persistent caching for all send/receive requests that can significantly improve the
+  network response time.
+- Explicitly include all the hard dependencies in ``setup.cfg``.
+- Set a default value of 1000 for ``max_nrecords`` in ``ArcGISRESTfulBase``.
+- Use ``dataclass`` for ``WMSBase`` and ``WFSBase`` since support for Python 3.6 is dropped.
 
 0.10.1 (2021-03-27)
 -------------------
@@ -19,7 +29,7 @@ History
 0.10.0 (2021-03-06)
 -------------------
 
-- The first release after renaming hydrodata to pygeohydro.
+- The first release after renaming ``hydrodata`` to ``pygeohydro``.
 - Fix ``extent`` property of ``ArcGISRESTful`` being set to ``None`` incorrectly.
 - Add ``feature types`` property to ``ArcGISRESTFul`` for getting names and IDs of types
   of features in the database.
