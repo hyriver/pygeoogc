@@ -13,6 +13,7 @@ from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from requests_cache import CachedSession
+from requests_cache.backends.sqlite import DbCache
 from shapely import ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon, box
 from urllib3 import Retry
@@ -22,12 +23,6 @@ from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
 EXPIRE = 24 * 60 * 60
-
-
-def _create_cachefile(db_name: str = "http_cache") -> Path:
-    """Create a cache folder in the current working directory."""
-    Path("cache").mkdir(exist_ok=True)
-    return Path("cache", f"{db_name}.sqlite")
 
 
 class RetrySession:
@@ -60,8 +55,9 @@ class RetrySession:
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
     ) -> None:
-        cache_name = _create_cachefile() if cache_name is None else Path(cache_name)
-        self.session = CachedSession(cache_name, expire_after=EXPIRE, backend="sqlite")
+        cache_name = Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
+        backend = DbCache(cache_name, fast_save=True, timeout=1)
+        self.session = CachedSession(expire_after=EXPIRE, backend=backend)
         self.session.remove_expired_responses()
 
         self.retries = retries
