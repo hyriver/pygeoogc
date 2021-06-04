@@ -11,6 +11,11 @@ Breaking Changes
   ``xarray`` and ``pandas``.
 - Remove ``async_requests`` function, since it has been packaged as a new Python library called
   `AsyncRetriever <https://github.com/cheginit/async_retriever>`__.
+- Refactor ``MatchCRS``. Now, it should be instantiated by providing the in and out CRSs like so:
+  ``MatchCRS(in_crs, out_crs)``. Then its methods, namely, ``geometry``, ``bounds`` and ``coords``,
+  can be called. These methods now have only one input, geometry.
+- Change input and output types of ``MatchCRS.coords`` from tuple of lists of coordinates
+  to list of ``(x, y)`` coordinates.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
