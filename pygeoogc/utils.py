@@ -370,9 +370,7 @@ class MatchCRS:
         return bbox
 
     @staticmethod
-    def coords(
-        geom: Tuple[Tuple[float, ...], Tuple[float, ...]], in_crs: str, out_crs: str
-    ) -> Tuple[Any, ...]:
+    def coords(geom: Tuple[List[float], List[float]], in_crs: str, out_crs: str) -> Tuple[Any, ...]:
         """Reproject a list of coordinates to the specified output CRS."""
         if not (isinstance(geom, tuple) and len(geom) == 2):
             raise InvalidInputType("geom", "tuple of length 2", "((xs), (ys))")
