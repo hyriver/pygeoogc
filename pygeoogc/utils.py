@@ -334,54 +334,79 @@ class ESRIGeomQuery:
 
 
 class MatchCRS:
-    """Match CRS of a input geometry (Polygon, bbox, coord) with the output CRS.
+    """Reproject a geometry to another CRS.
 
     Parameters
     ----------
-    geometry : tuple or Polygon
-        The input geometry (Polygon, bbox, coord)
     in_crs : str
-        The spatial reference of the input geometry
+        Spatial reference of the input geometry
     out_crs : str
-        The target spatial reference
+        Target spatial reference
     """
 
-    @staticmethod
+    def __init__(self, in_crs: str, out_crs: str):
+        self.project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
+
     def geometry(
-        geom: Union[Polygon, MultiPolygon, Point, MultiPoint], in_crs: str, out_crs: str
+        self, geom: Union[Polygon, MultiPolygon, Point, MultiPoint]
     ) -> Union[Polygon, MultiPolygon, Point, MultiPoint]:
-        """Reproject a geometry to the specified output CRS."""
+        """Reproject a geometry to the specified output CRS.
+
+        Parameters
+        ----------
+        geometry : Polygon, MultiPolygon, Point, or MultiPoint
+            Input geometry.
+
+        Returns
+        -------
+        Polygon, MultiPolygon, Point, or MultiPoint
+            Input geometry in the specified CRS.
+        """
         if not isinstance(geom, (Polygon, MultiPolygon, Point, MultiPoint)):
             raise InvalidInputType("geom", "Polygon, MultiPolygon, Point, or MultiPoint")
 
-        project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        return ops.transform(project, geom)
+        return ops.transform(self.project, geom)
 
-    @staticmethod
-    def bounds(
-        geom: Tuple[float, float, float, float], in_crs: str, out_crs: str
-    ) -> Tuple[float, float, float, float]:
-        """Reproject a bounding box to the specified output CRS."""
+    def bounds(self, geom: Tuple[float, float, float, float]) -> Tuple[float, float, float, float]:
+        """Reproject a bounding box to the specified output CRS.
+
+        Parameters
+        ----------
+        geometry : tuple
+            Input bounding box (xmin, ymin, xmax, ymax).
+
+        Returns
+        -------
+        tuple
+            Input bounding box in the specified CRS.
+        """
         if not (isinstance(geom, tuple) and len(geom) == 4):
-            raise InvalidInputType("geom", "tuple of length 4", BOX_ORD)
+            raise InvalidInputType("geom", "tuple", BOX_ORD)
 
-        project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        bbox: Tuple[float, float, float, float] = ops.transform(project, box(*geom)).bounds
-        return bbox
+        return ops.transform(self.project, box(*geom)).bounds
 
-    @staticmethod
-    def coords(geom: Tuple[List[float], List[float]], in_crs: str, out_crs: str) -> Tuple[Any, ...]:
-        """Reproject a list of coordinates to the specified output CRS."""
-        if not (isinstance(geom, tuple) and len(geom) == 2):
-            raise InvalidInputType("geom", "tuple of length 2", "((xs), (ys))")
+    def coords(self, geom: List[Tuple[float, float]]) -> List[Tuple[Any, ...]]:
+        """Reproject a list of coordinates to the specified output CRS.
 
-        project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
-        return tuple(zip(*(project(x, y) for x, y in zip(*geom))))
+        Parameters
+        ----------
+        geometry : list of tuple
+            Input coords [(x1, y1), ...].
+
+        Returns
+        -------
+        tuple
+            Input list of coords in the specified CRS.
+        """
+        if not (isinstance(geom, list) and all(len(c) == 2 for c in geom)):
+            raise InvalidInputType("geom", "list of tuples", "[(x1, y1), ...]")
+
+        return list(zip(*self.project(*zip(*geom))))
 
 
 def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
-    if not isinstance(bbox, tuple) or len(bbox) != 4:
+    if not (isinstance(bbox, tuple) and len(bbox) == 4):
         raise InvalidInputType("bbox", "tuple", BOX_ORD)
 
 
@@ -406,7 +431,7 @@ def bbox_resolution(
     """
     check_bbox(bbox)
 
-    bbox = MatchCRS.bounds(bbox, bbox_crs, DEF_CRS)
+    bbox = MatchCRS(bbox_crs, DEF_CRS).bounds(bbox)
     west, south, east, north = bbox
     geod = pyproj.Geod(ellps="WGS84")
 
@@ -445,7 +470,7 @@ def bbox_decompose(
         The first element is a list of bboxes and the second one is width of the last bbox
     """
     check_bbox(bbox)
-    _bbox = MatchCRS.bounds(bbox, box_crs, DEF_CRS)
+    _bbox = MatchCRS(box_crs, DEF_CRS).bounds(bbox)
     width, height = bbox_resolution(_bbox, resolution, DEF_CRS)
 
     n_px = width * height
@@ -494,7 +519,7 @@ def bbox_decompose(
     bboxs = []
     for i, ((bottom, top), h) in enumerate(zip(lats, heights)):
         for j, ((left, right), w) in enumerate(zip(lons, widths)):
-            bx_crs = MatchCRS.bounds((left, bottom, right, top), DEF_CRS, box_crs)
+            bx_crs = MatchCRS(DEF_CRS, box_crs).bounds((left, bottom, right, top))
             bboxs.append((bx_crs, f"{i}_{j}", w, h))
     return bboxs
 

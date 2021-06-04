@@ -303,7 +303,7 @@ class WMS(WMSBase):
             to convert the responses to ``xarray.Dataset``.
         """
         utils.check_bbox(bbox)
-        _bbox = MatchCRS.bounds(bbox, box_crs, self.crs)
+        _bbox = MatchCRS(box_crs, self.crs).bounds(bbox)
         bounds = utils.bbox_decompose(_bbox, resolution, self.crs, max_px)
 
         payload = {
@@ -461,7 +461,7 @@ class WFS(WFSBase):
         Response
             WFS query response based on the given geometry.
         """
-        geom = MatchCRS().geometry(geometry, geo_crs, self.crs)
+        geom = MatchCRS(geo_crs, self.crs).geometry(geometry)
 
         if (
             self.version != "1.1.1"

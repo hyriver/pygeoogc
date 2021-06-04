@@ -154,15 +154,16 @@ def test_decompose():
 
 
 def test_matchcrs():
+    match_crs = MatchCRS(DEF_CRS, ALT_CRS)
     bounds = GEO_URB.bounds
-    points = ((bounds[0], bounds[2]), (bounds[1], bounds[3]))
-    coords = MatchCRS.coords(points, DEF_CRS, ALT_CRS)
-    bbox = MatchCRS.bounds(GEO_URB.bounds, DEF_CRS, ALT_CRS)
-    geom = MatchCRS.geometry(GEO_URB, DEF_CRS, ALT_CRS)
+    points = [(bounds[0], bounds[1]), (bounds[2], bounds[3])]
+    coords = match_crs.coords(points)
+    bbox = match_crs.bounds(GEO_URB.bounds)
+    geom = match_crs.geometry(GEO_URB)
     assert (
         abs(geom.centroid.x * 1e-4 - (-362.099)) < 1e-3
         and abs(bbox[0] * 1e-4 - (-365.403)) < 1e-3
-        and abs(coords[0][-1] * 1e-4 == (-287.707)) < 1e-3
+        and abs(coords[-1][0] * 1e-4 == (-287.707)) < 1e-3
     )
 
 

@@ -258,7 +258,7 @@ class ArcGISRESTfulBase:
                 extent = resp["extent"] if "extent" in resp else resp["fullExtent"]
                 bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
                 crs = extent["spatialReference"]["latestWkid"]
-                self.extent = utils.MatchCRS.bounds(bounds, crs, DEF_CRS)
+                self.extent = utils.MatchCRS(crs, DEF_CRS).bounds(bounds)
             except KeyError:
                 self.extent = None
             try:
@@ -281,20 +281,22 @@ class ArcGISRESTfulBase:
         geo_crs: str = DEF_CRS,
     ) -> Dict[str, Union[str, bytes]]:
         """Generate geometry queries based on ESRI template."""
+        match_crs = utils.MatchCRS(geo_crs, self.crs)
+
         if isinstance(geom, tuple) and len(geom) == 4:
-            geom = utils.MatchCRS.bounds(geom, geo_crs, self.crs)  # type: ignore
+            geom = match_crs.bounds(geom)  # type: ignore
             return utils.ESRIGeomQuery(geom, self.out_sr).bbox()
 
         if isinstance(geom, Point):
-            geom = utils.MatchCRS.geometry(geom, geo_crs, self.crs)
+            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
 
         if isinstance(geom, MultiPoint):
-            geom = utils.MatchCRS.geometry(geom, geo_crs, self.crs)
+            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery([(g.x, g.y) for g in geom], self.out_sr).multipoint()
 
         if isinstance(geom, Polygon):
-            geom = utils.MatchCRS.geometry(geom, geo_crs, self.crs)
+            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery(geom, self.out_sr).polygon()
 
         raise InvalidInputType("geom", "Polygon, Point, MultiPoint, tuple, or list of tuples")
