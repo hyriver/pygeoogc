@@ -361,6 +361,14 @@ class MatchCRS:
         -------
         Polygon, MultiPolygon, Point, or MultiPoint
             Input geometry in the specified CRS.
+
+        Examples
+        --------
+        >>> from pygeoogc import MatchCRS
+        >>> from shapely.geometry import Point
+        >>> point = Point(-7766049.665, 5691929.739)
+        >>> MatchCRS("epsg:3857", "epsg:4326").geometry(point).xy
+        (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
         """
         if not isinstance(geom, (Polygon, MultiPolygon, Point, MultiPoint)):
             raise InvalidInputType("geom", "Polygon, MultiPolygon, Point, or MultiPoint")
@@ -379,6 +387,13 @@ class MatchCRS:
         -------
         tuple
             Input bounding box in the specified CRS.
+
+        Examples
+        --------
+        >>> from pygeoogc import MatchCRS
+        >>> bbox = (-7766049.665, 5691929.739, -7763049.665, 5696929.739)
+        >>> MatchCRS("epsg:3857", "epsg:4326").bounds(bbox)
+        (-69.7636111130079, 45.44549114818127, -69.73666165448431, 45.47699468552394)
         """
         if not (isinstance(geom, tuple) and len(geom) == 4):
             raise InvalidInputType("geom", "tuple", BOX_ORD)
@@ -397,6 +412,13 @@ class MatchCRS:
         -------
         tuple
             Input list of coords in the specified CRS.
+
+        Examples
+        --------
+        >>> from pygeoogc import MatchCRS
+        >>> coords = [(-7766049.665, 5691929.739)]
+        >>> MatchCRS("epsg:3857", "epsg:4326").coords(coords)
+        [(-69.7636111130079, 45.44549114818127)]
         """
         if not (isinstance(geom, list) and all(len(c) == 2 for c in geom)):
             raise InvalidInputType("geom", "list of tuples", "[(x1, y1), ...]")
