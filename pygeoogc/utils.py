@@ -57,9 +57,15 @@ class RetrySession:
         cache_name: Optional[Union[str, Path]] = None,
     ) -> None:
         cache_name = Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
-        backend = DbCache(cache_name, fast_save=True, timeout=1)
-        self.session = CachedSession(expire_after=EXPIRE, backend=backend)
-        self.session.remove_expired_responses()
+        try:
+            backend = DbCache(cache_name, fast_save=True, timeout=1)
+            self.session = CachedSession(expire_after=EXPIRE, backend=backend)
+            self.session.remove_expired_responses()
+        except OperationalError:
+            Path(cache_name).unlink()
+            backend = DbCache(cache_name, fast_save=True, timeout=1)
+            self.session = CachedSession(expire_after=EXPIRE, backend=backend)
+            self.session.remove_expired_responses()
 
         self.retries = retries
         retry_args = {
@@ -91,9 +97,6 @@ class RetrySession:
             return self.session.get(url, params=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
-        except OperationalError:
-            self.session.cache.clear()
-            return self.session.get(url, params=payload, headers=headers)
 
     def post(
         self,
@@ -106,9 +109,6 @@ class RetrySession:
             return self.session.post(url, data=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
-        except OperationalError:
-            self.session.cache.clear()
-            return self.session.post(url, data=payload, headers=headers)
 
     @staticmethod
     def onlyipv4() -> _patch:
