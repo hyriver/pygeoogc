@@ -16,7 +16,15 @@ from requests.exceptions import RequestException
 from requests_cache import CachedSession
 from requests_cache.backends.sqlite import DbCache
 from shapely import ops
-from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon, box
+from shapely.geometry import (
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+    box,
+)
 from urllib3 import Retry
 
 from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
@@ -254,7 +262,7 @@ class ESRIGeomQuery:
 
     Parameters
     ----------
-    geometry : tuple or Polygon
+    geometry : tuple or Polygon or Point or LineString
         The input geometry which can be a point (x, y), a list of points [(x, y), ...],
         bbox (xmin, ymin, xmax, ymax), or a Shapely's Polygon.
     wkid : int
@@ -313,6 +321,15 @@ class ESRIGeomQuery:
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
         return self.get_payload(geo_type, geo_json)
 
+    def polyline(self) -> Dict[str, Union[str, bytes]]:
+        """Query for a polyline."""
+        if not isinstance(self.geometry, LineString):
+            raise InvalidInputType("geometry", "Shapely's LineString")
+
+        geo_type = "esriGeometryPolyline"
+        geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
+        return self.get_payload(geo_type, geo_json)
+
     def get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
         """Generate a request payload based on ESRI template.
 
@@ -351,18 +368,18 @@ class MatchCRS:
         self.project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
 
     def geometry(
-        self, geom: Union[Polygon, MultiPolygon, Point, MultiPoint]
-    ) -> Union[Polygon, MultiPolygon, Point, MultiPoint]:
+        self, geom: Union[Polygon, LineString, MultiLineString, MultiPolygon, Point, MultiPoint]
+    ) -> Union[Polygon, LineString, MultiLineString, MultiPolygon, Point, MultiPoint]:
         """Reproject a geometry to the specified output CRS.
 
         Parameters
         ----------
-        geometry : Polygon, MultiPolygon, Point, or MultiPoint
+        geometry : LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint
             Input geometry.
 
         Returns
         -------
-        Polygon, MultiPolygon, Point, or MultiPoint
+        LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint
             Input geometry in the specified CRS.
 
         Examples
@@ -373,8 +390,11 @@ class MatchCRS:
         >>> MatchCRS("epsg:3857", "epsg:4326").geometry(point).xy
         (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
         """
-        if not isinstance(geom, (Polygon, MultiPolygon, Point, MultiPoint)):
-            raise InvalidInputType("geom", "Polygon, MultiPolygon, Point, or MultiPoint")
+        if not isinstance(
+            geom, (Polygon, LineString, MultiLineString, MultiPolygon, Point, MultiPoint)
+        ):
+            types = "LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint"
+            raise InvalidInputType("geom", types)
 
         return ops.transform(self.project, geom)
 
