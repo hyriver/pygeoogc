@@ -10,7 +10,7 @@ import pyproj
 import shapely.ops as ops
 import yaml
 from requests import Response
-from shapely.geometry import MultiPoint, MultiPolygon, Point, Polygon
+from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 from simplejson import JSONDecodeError
 
 from . import utils
@@ -50,6 +50,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
     def oids_bygeom(
         self,
         geom: Union[
+            LineString,
             Polygon,
             Point,
             MultiPoint,
@@ -65,9 +66,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
         Parameters
         ----------
-        geom : Polygon, Point, MultiPoint, tuple, or list of tuples
-            A geometry (Polygon, Point, MultiPoint), tuple of length 2 (x, y),
-            a list of tuples of length 2 [(x, y), ...], or bounding box (tuple of length 4).
+        geom : LineString, Polygon, Point, MultiPoint, tuple, or list of tuples
+            A geometry (LineString, Polygon, Point, MultiPoint), tuple of length
+             2 (``(x, y)``), a list of tuples of length 2 (``[(x, y), ...]``), or bounding box
+             (tuple of length 4 (``(xmin, ymin, xmax, ymax)``)).
         geo_crs : str
             The spatial reference of the input geometry, defaults to EPSG:4326.
         sql_clause : str, optional
