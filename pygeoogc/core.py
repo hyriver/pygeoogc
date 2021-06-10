@@ -8,7 +8,7 @@ import cytoolz as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from shapely.geometry import MultiPoint, Point, Polygon
+from shapely.geometry import LineString, MultiPoint, Point, Polygon
 from simplejson import JSONDecodeError
 
 from . import utils
@@ -273,6 +273,7 @@ class ArcGISRESTfulBase:
     def _esri_query(
         self,
         geom: Union[
+            LineString,
             Polygon,
             Point,
             MultiPoint,
@@ -299,7 +300,11 @@ class ArcGISRESTfulBase:
             geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery(geom, self.out_sr).polygon()
 
-        raise InvalidInputType("geom", "Polygon, Point, MultiPoint, tuple, or list of tuples")
+        if isinstance(geom, LineString):
+            geom = match_crs.geometry(geom)
+            return utils.ESRIGeomQuery(geom, self.out_sr).polyline()
+
+        raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple, list")
 
     def __repr__(self) -> str:
         """Print the service configuration."""
