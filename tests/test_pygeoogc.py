@@ -5,7 +5,7 @@ import tempfile
 import zipfile
 
 import pytest
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 
 import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
@@ -169,7 +169,13 @@ def test_matchcrs():
 
 def test_esriquery():
     point = utils.ESRIGeomQuery((-118.72, 34.118), wkid=DEF_CRS).point()
-    assert list(point.keys()) == ["geometryType", "geometry", "inSR"]
+    line = utils.ESRIGeomQuery(
+        LineString([(-118.72, 34.118), (-118.72, 34.118)]), wkid=DEF_CRS
+    ).polyline()
+    assert (
+        point["geometryType"] == "esriGeometryPoint"
+        and line["geometryType"] == "esriGeometryPolyline"
+    )
 
 
 def test_ipv4():
