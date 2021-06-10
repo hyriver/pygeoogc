@@ -5,6 +5,11 @@ History
 0.11.0 (unreleased)
 -------------------
 
+New Features
+~~~~~~~~~~~~
+
+- Add support for requesting ``LineString`` polygon for ``ArcGISRESTful``.
+
 Breaking Changes
 ~~~~~~~~~~~~~~~~
 - Drop support for Python 3.6 since many of the dependencies have done so, such as
