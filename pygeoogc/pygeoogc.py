@@ -43,7 +43,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
     n_threads : int, optional
         Number of simultaneous download, default to 1 i.e., no threading. Note
         that some services might face issues when several requests are sent
-        simultaniously and will return the requests partially. It's recommended
+        simultaneously and will return the requests partially. It's recommended
         to avoid performing threading unless you are certain the web service can handle it.
     """
 
