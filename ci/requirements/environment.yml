@@ -19,4 +19,6 @@ dependencies:
   - pytest
   - pytest-cov
   - pytest-xdist
-  - flaky
+  - psutil
+  - pytest-sugar
+  - pytest-clarity
