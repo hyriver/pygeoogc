@@ -64,16 +64,15 @@ class RetrySession:
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
     ) -> None:
-        cache_name = Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
+        self.cache_name = (
+            Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
+        )
         try:
-            backend = DbCache(cache_name, fast_save=True, timeout=1)
+            backend = DbCache(self.cache_name, fast_save=True, timeout=2)
             self.session = CachedSession(expire_after=EXPIRE, backend=backend)
             self.session.remove_expired_responses()
         except OperationalError:
-            Path(cache_name).unlink()
-            backend = DbCache(cache_name, fast_save=True, timeout=1)
-            self.session = CachedSession(expire_after=EXPIRE, backend=backend)
-            self.session.remove_expired_responses()
+            self._backup_db()
 
         self.retries = retries
         retry_args = {
@@ -103,6 +102,9 @@ class RetrySession:
         """Retrieve data from a url by GET and return the Response."""
         try:
             return self.session.get(url, params=payload, headers=headers)
+        except OperationalError:
+            self._backup_db()
+            return self.session.get(url, params=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
 
@@ -115,8 +117,18 @@ class RetrySession:
         """Retrieve data from a url by POST and return the Response."""
         try:
             return self.session.post(url, data=payload, headers=headers)
+        except OperationalError:
+            self._backup_db()
+            return self.session.post(url, data=payload, headers=headers)
         except (ConnectionError, RequestException):
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
+
+    def _backup_db(self) -> None:
+        """Use a backup database if the current database is locked."""
+        self.cache_name = Path(f"{self.cache_name.parent}/{self.cache_name.stem}_back_up.sqlite")
+        backend = DbCache(self.cache_name, fast_save=True, timeout=2)
+        self.session = CachedSession(expire_after=EXPIRE, backend=backend)
+        self.session.remove_expired_responses()
 
     @staticmethod
     def onlyipv4() -> _patch:
