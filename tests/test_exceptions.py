@@ -1,15 +1,82 @@
 """Tests for exceptions and requests"""
+from sqlite3 import OperationalError
+
 import pytest
+from pydantic import ValidationError
 
 from pygeoogc import (
+    ArcGISRESTful,
     InvalidInputType,
     InvalidInputValue,
     MissingInputs,
     RetrySession,
     ServerError,
+    ServiceURL,
     ThreadingException,
     ZeroMatched,
 )
+
+
+@pytest.fixture
+def rest_wbd():
+    return ArcGISRESTful(ServiceURL().restful.wbd, 1)
+
+
+class TestRESTException:
+    def test_rest_invalid_crs(self):
+        with pytest.raises(InvalidInputType) as ex:
+            _ = ArcGISRESTful(f"{ServiceURL().restful.wbd}/1/", crs="x")
+        assert "The crs argument" in str(ex.value)
+
+    def test_rest_none_layer(self):
+        with pytest.raises(ValidationError) as ex:
+            rest = ArcGISRESTful(ServiceURL().restful.wbd)
+        assert "Either layer must be passed" in str(ex.value)
+
+    def test_rest_invalid_layer(self):
+        with pytest.raises(InvalidInputValue) as ex:
+            rest = ArcGISRESTful(ServiceURL().restful.wbd, 9999)
+        assert "Given layer is invalid" in str(ex.value)
+
+    def test_rest_invalid_max_workers(self):
+        with pytest.raises(InvalidInputType) as ex:
+            _ = ArcGISRESTful(f"{ServiceURL().restful.wbd}/1/", crs="epsg:4326", max_workers=-1)
+        assert "positive integer" in str(ex.value)
+
+    def test_rest_invalid_outformat(self):
+        with pytest.raises(InvalidInputValue) as ex:
+            _ = ArcGISRESTful(ServiceURL().restful.wbd, 1, crs="epsg:4326", outformat="png")
+        assert "geojson" in str(ex.value)
+
+    def test_rest_invalid_outfields(self):
+        with pytest.raises(InvalidInputValue) as ex:
+            _ = ArcGISRESTful(ServiceURL().restful.wbd, 1, crs="epsg:4326", outfields="dem")
+        assert "areaacres" in str(ex.value)
+
+    def test_rest_invalid_service_url(self):
+        with pytest.raises(ServerError) as ex:
+            _ = ArcGISRESTful(f"{ServiceURL().restful.wbd}_extra_bit", 1)
+        assert "_extra_bit" in str(ex.value)
+
+    def test_rest_oid_none(self, rest_wbd):
+        with pytest.raises(ZeroMatched) as ex:
+            _ = rest_wbd.partition_oids(None)
+        assert "Query returned no" in str(ex.value)
+
+    def test_rest_unsupported_geometry(self, rest_wbd):
+        with pytest.raises(InvalidInputType) as ex:
+            rest_wbd.oids_bygeom({1, 1})
+        assert "The geom argument should be" in str(ex.value)
+
+    def test_rest_unsupported_spatial_rel(self, rest_wbd):
+        with pytest.raises(InvalidInputValue) as ex:
+            rest_wbd.oids_bygeom((-1, 1), spatial_relation="intersects")
+        assert "esriSpatialRelIntersects" in str(ex.value)
+
+    def test_rest_wrong_sql(self, rest_wbd):
+        with pytest.raises(ZeroMatched) as ex:
+            rest_wbd.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER")
+        assert "Unable to complete operation" in str(ex.value)
 
 
 def server_error():
@@ -74,7 +141,7 @@ def get_connection_error():
 
 
 def test_get_connection_error():
-    with pytest.raises(ConnectionError):
+    with pytest.raises((ConnectionError, OperationalError)):
         get_connection_error()
 
 
@@ -85,5 +152,5 @@ def post_connection_error():
 
 
 def test_post_connection_error():
-    with pytest.raises(ConnectionError):
+    with pytest.raises((ConnectionError, OperationalError)):
         post_connection_error()
