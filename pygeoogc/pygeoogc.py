@@ -473,8 +473,8 @@ class WFS(WFSBase):
             If the returned value does not have any geometry, it indicates that most probably the
             axis order does not match. You can set this to True in that case.
         predicate : str, optional
-            The geometric prediacte to use for requesting the data, defaults to
-            ``INTERSECTS` Valid predicates are:
+            The geometric prediacte to use for requesting the data, defaults to ``INTERSECTS``.
+            Valid predicates are:
 
             * ``EQUALS``
             * ``DISJOINT``
