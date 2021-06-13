@@ -44,7 +44,6 @@ class ArcGISRESTful(ArcGISRESTfulBase):
     outformat : str, optional
         One of the output formats offered by the selected layer. If not correct
         a list of available formats is shown, defaults to ``geojson``.
-        It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default behaviour.
@@ -173,7 +172,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         Notes
         -----
         Not all web services support this type of query. For more details look
-        `here <https://developers.arcgis.com/rest/services-reference/query-feature-service-.htm#ESRI_SECTION2_07DD2C5127674F6A814CE6C07D39AD46>`__
+        `here <https://developers.arcgis.com/rest/services-reference/query-feature-service-.htm#ESRI_SECTION2_07DD2C5127674F6A814CE6C07D39AD46>`__.
 
         Parameters
         ----------
@@ -475,9 +474,18 @@ class WFS(WFSBase):
             axis order does not match. You can set this to True in that case.
         predicate : str, optional
             The geometric prediacte to use for requesting the data, defaults to
-            INTERSECTS. Valid predicates are:
-            EQUALS, DISJOINT, INTERSECTS, TOUCHES, CROSSES, WITHIN, CONTAINS,
-            OVERLAPS, RELATE, BEYOND
+            ``INTERSECTS` Valid predicates are:
+
+            * ``EQUALS``
+            * ``DISJOINT``
+            * ``INTERSECTS``
+            * ``TOUCHES``
+            * ``CROSSES``
+            * ``WITHIN``
+            * ``CONTAINS``
+            * ``OVERLAPS``
+            * ``RELATE``
+            * ``BEYOND``
 
         Returns
         -------
@@ -522,14 +530,14 @@ class WFS(WFSBase):
         Parameters
         ----------
         featurename : str
-            The name of the column for searching for feature IDs
+            The name of the column for searching for feature IDs.
         featureids : str or list
-            The feature ID(s)
+            The feature ID(s).
 
         Returns
         -------
         Response
-            WMS query response
+            WMS query response.
         """
         valid_features = self.get_validnames()
         if featurename not in valid_features:

@@ -386,7 +386,7 @@ class MatchCRS:
 
         Parameters
         ----------
-        geometry : LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint
+        geom : LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint
             Input geometry.
 
         Returns
@@ -415,7 +415,7 @@ class MatchCRS:
 
         Parameters
         ----------
-        geometry : tuple
+        geom : tuple
             Input bounding box (xmin, ymin, xmax, ymax).
 
         Returns
@@ -440,7 +440,7 @@ class MatchCRS:
 
         Parameters
         ----------
-        geometry : list of tuple
+        geom : list of tuple
             Input coords [(x1, y1), ...].
 
         Returns
