@@ -86,7 +86,18 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         spatial_relation : str, optional
             The spatial relationship to be applied on the input geometry
             while performing the query. If not correct a list of available options is shown.
-            It defaults to ``esriSpatialRelIntersects``.
+            It defaults to ``esriSpatialRelIntersects``. Valid predicates are:
+
+            * ``esriSpatialRelIntersects``
+            * ``esriSpatialRelContains``
+            * ``esriSpatialRelCrosses``
+            * ``esriSpatialRelEnvelopeIntersects``
+            * ``esriSpatialRelIndexIntersects``
+            * ``esriSpatialRelOverlaps``
+            * ``esriSpatialRelTouches``
+            * ``esriSpatialRelWithin``
+            * ``esriSpatialRelRelation``
+
         sql_clause : str, optional
             A valid SQL 92 WHERE clause, default to None.
         distance : int, optional
