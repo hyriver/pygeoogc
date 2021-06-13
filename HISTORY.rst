@@ -9,6 +9,8 @@ New Features
 ~~~~~~~~~~~~
 
 - Add support for requesting ``LineString`` polygon for ``ArcGISRESTful``.
+- Add a new argument called ``distance`` to ``ArcGISRESTful.oids_bygeom`` for specifying the buffer
+  distance from the input geometry for getting features.
 
 Breaking Changes
 ~~~~~~~~~~~~~~~~
@@ -25,8 +27,6 @@ Breaking Changes
   the target layer should either be a part of ``base_url`` or be passed with ``layer`` argument.
 - Move the ``spatial_relation`` argument from ``ArcGISRESTful`` class to ``oids_bygeom`` method,
   since that's where it's applicable.
-- Add a new argument called ``distance`` to ``ArcGISRESTful.oids_bygeom`` for specifying the buffer
-  distance from the input geometry for getting features.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
