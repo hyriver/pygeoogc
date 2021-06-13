@@ -128,11 +128,10 @@ PyGeoOGC has three main classes:
   By looking at the web service's
   `website <https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer>`_
   we see that there are nine layers. For example, 1 for 2-digit HU (Region), 6 for 12-digit HU
-  (Subregion), and so on. We can pass the URL to the target layer like this
-  ``f"{ServiceURL().restful.wbd}/6"``.
+  (Subregion), and so on. We can pass the URL to the target layer directly, like this
+  ``f"{ServiceURL().restful.wbd}/6"`` or as a separate argument via ``layer``.
 
-  Another option is to pass the base URL, ``ServiceURL().restful.wbd``, then set the ``layer``
-  property of the class. Afterward, we request for the data in two steps. First, we need to get
+  Afterward, we request for the data in two steps. First, we need to get
   the target object IDs using ``oids_bygeom`` (within a geometry), ``oids_byfield`` (specific
   field IDs), or ``oids_bysql`` (any valid SQL 92 WHERE clause) class methods. Then, we can get
   the target features using ``get_features`` class method. The returned response can be converted
@@ -211,15 +210,18 @@ within a geometry as follows:
 
     basin_geom = NLDI().get_basins("01031500").geometry[0]
 
-    hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, outformat="json")
-    hr.layer = 2
+    hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, 2, outformat="json")
 
     hr.oids_bygeom(basin_geom, "epsg:4326")
     resp = hr.get_features()
     flowlines = geoutils.json2geodf(resp)
 
-Note ``oids_bygeom`` has an additional argument for passing any valid SQL WHERE clause
-to further filter the data on the server side.
+Note ``oids_bygeom`` has three additional arguments: ``sql_clause``, ``spatial_relation``,
+and ``distance``. We can use ``sql_clause`` for passing any valid SQL WHERE clause and
+``spatial_relation`` for specifying the target predicate such as
+intersect, contain, cross, etc.. The default predicate is intersect
+(``esriSpatialRelIntersects``). We can use ``distance`` for specifying the buffer
+distance from the input geometry for getting features.
 
 We can also submit a query based on IDs of any valid field in the database. If the measure
 property is desired you can pass ``return_m`` as ``True`` to the ``get_features`` class method:
