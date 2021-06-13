@@ -4,8 +4,10 @@ channels:
   - nodefaults
 dependencies:
   # pygeoogc deps
+  - cytoolz
   - defusedxml
   - owslib
+  - pydantic
   - pyyaml
   - pyproj
   - requests

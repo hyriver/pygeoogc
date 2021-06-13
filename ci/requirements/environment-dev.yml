@@ -20,6 +20,7 @@ dependencies:
   # pygeoogc deps
   - defusedxml
   - owslib
+  - pydantic
   - pyyaml
   - pyproj
   - requests
