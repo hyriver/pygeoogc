@@ -30,27 +30,27 @@ class TestRESTException:
 
     def test_rest_none_layer(self):
         with pytest.raises(ValidationError) as ex:
-            rest = ArcGISRESTful(ServiceURL().restful.wbd)
+            _ = ArcGISRESTful(ServiceURL().restful.wbd)
         assert "Either layer must be passed" in str(ex.value)
 
     def test_rest_invalid_layer(self):
         with pytest.raises(InvalidInputValue) as ex:
-            rest = ArcGISRESTful(ServiceURL().restful.wbd, 9999)
+            _ = ArcGISRESTful(ServiceURL().restful.wbd, 9999)
         assert "Given layer is invalid" in str(ex.value)
 
     def test_rest_invalid_max_workers(self):
         with pytest.raises(InvalidInputType) as ex:
-            _ = ArcGISRESTful(f"{ServiceURL().restful.wbd}/1/", crs="epsg:4326", max_workers=-1)
+            _ = ArcGISRESTful(f"{ServiceURL().restful.wbd}/1/", max_workers=-1)
         assert "positive integer" in str(ex.value)
 
     def test_rest_invalid_outformat(self):
         with pytest.raises(InvalidInputValue) as ex:
-            _ = ArcGISRESTful(ServiceURL().restful.wbd, 1, crs="epsg:4326", outformat="png")
+            _ = ArcGISRESTful(ServiceURL().restful.wbd, 1, outformat="png")
         assert "geojson" in str(ex.value)
 
     def test_rest_invalid_outfields(self):
         with pytest.raises(InvalidInputValue) as ex:
-            _ = ArcGISRESTful(ServiceURL().restful.wbd, 1, crs="epsg:4326", outfields="dem")
+            _ = ArcGISRESTful(ServiceURL().restful.wbd, 1, outfields="dem")
         assert "areaacres" in str(ex.value)
 
     def test_rest_invalid_service_url(self):
@@ -65,7 +65,7 @@ class TestRESTException:
 
     def test_rest_unsupported_geometry(self, rest_wbd):
         with pytest.raises(InvalidInputType) as ex:
-            rest_wbd.oids_bygeom({1, 1})
+            rest_wbd.oids_bygeom({1, 2})
         assert "The geom argument should be" in str(ex.value)
 
     def test_rest_unsupported_spatial_rel(self, rest_wbd):
