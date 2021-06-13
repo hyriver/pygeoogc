@@ -21,9 +21,19 @@ Breaking Changes
   can be called. These methods now have only one input, geometry.
 - Change input and output types of ``MatchCRS.coords`` from tuple of lists of coordinates
   to list of ``(x, y)`` coordinates.
+- ``ArcGISRESTful`` now has a new argument, ``layer``, for specifying the layer number (int). Now,
+  the target layer should either be a part of ``base_url`` or be passed with ``layer`` argument.
+- Move the ``spatial_relation`` argument from ``ArcGISRESTful`` class to ``oids_bygeom`` method,
+  since that's where it's applicable.
+- Add a new argument called ``distance`` to ``ArcGISRESTful.oids_bygeom`` for specifying the buffer
+  distance from the input geometry for getting features.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
+- Refactor ``ArcGISRESTfulBase`` class to reduce its code complexity and make the service
+  initialization logic much simpler. The class is faster since it makes less requests during
+  the initialization process.
+- Add ``pydantic`` as a new dependency that takes care of ``ArcGISRESTfulBase`` validation.
 - Use persistent caching for all send/receive requests that can significantly improve the
   network response time.
 - Explicitly include all the hard dependencies in ``setup.cfg``.
