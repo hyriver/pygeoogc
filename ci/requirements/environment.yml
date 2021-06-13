@@ -4,16 +4,15 @@ channels:
   - nodefaults
 dependencies:
   # pygeoogc deps
-  - cytoolz
   - defusedxml
   - owslib
   - pyyaml
   - pyproj
   - requests
   - requests-cache
-  - setuptools
   - shapely
   - simplejson
+  - setuptools
   - urllib3
 
   - pytest
