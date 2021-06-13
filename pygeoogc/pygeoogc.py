@@ -1,11 +1,13 @@
 """Base classes and function for REST, WMS, and WMF services."""
-from collections import defaultdict
-from itertools import product
+import collections
+import itertools
+import logging
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Union
-from warnings import warn
 
+import cytoolz as tlz
 import pyproj
 import shapely.ops as ops
 import yaml
@@ -18,6 +20,13 @@ from .core import ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
 from .utils import MatchCRS, RetrySession
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(logging.Formatter(""))
+logger.handlers = [handler]
+logger.propagate = False
+
 DEF_CRS = "epsg:4326"
 
 
@@ -27,21 +36,22 @@ class ArcGISRESTful(ArcGISRESTfulBase):
     Parameters
     ----------
     base_url : str, optional
-        The ArcGIS RESTful service url.
+        The ArcGIS RESTful service url. The URL must either include a layer number
+        after the last ``/`` in the url or the target layer must be passed as an argument.
+    layer : int, optional
+        Target layer number, defaults to None. If None layer number must be included as after
+        the last ``/`` in ``base_url``.
     outformat : str, optional
         One of the output formats offered by the selected layer. If not correct
         a list of available formats is shown, defaults to ``geojson``.
-    spatial_relation : str, optional
-        The spatial relationship to be applied on the input geometry
-        while performing the query. If not correct a list of available options is shown.
         It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default behaviour.
     crs : str, optional
         The spatial reference of the output data, defaults to EPSG:4326
-    n_threads : int, optional
-        Number of simultaneous download, default to 1 i.e., no threading. Note
+    max_workers : int, optional
+        Number of simultaneous download, default to 1, i.e., no threading. Note
         that some services might face issues when several requests are sent
         simultaneously and will return the requests partially. It's recommended
         to avoid performing threading unless you are certain the web service can handle it.
@@ -59,6 +69,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             Tuple[float, float, float, float],
         ],
         geo_crs: str = DEF_CRS,
+        spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
     ) -> None:
@@ -72,10 +83,14 @@ class ArcGISRESTful(ArcGISRESTfulBase):
              (tuple of length 4 (``(xmin, ymin, xmax, ymax)``)).
         geo_crs : str
             The spatial reference of the input geometry, defaults to EPSG:4326.
+        spatial_relation : str, optional
+            The spatial relationship to be applied on the input geometry
+            while performing the query. If not correct a list of available options is shown.
+            It defaults to ``esriSpatialRelIntersects``.
         sql_clause : str, optional
             A valid SQL 92 WHERE clause, default to None.
         distance : int, optional
-            The buffer distance for the input geometries in meters, default to None.
+            The buffer distance in meters for the input geometries in meters, default to None.
         """
         if isinstance(geom, tuple) and len(geom) == 2:
             geom = Point(geom)
@@ -84,9 +99,23 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
         geom_query = self._esri_query(geom, geo_crs)
 
+        valid_spatialrels = [
+            "esriSpatialRelIntersects",
+            "esriSpatialRelContains",
+            "esriSpatialRelCrosses",
+            "esriSpatialRelEnvelopeIntersects",
+            "esriSpatialRelIndexIntersects",
+            "esriSpatialRelOverlaps",
+            "esriSpatialRelTouches",
+            "esriSpatialRelWithin",
+            "esriSpatialRelRelation",
+        ]
+        if spatial_relation not in valid_spatialrels:
+            raise InvalidInputValue("spatial_relation", valid_spatialrels)
+
         payload = {
             **geom_query,  # type: ignore
-            "spatialRel": self.spatial_relation,
+            "spatialRel": spatial_relation,
             "returnGeometry": "false",
             "returnIdsOnly": "true",
             "f": self.outformat,
@@ -97,12 +126,14 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if sql_clause:
             payload.update({"where": sql_clause})
 
-        resp = self.session.post(f"{self.base_url}/query", payload)
+        resp = self.session.post(self.query_url, payload)
 
         try:
-            self.featureids = resp.json()["objectIds"]
-        except (KeyError, TypeError, IndexError, JSONDecodeError):
-            raise ZeroMatched(self._zeromatched)
+            self.featureids = self.partition_oids(resp.json()["objectIds"])
+        except JSONDecodeError:
+            raise ZeroMatched
+        except KeyError:
+            raise ZeroMatched(f"Service error message:\n{resp.json()['error']['message']}")
 
     def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> None:
         """Get Object IDs based on a list of field IDs.
@@ -114,11 +145,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         ids : str or list
             A list of target ID(s).
         """
-        valid_fields = self.get_validfields()
-        if field not in valid_fields:
-            raise InvalidInputValue("field", list(valid_fields))
+        if field not in self.valid_fields:
+            raise InvalidInputValue("field", self.valid_fields)
 
-        ftype = valid_fields[field]
+        ftype = self.field_types[field]
         if "string" in ftype:
             fids = ", ".join(f"'{i}'" for i in ids)
         else:
@@ -148,15 +178,14 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "returnIdsOnly": "true",
             "f": self.outformat,
         }
-        resp = self.session.post(f"{self.base_url}/query", payload)
+        resp = self.session.post(self.query_url, payload)
 
         try:
-            r_json = resp.json()["objectIds"]
-            if r_json is None:
-                raise ZeroMatched(self._zeromatched)
-            self.featureids = r_json
-        except (KeyError, TypeError, IndexError, JSONDecodeError):
-            raise ZeroMatched(self._zeromatched)
+            self.featureids = self.partition_oids(resp.json()["objectIds"])
+        except JSONDecodeError:
+            raise ZeroMatched
+        except KeyError:
+            raise ZeroMatched(f"Service error message:\n{resp.json()['error']['message']}")
 
     def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
@@ -171,9 +200,6 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         dict
             (Geo)json response from the web service.
         """
-        if any(f not in self.valid_fields for f in self.outfields):
-            raise InvalidInputValue("outfields", self.valid_fields)
-
         payload = {
             "returnGeometry": "true",
             "outSR": self.out_sr,
@@ -182,50 +208,36 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "f": self.outformat,
         }
 
-        def getter(ids: Tuple[str, ...]) -> Union[Dict[str, Any], Tuple[str, ...]]:
+        def getter(ids: Tuple[str, ...]) -> Union[Dict[str, Any], str]:
             payload.update({"objectIds": ", ".join(ids)})
-            resp = self.session.post(f"{self.base_url}/query", payload)
-            r_json: Dict[str, Any] = resp.json()
+            resp = self.session.post(self.query_url, payload)
             try:
-                if "error" in r_json:
-                    return ids
+                return resp.json()
+            except JSONDecodeError:
+                return "error"
 
-                return r_json
-            except AssertionError:
-                if self.outformat == "geojson":
-                    raise ZeroMatched(
-                        "There was a problem processing the request with geojson outformat. "
-                        + "You can set the outformat to json and retry."
-                    )
+        resp = utils.threading(getter, self.featureids, max_workers=self.max_workers)
 
-                raise ZeroMatched("No matching data was found on the server.")
+        resp_types = collections.defaultdict(list)
+        for r in resp:
+            resp_types[type(r)].append(r)
 
-        feature_list = utils.threading(getter, self.featureids, max_workers=self.n_threads)
-
-        # Split the list based on type which are tuple and dict
-        feature_types = defaultdict(list)
-        for f in feature_list:
-            feature_types[type(f)].append(f)
-
-        features = feature_types[dict]
-
-        if len(feature_types[tuple]) > 0:
-            failed = [tuple(x) for y in feature_types[tuple] for x in y]
-            retry = utils.threading(getter, failed, max_workers=self.n_threads * 2)
-            fixed = [resp for resp in retry if not isinstance(resp, tuple)]
-
-            nfailed = len(failed) - len(fixed)
-            if nfailed > 0:
-                warn(
-                    f"From {self.nfeatures} requetsed features, {nfailed} were not available on the server."
+        valid_resp = resp_types.pop(dict)
+        if len(resp_types) != 0:
+            bad_resp_len = len(list(tlz.concat(resp_types.values())))
+            logger.warn(
+                ", ".join(
+                    [
+                        f"Found {bad_resp_len} errors in service responses",
+                        f"returning the {len(valid_resp)} remanining valid response(s).",
+                    ]
                 )
+            )
 
-            features += fixed
+        if len(valid_resp) == 0:
+            raise ZeroMatched
 
-        if len(features) == 0:
-            raise ZeroMatched("No valid feature was found.")
-
-        return features
+        return valid_resp
 
 
 class WMS(WMSBase):
@@ -301,8 +313,7 @@ class WMS(WMSBase):
         -------
         dict
             A dict where the keys are the layer name and values are the returned response
-            from the WMS service as bytes. You can use ``utils.create_dataset`` function
-            to convert the responses to ``xarray.Dataset``.
+            from the WMS service as bytes.
         """
         utils.check_bbox(bbox)
         _bbox = MatchCRS(box_crs, self.crs).bounds(bbox)
@@ -316,7 +327,6 @@ class WMS(WMSBase):
 
         if self.version == "1.1.1":
             payload["srs"] = self.crs
-
         else:
             payload["crs"] = self.crs
 
@@ -338,7 +348,7 @@ class WMS(WMSBase):
             resp = self.session.get(self.url, payload)
             return f"{lyr}_dd_{counter}", resp.content
 
-        return dict(_getmap(i) for i in product(self.layers, bounds))
+        return dict(_getmap(i) for i in itertools.product(self.layers, bounds))
 
 
 class WFS(WFSBase):

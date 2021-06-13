@@ -1,6 +1,8 @@
 """Base classes and function for REST, WMS, and WMF services."""
+import contextlib
 import logging
 import sys
+import urllib.parse as urlparse
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -8,6 +10,7 @@ import cytoolz as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
+from pydantic import BaseModel, validator
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
 from simplejson import JSONDecodeError
 
@@ -24,251 +27,212 @@ logger.propagate = False
 DEF_CRS = "epsg:4326"
 
 
-class ArcGISRESTfulBase:
-    """Access to an ArcGIS REST service.
+class RESTValidator(BaseModel):
+    """Validate ArcGISRESTful inputs.
 
     Parameters
     ----------
     base_url : str, optional
-        The ArcGIS RESTful service url.
+        The ArcGIS RESTful service url. The URL must either include a layer number
+        after the last ``/`` in the url or the target layer must be passed as an argument.
+    layer : int, optional
+        Target layer number, defaults to None. If None layer number must be included as after
+        the last ``/`` in ``base_url``.
     outformat : str, optional
         One of the output formats offered by the selected layer. If not correct
         a list of available formats is shown, defaults to ``geojson``.
-    spatial_relation : str, optional
-        The spatial relationship to be applied on the input geometry
-        while performing the query. If not correct a list of available options is shown.
         It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default behaviour.
     crs : str, optional
         The spatial reference of the output data, defaults to EPSG:4326
-    n_threads : int, optional
-        Number of simultaneous download, default to 1 i.e., no threading. Note
+    max_workers : int, optional
+        Max number of simultaneous requests, default to 2. Note
         that some services might face issues when several requests are sent
         simultaneously and will return the requests partially. It's recommended
-        to avoid performing threading unless you are certain the web service can handle it.
+        to avoid using too many workers unless you are certain the web service can handle it.
+    """
+
+    base_url: str
+    layer: Optional[int] = None
+    outformat: str = "geojson"
+    outfields: Union[List[str], str] = "*"
+    crs: str = DEF_CRS
+    max_workers: int = 2
+
+    @validator("base_url")
+    def _layer_from_url(cls, v):
+        return cls._split_url(urlparse.unquote(v))
+
+    @validator("layer")
+    def _integer_layer(cls, v, values):
+        if v is None:
+            lyr = values["base_url"][1]
+            if lyr is None:
+                msg = "Either layer must be passed as an argument or be included in ``base_url``"
+                raise MissingInputs(msg)
+            return lyr
+        return v
+
+    @validator("outfields")
+    def _outfields_to_list(cls, v):
+        return v if isinstance(v, list) else [v]
+
+    @validator("crs")
+    def _valid_crs(cls, v):
+        try:
+            return pyproj.CRS(v)
+        except pyproj.exceptions.CRSError:
+            raise InvalidInputType("crs", "a valid CRS")
+
+    @validator("max_workers")
+    def _positive_integer_threads(cls, v):
+        if v <= 0:
+            raise InvalidInputType("max_workers", "positive integer")
+        return v
+
+    @staticmethod
+    def _split_url(url: str) -> Tuple[str, Optional[int]]:
+        """Check if layer is included in url, if so separate and return them."""
+        url_split = urlparse.urlsplit(url.rstrip("/"))
+        url_path, lyr = url_split.path.rsplit("/", 1)
+        url_split = url_split._replace(path=url_path)
+        try:
+            return urlparse.urlunsplit(url_split), int(lyr)
+        except ValueError:
+            return url, None
+
+
+class ArcGISRESTfulBase:
+    """Access to an ArcGIS REST service.
+
+    Parameters
+    ----------
+    base_url : str, optional
+        The ArcGIS RESTful service url. The URL must either include a layer number
+        after the last ``/`` in the url or the target layer must be passed as an argument.
+    layer : int, optional
+        Target layer number, defaults to None. If None layer number must be included as after
+        the last ``/`` in ``base_url``.
+    outformat : str, optional
+        One of the output formats offered by the selected layer. If not correct
+        a list of available formats is shown, defaults to ``geojson``.
+        It defaults to ``esriSpatialRelIntersects``.
+    outfields : str or list
+        The output fields to be requested. Setting ``*`` as outfields requests
+        all the available fields which is the default behaviour.
+    crs : str, optional
+        The spatial reference of the output data, defaults to EPSG:4326
+    max_workers : int, optional
+        Max number of simultaneous requests, default to 2. Note
+        that some services might face issues when several requests are sent
+        simultaneously and will return the requests partially. It's recommended
+        to avoid using too many workers unless you are certain the web service can handle it.
     """
 
     def __init__(
         self,
         base_url: str,
+        layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        spatial_relation: str = "esriSpatialRelIntersects",
-        crs: str = DEF_CRS,
-        n_threads: int = 1,
+        crs: Union[str, pyproj.CRS] = DEF_CRS,
+        max_workers: int = 1,
     ) -> None:
+        validated = RESTValidator(
+            base_url=base_url,
+            layer=layer,
+            outformat=outformat,
+            outfields=outfields,
+            crs=crs,
+            max_workers=max_workers,
+        )
+        self.base_url = validated.base_url[0]
+        self.layer = validated.layer
+        self.outformat = validated.outformat
+        self.outfields = validated.outfields
+        self.crs = validated.crs
+        self.max_workers = validated.max_workers
+        self.initialize_service()
 
+    def initialize_service(self) -> None:
+        """Initialize the RESTFul service."""
+        self.out_sr = pyproj.CRS(self.crs).to_epsg()
+        self.n_features = 0
+        self.url = f"{self.base_url}/{self.layer}"
+        self.query_url = f"{self.url}/query"
         self.session = RetrySession()
-        self.base_url = base_url[:-1] if base_url[-1] == "/" else base_url
 
-        self._layer = 99
-        self._outformat = outformat
-        self._spatial_relation = spatial_relation
-        self._outfields = outfields if isinstance(outfields, list) else [outfields]
-        self._n_threads = n_threads
-        self.nfeatures = 0
-        self.crs = crs
-        out_sr = pyproj.CRS(self.crs).to_epsg()
-        if out_sr is None:
-            raise InvalidInputType("crs", "a valid CRS")
-        self.out_sr = out_sr
-        self.valid_layers = self.get_validlayers()
-        self.extent: Optional[Tuple[float, float, float, float]] = None
-        self.feature_types: Optional[Dict[int, str]] = None
-
-        self._zeromatched = "No feature ID were found within the requested region."
-        self.test_url()
-
-    @property
-    def layer(self) -> int:
-        """Set service layer."""
-        return self._layer
-
-    @layer.setter
-    def layer(self, value: int) -> None:
-        """Set service layer."""
-        try:
-            existing_lyr = int(self.base_url.split("/")[-1])
-            self.base_url = self.base_url.replace(f"/{existing_lyr}", "")
-        except ValueError:
-            pass
-
-        if f"{value}" not in self.valid_layers:
+        self._set_service_properties()
+        if f"{self.layer}" not in self.valid_layers:
             valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
             raise InvalidInputValue("layer", valids)
 
-        self._layer = value
-        try:
-            existing_lyr = int(self.base_url.split("/")[-1])
-            self.base_url = self.base_url.replace(f"/{existing_lyr}", f"/{value}")
-        except ValueError:
-            self.base_url = f"{self.base_url}/{value}"
+        self._set_layer_properties()
 
-        self.test_url()
-
-    @property
-    def outformat(self) -> str:
-        """Set service output format."""
-        return self._outformat
-
-    @outformat.setter
-    def outformat(self, value: str) -> None:
-        """Set service output format."""
-        if self.base_url is not None and value.lower() not in self.query_formats:
+        if self.outformat.lower() not in self.query_formats:
             raise InvalidInputValue("outformat", self.query_formats)
 
-        self._outformat = value
+        if any(f not in self.valid_fields for f in self.outfields):
+            raise InvalidInputValue("outfields", self.valid_fields)
 
-    @property
-    def spatial_relation(self) -> str:
-        """Set spatial relationship of the input geometry with the source data."""
-        return self._spatial_relation
+    def partition_oids(self, oids: Union[List[int], int, None]) -> List[Tuple[str, ...]]:
+        """Partition feature IDs based on service's max record number."""
+        if oids is None:
+            raise ZeroMatched
 
-    @spatial_relation.setter
-    def spatial_relation(self, value: str) -> None:
-        """Set spatial relationship of the input geometry with the source data."""
-        valid_spatialrels = [
-            "esriSpatialRelIntersects",
-            "esriSpatialRelContains",
-            "esriSpatialRelCrosses",
-            "esriSpatialRelEnvelopeIntersects",
-            "esriSpatialRelIndexIntersects",
-            "esriSpatialRelOverlaps",
-            "esriSpatialRelTouches",
-            "esriSpatialRelWithin",
-            "esriSpatialRelRelation",
-        ]
-        if value not in valid_spatialrels:
-            raise InvalidInputValue("spatial_rel", valid_spatialrels)
-        self._spatial_relation = value
+        oid_list = [str(oids)] if isinstance(oids, int) else [str(v) for v in oids]
 
-    @property
-    def outfields(self) -> List[str]:
-        """Set service output field(s)."""
-        return self._outfields
+        self.n_features = len(oid_list)
+        logger.info(f"Found {self.n_features:,} features in the requested region.")
+        return list(tlz.partition_all(self.max_nrecords, oid_list))
 
-    @outfields.setter
-    def outfields(self, value: Union[List[str], str]) -> None:
-        """Set service output field(s)."""
-        if not isinstance(value, (list, str)):
-            raise InvalidInputType("outfields", "str or list")
-
-        self._outfields = value if isinstance(value, list) else [value]
-
-    @property
-    def n_threads(self) -> int:
-        """Set number of threads."""
-        return self._n_threads
-
-    @n_threads.setter
-    def n_threads(self, value: int) -> None:
-        """Set number of threads."""
-        if not isinstance(value, int) or value < 0:
-            raise InvalidInputType("n_threads", "positive int")
-        self._n_threads = value
-
-    @property
-    def max_nrecords(self) -> int:
-        """Set maximum number of features per request."""
-        return self._max_nrecords
-
-    @max_nrecords.setter
-    def max_nrecords(self, value: int) -> None:
-        """Set maximum number of features per request."""
-        if value > self.max_nrecords:
-            raise ValueError(
-                f"The server doesn't accept more than {self.max_nrecords}" + " records per request."
-            )
-        if value < 0:
-            raise InvalidInputType("max_nrecords", "positive int")
-
-        self._max_nrecords = value
-
-    @property
-    def featureids(self) -> List[Tuple[str, ...]]:
-        """Set feature ID(s)."""
-        return self._featureids
-
-    @featureids.setter
-    def featureids(self, value: Union[List[int], int, None]) -> None:
-        """Set feature ID(s)."""
-        if value is None:
-            raise ZeroMatched(self._zeromatched)
-
-        if not isinstance(value, (list, int)):
-            raise InvalidInputType("featureids", "int or list")
-
-        oids = [str(value)] if isinstance(value, (int, str)) else [str(v) for v in value]
-
-        self.nfeatures = len(oids)
-        if self.nfeatures == 0:
-            raise ZeroMatched(self._zeromatched)
-
-        logger.info(f"{self.nfeatures:,} features found in the requested region.")
-        self._featureids = list(tlz.partition_all(self.max_nrecords, oids))
-
-    def get_validlayers(self) -> Dict[str, str]:
-        """Get all the valid service layer."""
-        try:
-            existing_lyr = int(self.base_url.split("/")[-1])
-            url = self.base_url.replace(f"/{existing_lyr}", "")
-        except ValueError:
-            url = self.base_url
-
-        resp = self.session.get(url, {"f": "json"})
+    def _set_service_properties(self) -> None:
+        resp = self.session.get(self.base_url, {"f": "json"})
         utils.check_response(resp)
 
         try:
-            layers = {f"{lyr['id']}": lyr["name"] for lyr in resp.json()["layers"]}
+            rjson = resp.json()
+            self.valid_layers = {f"{lyr['id']}": lyr["name"] for lyr in rjson["layers"]}
+            self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
+
+            extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
+            bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
+            crs = extent["spatialReference"]["latestWkid"]
+            self.extent = utils.MatchCRS(crs, DEF_CRS).bounds(bounds)
+
         except (JSONDecodeError, KeyError):
-            raise ZeroMatched(f"The requested layer does not exists in:\n{self.base_url}")
-
-        return layers
-
-    def get_validfields(self) -> Dict[str, str]:
-        """Get all the valid service output fields."""
-        resp = self.session.get(self.base_url, {"f": "json"}).json()
-        return {f["name"]: f["type"].replace("esriFieldType", "").lower() for f in resp["fields"]}
-
-    def test_url(self) -> None:
-        """Test the generated url and get the required parameters from the service."""
-        try:
-            resp = self.session.get(self.base_url, {"f": "json"}).json()
-            try:
-                self.units = resp["units"].replace("esri", "").lower()
-            except KeyError:
-                self.units = None
-
-            try:
-                self._max_nrecords = int(resp["maxRecordCount"])
-            except KeyError:
-                self._max_nrecords = 1000
-
-            self.query_formats = resp["supportedQueryFormats"].replace(" ", "").lower().split(",")
-            self.valid_fields = list(
-                set(
-                    utils.traverse_json(resp, ["fields", "name"])
-                    + utils.traverse_json(resp, ["fields", "alias"])
-                    + ["*"]
-                )
-            )
-            try:
-                extent = resp["extent"] if "extent" in resp else resp["fullExtent"]
-                bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
-                crs = extent["spatialReference"]["latestWkid"]
-                self.extent = utils.MatchCRS(crs, DEF_CRS).bounds(bounds)
-            except KeyError:
-                self.extent = None
-            try:
-                self.feature_types = dict(
-                    zip((tlz.pluck("id", resp["types"])), tlz.pluck("name", resp["types"]))
-                )
-            except KeyError:
-                self.feature_types = None
-        except KeyError:
             raise ServerError(self.base_url)
+
+        self.units = None
+        self.max_nrecords = 1000
+        with contextlib.suppress(KeyError):
+            self.units = rjson["units"].replace("esri", "").lower()
+            self.max_nrecords = int(rjson["maxRecordCount"])
+
+    def _set_layer_properties(self) -> None:
+        """Set properties of the target layer."""
+        resp = self.session.get(self.url, {"f": "json"})
+        utils.check_response(resp)
+        rjson = resp.json()
+
+        self.valid_fields = list(
+            set(
+                utils.traverse_json(rjson, ["fields", "name"])
+                + utils.traverse_json(rjson, ["fields", "alias"])
+                + ["*"]
+            )
+        )
+        self.field_types = {
+            f["name"]: f["type"].replace("esriFieldType", "").lower() for f in rjson["fields"]
+        }
+
+        self.feature_types: Optional[Dict[str, str]] = None
+        with contextlib.suppress(KeyError):
+            self.feature_types = dict(
+                zip((tlz.pluck("id", rjson["types"])), tlz.pluck("name", rjson["types"]))
+            )
 
     def _esri_query(
         self,
@@ -314,11 +278,12 @@ class ArcGISRESTfulBase:
             [
                 "Service configurations:",
                 f"    URL: {self.base_url}",
-                f"    Max Record Count: {self.max_nrecords}",
-                f"    Supported Query Formats: {self.query_formats}",
+                f"    Layer: {self.valid_layers[str(self.layer)]} ({self.layer})",
+                f"    Max record count: {self.max_nrecords}",
+                f"    Query format: {self.outformat}",
                 f"    Units: {self.units}",
                 f"    Extent: ({extent})",
-                f"    Feature Types: {ftypes}",
+                f"    Feature types: {ftypes}",
             ]
         )
 
@@ -365,9 +330,6 @@ class WMSBase:
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
         wms = WebMapService(self.url, version=self.version)
-
-        if not isinstance(self.layers, (str, list)):
-            raise InvalidInputType("layers", "str or list")
 
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
         valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}

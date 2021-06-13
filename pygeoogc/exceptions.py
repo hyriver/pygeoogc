@@ -39,7 +39,20 @@ class ThreadingException(Exception):
 
 
 class ZeroMatched(ValueError):
-    """Exception raised when a function argument is missing."""
+    """Exception raised when a function argument is missing.
+
+    Parameters
+    ----------
+    msg : str
+        The exception error message
+    """
+
+    def __init__(self, msg: str = "") -> None:
+        self.message = f"Query returned no feature ID. {msg}"
+        super().__init__(self.message)
+
+    def __str__(self) -> str:
+        return self.message
 
 
 class InvalidInputValue(Exception):
