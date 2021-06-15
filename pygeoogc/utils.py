@@ -2,6 +2,7 @@
 import math
 import socket
 from concurrent import futures
+from dataclasses import dataclass
 from pathlib import Path
 from sqlite3 import OperationalError
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
@@ -269,6 +270,7 @@ def traverse_json(
     return []
 
 
+@dataclass
 class ESRIGeomQuery:
     """Generate input geometry query for ArcGIS RESTful services.
 
@@ -284,18 +286,13 @@ class ESRIGeomQuery:
         for reference.
     """
 
-    def __init__(
-        self,
-        geometry: Union[
-            Tuple[float, float],
-            List[Tuple[float, float]],
-            Tuple[float, float, float, float],
-            Polygon,
-        ],
-        wkid: int,
-    ) -> None:
-        self.geometry = geometry
-        self.wkid = wkid
+    geometry: Union[
+        Tuple[float, float],
+        List[Tuple[float, float]],
+        Tuple[float, float, float, float],
+        Polygon,
+    ]
+    wkid: int
 
     def point(self) -> Dict[str, Union[str, bytes]]:
         """Query for a point."""
