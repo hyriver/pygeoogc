@@ -19,6 +19,23 @@ class ServerError(Exception):
         return self.message
 
 
+class ServiceError(Exception):
+    """Exception raised when the requested data is not available on the server.
+
+    Parameters
+    ----------
+    url : str
+        The server url
+    """
+
+    def __init__(self, url: str) -> None:
+        self.message = f"Service is currently not available, try again later:\n{url}"
+        super().__init__(self.message)
+
+    def __str__(self) -> str:
+        return self.message
+
+
 class ThreadingException(Exception):
     """Exception raised when the requested data is not available on the server.
 

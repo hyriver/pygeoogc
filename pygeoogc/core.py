@@ -10,12 +10,19 @@ import cytoolz as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from pydantic import BaseModel, validator
+from pydantic import AnyHttpUrl, BaseModel, validator
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
 from simplejson import JSONDecodeError
 
 from . import utils
-from .exceptions import InvalidInputType, InvalidInputValue, MissingInputs, ServerError, ZeroMatched
+from .exceptions import (
+    InvalidInputType,
+    InvalidInputValue,
+    MissingInputs,
+    ServerError,
+    ServiceError,
+    ZeroMatched,
+)
 from .utils import RetrySession
 
 logger = logging.getLogger(__name__)
@@ -54,7 +61,7 @@ class RESTValidator(BaseModel):
         to avoid using too many workers unless you are certain the web service can handle it.
     """
 
-    base_url: str
+    base_url: AnyHttpUrl
     layer: Optional[int] = None
     outformat: str = "geojson"
     outfields: Union[List[str], str] = "*"
@@ -329,7 +336,10 @@ class WMSBase:
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
-        wms = WebMapService(self.url, version=self.version)
+        try:
+            wms = WebMapService(self.url, version=self.version)
+        except AttributeError:
+            raise ServiceError(self.url)
 
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
         valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
@@ -394,7 +404,10 @@ class WFSBase:
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
-        wfs = WebFeatureService(self.url, version=self.version)
+        try:
+            wfs = WebFeatureService(self.url, version=self.version)
+        except AttributeError:
+            raise ServiceError(self.url)
 
         valid_layers = list(wfs.contents)
         if self.layer is None:

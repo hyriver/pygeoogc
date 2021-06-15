@@ -6,6 +6,7 @@ from .exceptions import (
     InvalidInputValue,
     MissingInputs,
     ServerError,
+    ServiceError,
     ThreadingException,
     ZeroMatched,
 )
