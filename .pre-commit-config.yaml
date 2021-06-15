@@ -89,8 +89,7 @@ repos:
       name: Static type checking with mypy
       exclude: tests
       files: pygeoogc
-      additional_dependencies:
-       - 'pydantic'
+      additional_dependencies: [types-all, pydantic]
 
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.0
