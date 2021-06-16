@@ -119,7 +119,7 @@ class TestWMS:
             and sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
         )
 
-    def test_bybox(self, wms_url):
+    def test_bybox(self):
         """WMS by bounding box"""
         wms = WMS(self.wms_url, layers="0", outformat="image/tiff", crs=DEF_CRS)
         print(wms)
