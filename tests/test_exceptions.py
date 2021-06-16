@@ -20,6 +20,7 @@ from pygeoogc import (
 class TestRESTException:
     wbd_url: str = ServiceURL().restful.wbd
     rest_wbd: ArcGISRESTful = ArcGISRESTful(ServiceURL().restful.wbd, 1)
+
     def test_rest_invalid_crs(self):
         with pytest.raises(InvalidInputType) as ex:
             _ = ArcGISRESTful(f"{self.wbd_url}/1/", crs="x")
