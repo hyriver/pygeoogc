@@ -67,19 +67,17 @@ class TestREST:
 
     def test_bymultipoint(self):
         """RESTFul by geometry"""
-        url = "https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus/NHDPlus/MapServer"
-        sql_clause = "FTYPE NOT IN (420,428,566)"
         geom = [
             (-97.06138, 32.837),
             (-97.06133, 32.836),
             (-97.06124, 32.834),
             (-97.06127, 32.832),
         ]
-        geo_crs = "epsg:4269"
-        distance = 1500
 
         service = ArcGISRESTful(self.epa_url, 2, outformat="json")
-        service.oids_bygeom(geom, geo_crs=geo_crs, sql_clause=sql_clause, distance=distance)
+        service.oids_bygeom(
+            geom, geo_crs="epsg:4269", sql_clause="FTYPE NOT IN (420,428,566)", distance=1500
+        )
         resp = service.get_features(return_m=True)
         assert len(resp[0]["features"]) == 3
 
