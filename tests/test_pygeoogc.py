@@ -26,26 +26,15 @@ GEO_URB = Polygon(
 COORDS = [(-118.72, 34.118), (-118.31, 34.518)]
 
 
-@pytest.fixture
-def wfs():
-    return WFS(
-        ServiceURL().wfs.waterdata,
-        layer="wmadata:gagesii",
-        outformat="application/json",
-        version="2.0.0",
-        crs="epsg:4269",
-    )
-
-
-@pytest.fixture
-def wms_url():
-    return ServiceURL().wms.fws
-
-
 class TestREST:
+    wbd_url: str = ServiceURL().restful.wbd
+    fab_url: str = f"{ServiceURL().restful.nhd_fabric}/1"
+    epa_url: str = "https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus/NHDPlus/MapServer"
+    nhd_url: str = ServiceURL().restful.nhdplushr_edits
+
     def test_byid(self):
         """RESTFul by ID"""
-        wbd2 = ArcGISRESTful(ServiceURL().restful.wbd, 1, outfields=["huc2", "name", "areaacres"])
+        wbd2 = ArcGISRESTful(self.wbd_url, 1, outfields=["huc2", "name", "areaacres"])
         print(wbd2)
         wbd2.featureids = wbd2.partition_oids(list(range(1, 6)))
         huc2 = wbd2.get_features()
@@ -53,7 +42,7 @@ class TestREST:
         assert len(huc2[0]["features"]) == 5
 
     def test_geom_point_line(self):
-        wbd2 = ArcGISRESTful(ServiceURL().restful.wbd, 1)
+        wbd2 = ArcGISRESTful(self.wbd_url, 1)
         wbd2.oids_bygeom((-70.02580, 44.43280), spatial_relation="esriSpatialRelWithin")
         huc2 = wbd2.get_features()
         point = len(huc2[0]["features"])
@@ -68,7 +57,7 @@ class TestREST:
 
     def test_bygeom(self):
         """RESTFul by geometry"""
-        geofab = ArcGISRESTful(f"{ServiceURL().restful.nhd_fabric}/1", max_workers=4)
+        geofab = ArcGISRESTful(self.fab_url, max_workers=4)
         geofab.oids_bygeom(GEO_NAT.bounds)
         geofab.oids_bygeom(GEO_NAT)
         wb_all = geofab.get_features()
@@ -89,7 +78,7 @@ class TestREST:
         geo_crs = "epsg:4269"
         distance = 1500
 
-        service = ArcGISRESTful(url, 2, outformat="json")
+        service = ArcGISRESTful(self.epa_url, 2, outformat="json")
         service.oids_bygeom(geom, geo_crs=geo_crs, sql_clause=sql_clause, distance=distance)
         resp = service.get_features(return_m=True)
         assert len(resp[0]["features"]) == 3
@@ -97,7 +86,7 @@ class TestREST:
     @pytest.mark.slow
     def test_bysql(self):
         """RESTFul by SQL filter"""
-        hr = ArcGISRESTful(ServiceURL().restful.nhdplushr_edits, 2, outformat="json")
+        hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
         hr.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
         resp = hr.get_features(return_m=True)
 
@@ -106,7 +95,7 @@ class TestREST:
     @pytest.mark.slow
     def test_byfield(self):
         """RESTFul by SQL filter"""
-        hr = ArcGISRESTful(ServiceURL().restful.nhdplushr_edits, 2, outformat="json")
+        hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
         hr.oids_byfield("NHDFlowline.PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
         resp = hr.get_features()
 
@@ -114,10 +103,12 @@ class TestREST:
 
 
 class TestWMS:
-    def test_v111(self, wms_url):
+    wms_url: str = ServiceURL().wms.fws
+
+    def test_v111(self):
         """WMS version 1.1.1"""
         wms = WMS(
-            wms_url,
+            self.wms_url,
             layers="0",
             outformat="image/tiff",
             crs=DEF_CRS,
@@ -132,33 +123,41 @@ class TestWMS:
 
     def test_bybox(self, wms_url):
         """WMS by bounding box"""
-        wms = WMS(wms_url, layers="0", outformat="image/tiff", crs=DEF_CRS)
+        wms = WMS(self.wms_url, layers="0", outformat="image/tiff", crs=DEF_CRS)
         print(wms)
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
         assert sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
 
 
 class TestWFS:
-    def test_byid(self, wfs):
+    wfs: WFS = WFS(
+        ServiceURL().wfs.waterdata,
+        layer="wmadata:gagesii",
+        outformat="application/json",
+        version="2.0.0",
+        crs="epsg:4269",
+    )
+
+    def test_byid(self):
         """WFS by ID"""
-        print(wfs)
-        st = wfs.getfeature_byid("staid", "01031500")
+        print(self.wfs)
+        st = self.wfs.getfeature_byid("staid", "01031500")
         assert st.json()["numberMatched"] == 1
 
-    def test_bygeom(self, wfs):
+    def test_bygeom(self):
         """WFS by geometry"""
-        r = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
+        r = self.wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
         assert len(r.json()["features"]) == 7
 
-    def test_bybox(self, wfs):
+    def test_bybox(self):
         """WFS by bounding box"""
         bbox = GEO_URB.bounds
-        r = wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
+        r = self.wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
         assert len(r.json()["features"]) == 7
 
-    def test_byfilter(self, wfs):
+    def test_byfilter(self):
         """WFS by CQL filter"""
-        wb = wfs.getfeature_byfilter("staid LIKE '010315%'")
+        wb = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
         assert len(utils.traverse_json(wb.json(), ["features", "geometry", "coordinates"])) == 2
 
 
