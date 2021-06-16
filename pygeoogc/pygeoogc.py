@@ -235,7 +235,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         valid_resp = resp_types.pop(dict)
         if len(resp_types) != 0:
             bad_resp_len = len(list(tlz.concat(resp_types.values())))
-            logger.warn(
+            logger.warning(
                 ", ".join(
                     [
                         f"Found {bad_resp_len} errors in service responses",

@@ -161,16 +161,27 @@ class ArcGISRESTfulBase:
         self.outfields = validated.outfields
         self.crs = validated.crs
         self.max_workers = validated.max_workers
+
+        self.out_sr = pyproj.CRS(self.crs).to_epsg()
+        self.n_features = 0
+        self.featureids: List[Tuple[str, ...]] = []
+        self.url = f"{self.base_url}/{self.layer}"
+        self.query_url = f"{self.url}/query"
+        self.valid_layers: Dict[str, str] = {}
+        self.query_formats: List[str] = []
+        self.extent: Optional[Tuple[float, float, float, float]] = None
+        self.units: Optional[str] = None
+        self.max_nrecords: int = 1000
+        self.valid_fields: List[str] = []
+        self.field_types: Dict[str, str] = {}
+        self.feature_types: Optional[Dict[str, str]] = None
+
+        self.session = RetrySession()
+
         self.initialize_service()
 
     def initialize_service(self) -> None:
         """Initialize the RESTFul service."""
-        self.out_sr = pyproj.CRS(self.crs).to_epsg()
-        self.n_features = 0
-        self.url = f"{self.base_url}/{self.layer}"
-        self.query_url = f"{self.url}/query"
-        self.session = RetrySession()
-
         self._set_service_properties()
         if f"{self.layer}" not in self.valid_layers:
             valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
@@ -212,8 +223,6 @@ class ArcGISRESTfulBase:
         except (JSONDecodeError, KeyError):
             raise ServerError(self.base_url)
 
-        self.units = None
-        self.max_nrecords = 1000
         with contextlib.suppress(KeyError):
             self.units = rjson["units"].replace("esri", "").lower()
             self.max_nrecords = int(rjson["maxRecordCount"])
@@ -235,7 +244,6 @@ class ArcGISRESTfulBase:
             f["name"]: f["type"].replace("esriFieldType", "").lower() for f in rjson["fields"]
         }
 
-        self.feature_types: Optional[Dict[str, str]] = None
         with contextlib.suppress(KeyError):
             self.feature_types = dict(
                 zip((tlz.pluck("id", rjson["types"])), tlz.pluck("name", rjson["types"]))
