@@ -12,10 +12,6 @@ fallback_version = "999"
 
 [tool.pytest.ini_options]
 addopts = '--doctest-modules -n=auto -v --cov=pygeoogc --cov-report xml --durations=5'
-testpaths = [
-    "tests",
-    "pygeoogc",
-]
 markers = [
     "slow",
 ]
