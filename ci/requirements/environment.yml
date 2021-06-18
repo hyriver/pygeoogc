@@ -17,6 +17,7 @@ dependencies:
   - setuptools
   - urllib3
 
+  - nox
   - pytest
   - pytest-clarity
   - pytest-cov
