@@ -18,8 +18,9 @@ dependencies:
   - urllib3
 
   - pytest
+  - pytest-clarity
   - pytest-cov
+  - pytest-sugar
   - pytest-xdist
   - psutil
-  - pytest-sugar
-  - pytest-clarity
+  - toml
