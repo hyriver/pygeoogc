@@ -2,20 +2,19 @@
 History
 =======
 
-0.11.0 (unreleased)
+0.11.0 (2021-06-18)
 -------------------
 
 New Features
 ~~~~~~~~~~~~
-
 - Add support for requesting ``LineString`` polygon for ``ArcGISRESTful``.
 - Add a new argument called ``distance`` to ``ArcGISRESTful.oids_bygeom`` for specifying the buffer
   distance from the input geometry for getting features.
 
 Breaking Changes
 ~~~~~~~~~~~~~~~~
-- Drop support for Python 3.6 since many of the dependencies have done so, such as
-  ``xarray`` and ``pandas``.
+- Drop support for Python 3.6 since many of the dependencies such as ``xarray`` and ``pandas``
+  have done so.
 - Remove ``async_requests`` function, since it has been packaged as a new Python library called
   `AsyncRetriever <https://github.com/cheginit/async_retriever>`__.
 - Refactor ``MatchCRS``. Now, it should be instantiated by providing the in and out CRSs like so:
