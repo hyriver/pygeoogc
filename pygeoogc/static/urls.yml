@@ -5,7 +5,7 @@ restful:
   daymet: https://thredds.daac.ornl.gov/thredds/ncss/ornldaac
   daymet_point: https://daymet.ornl.gov/single-pixel/api/data
   fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer
-  fws: https://www.fws.gov/wetlands/arcgis/rest/services
+  fws: https://www.fws.gov/wetlandsmapservice/rest/services
   nldi: https://labs.waterdata.usgs.gov/api/nldi
   nwis: https://waterservices.usgs.gov/nwis
   wbd: https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer
@@ -23,6 +23,6 @@ wfs:
 
 wms:
   fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer
-  fws: https://www.fws.gov/wetlands/arcgis/services/Wetlands_Raster/ImageServer/WMSServer
+  fws: https://www.fws.gov/wetlandsmapservice/services/Wetlands_Raster/ImageServer/WMSServer
   mrlc: https://www.mrlc.gov/geoserver/mrlc_download/wms
   nm_3dep: https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer
