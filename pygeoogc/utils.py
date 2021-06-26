@@ -106,8 +106,10 @@ class RetrySession:
         except OperationalError:
             self._backup_db()
             return self.session.get(url, params=payload, headers=headers)
-        except (ConnectionError, RequestException):
+        except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
+        except RequestException as ex:
+            raise RequestException(f"{ex}")
 
     def post(
         self,
@@ -121,8 +123,10 @@ class RetrySession:
         except OperationalError:
             self._backup_db()
             return self.session.post(url, data=payload, headers=headers)
-        except (ConnectionError, RequestException):
+        except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
+        except RequestException as ex:
+            raise RequestException(f"{ex}")
 
     def _backup_db(self) -> None:
         """Use a backup database if the current database is locked."""
