@@ -77,9 +77,9 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         Parameters
         ----------
         geom : LineString, Polygon, Point, MultiPoint, tuple, or list of tuples
-            A geometry (LineString, Polygon, Point, MultiPoint), tuple of length
-             2 (``(x, y)``), a list of tuples of length 2 (``[(x, y), ...]``), or bounding box
-             (tuple of length 4 (``(xmin, ymin, xmax, ymax)``)).
+            A geometry (LineString, Polygon, Point, MultiPoint), tuple of length two
+            (``(x, y)``), a list of tuples of length 2 (``[(x, y), ...]``), or bounding box
+            (tuple of length 4 (``(xmin, ymin, xmax, ymax)``)).
         geo_crs : str
             The spatial reference of the input geometry, defaults to EPSG:4326.
         spatial_relation : str, optional
@@ -98,17 +98,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             * ``esriSpatialRelRelation``
 
         sql_clause : str, optional
-            A valid SQL 92 WHERE clause, default to None.
+            Valid SQL 92 WHERE clause, default to None.
         distance : int, optional
-            The buffer distance in meters for the input geometries in meters, default to None.
+            Buffer distance in meters for the input geometries, default to None.
         """
-        if isinstance(geom, tuple) and len(geom) == 2:
-            geom = Point(geom)
-        elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
-            geom = MultiPoint(geom)
-
-        geom_query = self._esri_query(geom, geo_crs)
-
         valid_spatialrels = [
             "esriSpatialRelIntersects",
             "esriSpatialRelContains",
@@ -122,6 +115,13 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         ]
         if spatial_relation not in valid_spatialrels:
             raise InvalidInputValue("spatial_relation", valid_spatialrels)
+
+        if isinstance(geom, tuple) and len(geom) == 2:
+            geom = Point(geom)
+        elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
+            geom = MultiPoint(geom)
+
+        geom_query = self._esri_query(geom, geo_crs)
 
         payload = {
             **geom_query,  # type: ignore
