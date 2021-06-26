@@ -20,7 +20,7 @@ class ServerError(Exception):
 
 
 class ServiceError(Exception):
-    """Exception raised when the requested data is not available on the server.
+    """Exception raised when the service is not available.
 
     Parameters
     ----------
