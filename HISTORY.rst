@@ -2,6 +2,15 @@
 History
 =======
 
+0.11.1 (unreleased)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Catch the ``ConnectionError`` separately in ``NLDI`` and riase a ``ServiceError`` instead.
+  So user knows that data cannot be returned due to the out of service status of the server
+  not ``ZeroMatched``.
+
 0.11.0 (2021-06-18)
 -------------------
 
