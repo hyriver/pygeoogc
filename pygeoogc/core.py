@@ -217,7 +217,14 @@ class ArcGISRESTfulBase:
 
             extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
             bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
-            crs = extent["spatialReference"]["latestWkid"]
+            crs: Optional[str] = None
+            for f in ["latestWkid", "wkid", "wkt"]:
+                if f in extent["spatialReference"]:
+                    crs = extent["spatialReference"][f]
+                    break
+
+            if crs is None:
+                raise ServiceError("The service doesn't provide CRS information.")
             self.extent = utils.MatchCRS(crs, DEF_CRS).bounds(bounds)
 
         except (JSONDecodeError, KeyError):
