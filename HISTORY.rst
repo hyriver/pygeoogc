@@ -7,9 +7,14 @@ History
 
 New Features
 ~~~~~~~~~~~~
-- Catch the ``ConnectionError`` separately in ``NLDI`` and riase a ``ServiceError`` instead.
-  So user knows that data cannot be returned due to the out of service status of the server
-  not ``ZeroMatched``.
+- Add support for passing additional parameters to ``WMS`` requests such as ``styles``.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Rename ``ServiceError`` to ``ServiceUnavailable`` and ``ServerError`` to ``ServiceError``
+  Since it's more representative of the intended exception.
+- Raise for response status in ``RetrySession`` before the try-except block so
+  ``RequestsException`` can raised and its error messaged be parsed.
 
 0.11.0 (2021-06-18)
 -------------------
