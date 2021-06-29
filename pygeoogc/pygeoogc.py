@@ -297,6 +297,7 @@ class WMS(WMSBase):
         box_crs: str = DEF_CRS,
         always_xy: bool = False,
         max_px: int = 8000000,
+        kwargs: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, bytes]:
         """Get data from a WMS service within a geometry or bounding box.
 
@@ -318,6 +319,9 @@ class WMS(WMSBase):
         max_px : int, opitonal
             The maximum allowable number of pixels (width x height) for a WMS requests,
             defaults to 8 million based on some trial-and-error.
+        kwargs: dict, optional
+            Optional additional keywords passed as payload, defaults to None.
+            For example, ``{"styles": "default"}``.
 
         Returns
         -------
@@ -334,6 +338,12 @@ class WMS(WMSBase):
             "format": self.outformat,
             "request": "GetMap",
         }
+
+        if not isinstance(kwargs, (dict, type(None))):
+            raise InvalidInputType("kwargs", "dict or None")
+
+        if isinstance(kwargs, dict):
+            payload.update(kwargs)
 
         if self.version == "1.1.1":
             payload["srs"] = self.crs
@@ -446,9 +456,7 @@ class WFS(WFSBase):
             "bbox": f'{",".join(str(c) for c in bbox)},{box_crs}',
             "srsName": self.crs,
         }
-
         resp = self.session.get(self.url, payload)
-        utils.check_response(resp)
 
         return resp
 
@@ -598,8 +606,6 @@ class WFS(WFSBase):
         elif method == "POST":
             headers = {"content-type": "application/x-www-form-urlencoded"}
             resp = self.session.post(self.url, payload, headers)
-
-        utils.check_response(resp)
 
         return resp
 
