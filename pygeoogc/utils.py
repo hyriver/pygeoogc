@@ -28,7 +28,7 @@ from shapely.geometry import (
 )
 from urllib3 import Retry
 
-from .exceptions import InvalidInputType, ThreadingException, ZeroMatched
+from .exceptions import InvalidInputType, ServiceError, ThreadingException
 
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
@@ -92,7 +92,6 @@ class RetrySession:
         adapter = HTTPAdapter(max_retries=r)
         for prefix in prefixes:
             self.session.mount(prefix, adapter)
-        self.session.hooks = {"response": [lambda r, *args, **kwargs: r.raise_for_status()]}
 
     def get(
         self,
@@ -101,14 +100,17 @@ class RetrySession:
         headers: Optional[Mapping[str, Any]] = None,
     ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
+        resp = self.session.get(url, params=payload, headers=headers)
         try:
-            return self.session.get(url, params=payload, headers=headers)
+            resp.raise_for_status()
+            return resp
         except OperationalError:
             self._backup_db()
             return self.session.get(url, params=payload, headers=headers)
         except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
         except RequestException as ex:
+            _check_response(resp)
             raise RequestException(f"{ex}")
 
     def post(
@@ -118,14 +120,17 @@ class RetrySession:
         headers: Optional[Mapping[str, Any]] = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
+        resp = self.session.post(url, data=payload, headers=headers)
         try:
-            return self.session.post(url, data=payload, headers=headers)
+            resp.raise_for_status()
+            return resp
         except OperationalError:
             self._backup_db()
             return self.session.post(url, data=payload, headers=headers)
         except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
         except RequestException as ex:
+            _check_response(resp)
             raise RequestException(f"{ex}")
 
     def _backup_db(self) -> None:
@@ -582,8 +587,9 @@ def bbox_decompose(
     return bboxs
 
 
-def check_response(resp: Response) -> None:
+def _check_response(resp: Response) -> None:
     """Check if a ``requests.Resonse`` returned an error message."""
-    if resp.headers["Content-Type"] == "application/xml":
+    ctype = resp.headers["Content-Type"]
+    if "xml" in ctype or "html" in ctype:
         root = etree.fromstring(resp.text)
-        raise ZeroMatched(root[0][0].text.strip())
+        raise ServiceError(root[-1][0].text.strip())
