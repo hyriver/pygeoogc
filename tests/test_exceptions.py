@@ -10,7 +10,7 @@ from pygeoogc import (
     InvalidInputValue,
     MissingInputs,
     RetrySession,
-    ServerError,
+    ServiceError,
     ServiceURL,
     ThreadingException,
     ZeroMatched,
@@ -52,7 +52,7 @@ class TestRESTException:
         assert "areaacres" in str(ex.value)
 
     def test_rest_invalid_service_url(self):
-        with pytest.raises(ServerError) as ex:
+        with pytest.raises(ServiceError) as ex:
             _ = ArcGISRESTful(f"{self.wbd_url}_extra_bit", 1)
         assert "_extra_bit" in str(ex.value)
 
