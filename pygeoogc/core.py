@@ -19,8 +19,8 @@ from .exceptions import (
     InvalidInputType,
     InvalidInputValue,
     MissingInputs,
-    ServerError,
     ServiceError,
+    ServiceUnavailable,
     ZeroMatched,
 )
 from .utils import RetrySession
@@ -208,7 +208,6 @@ class ArcGISRESTfulBase:
 
     def _set_service_properties(self) -> None:
         resp = self.session.get(self.base_url, {"f": "json"})
-        utils.check_response(resp)
 
         try:
             rjson = resp.json()
@@ -224,11 +223,11 @@ class ArcGISRESTfulBase:
                     break
 
             if crs is None:
-                raise ServiceError("The service doesn't provide CRS information.")
+                raise ServiceUnavailable("The service doesn't provide CRS information.")
             self.extent = utils.MatchCRS(crs, DEF_CRS).bounds(bounds)
 
         except (JSONDecodeError, KeyError):
-            raise ServerError(self.base_url)
+            raise ServiceError(self.base_url)
 
         with contextlib.suppress(KeyError):
             self.units = rjson["units"].replace("esri", "").lower()
@@ -237,7 +236,6 @@ class ArcGISRESTfulBase:
     def _set_layer_properties(self) -> None:
         """Set properties of the target layer."""
         resp = self.session.get(self.url, {"f": "json"})
-        utils.check_response(resp)
         rjson = resp.json()
 
         self.valid_fields = list(
@@ -354,7 +352,7 @@ class WMSBase:
         try:
             wms = WebMapService(self.url, version=self.version)
         except AttributeError:
-            raise ServiceError(self.url)
+            raise ServiceUnavailable(self.url)
 
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
         valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
@@ -422,7 +420,7 @@ class WFSBase:
         try:
             wfs = WebFeatureService(self.url, version=self.version)
         except AttributeError:
-            raise ServiceError(self.url)
+            raise ServiceUnavailable(self.url)
 
         valid_layers = list(wfs.contents)
         if self.layer is None:
@@ -466,7 +464,6 @@ class WFSBase:
 
         session = RetrySession()
         resp = session.get(self.url, payload)
-        utils.check_response(resp)
 
         r_json = resp.json()
         valid_fields = list(

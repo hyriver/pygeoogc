@@ -2,24 +2,24 @@
 from typing import Generator, List, Optional, Union
 
 
-class ServerError(Exception):
+class ServiceError(Exception):
     """Exception raised when the requested data is not available on the server.
 
     Parameters
     ----------
-    url : str
-        The server url
+    err : str
+        Service error message.
     """
 
-    def __init__(self, url: str) -> None:
-        self.message = f"The requested server is no available at:\n{url}"
+    def __init__(self, err: str) -> None:
+        self.message = f"Service returned the following error message:\n{err}"
         super().__init__(self.message)
 
     def __str__(self) -> str:
         return self.message
 
 
-class ServiceError(Exception):
+class ServiceUnavailable(Exception):
     """Exception raised when the service is not available.
 
     Parameters

@@ -5,8 +5,8 @@ from .exceptions import (
     InvalidInputType,
     InvalidInputValue,
     MissingInputs,
-    ServerError,
     ServiceError,
+    ServiceUnavailable,
     ThreadingException,
     ZeroMatched,
 )
