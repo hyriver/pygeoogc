@@ -7,7 +7,7 @@ import pytest
 from shapely.geometry import LineString, Polygon
 
 import pygeoogc as ogc
-from pygeoogc import WFS, WMS, ArcGISRESTful, MatchCRS, RetrySession, ServiceURL, utils
+from pygeoogc import WFS, WMS, ArcGISRESTful, RetrySession, ServiceURL, utils
 
 DEF_CRS = "epsg:4326"
 ALT_CRS = "epsg:2149"
@@ -101,13 +101,14 @@ class TestREST:
 
 
 class TestWMS:
-    wms_url: str = ServiceURL().wms.fws
+    wms_url: str = ServiceURL().wms.gebco
+    layer: str = "GEBCO_LATEST"
 
     def test_v111(self):
         """WMS version 1.1.1"""
         wms = WMS(
             self.wms_url,
-            layers="0",
+            layers=self.layer,
             outformat="image/tiff",
             crs=DEF_CRS,
             version="1.1.1",
@@ -115,16 +116,16 @@ class TestWMS:
         )
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
         assert (
-            wms.get_validlayers()["0"] == "Wetlands_Raster"
-            and sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
+            wms.get_validlayers()[self.layer] == self.layer
+            and sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11485083
         )
 
     def test_bybox(self):
         """WMS by bounding box"""
-        wms = WMS(self.wms_url, layers="0", outformat="image/tiff", crs=DEF_CRS)
+        wms = WMS(self.wms_url, layers=self.layer, outformat="image/tiff", crs=DEF_CRS)
         print(wms)
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
-        assert sys.getsizeof(r_dict["0_dd_0_0"]) == 12536763
+        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11485083
 
 
 class TestWFS:
@@ -175,8 +176,7 @@ def test_decompose():
 )
 def test_matchcrs(geo, gtype, expected):
     """Match CRS"""
-    match_crs = MatchCRS(DEF_CRS, ALT_CRS)
-    matched = getattr(match_crs, gtype)(geo)
+    matched = utils.match_crs(geo, DEF_CRS, ALT_CRS)
     if gtype == "coords":
         val = matched[-1][0]
     elif gtype == "geometry":
