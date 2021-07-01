@@ -18,7 +18,7 @@ from simplejson import JSONDecodeError
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
-from .utils import MatchCRS, RetrySession
+from .utils import RetrySession
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -330,7 +330,7 @@ class WMS(WMSBase):
             from the WMS service as bytes.
         """
         utils.check_bbox(bbox)
-        _bbox = MatchCRS(box_crs, self.crs).bounds(bbox)
+        _bbox = utils.match_crs(bbox, box_crs, self.crs)
         bounds = utils.bbox_decompose(_bbox, resolution, self.crs, max_px)
 
         payload = {
@@ -366,6 +366,7 @@ class WMS(WMSBase):
             payload["height"] = str(_height)
             payload["layers"] = lyr
             resp = self.session.get(self.url, payload)
+            utils.check_response(resp)
             return f"{lyr}_dd_{counter}", resp.content
 
         return dict(_getmap(i) for i in itertools.product(self.layers, bounds))
@@ -500,7 +501,7 @@ class WFS(WFSBase):
         Response
             WFS query response based on the given geometry.
         """
-        geom = MatchCRS(geo_crs, self.crs).geometry(geometry)
+        geom = utils.match_crs(geometry, geo_crs, self.crs)
 
         if (
             self.version != "1.1.1"
