@@ -5,11 +5,12 @@ from concurrent import futures
 from dataclasses import dataclass
 from pathlib import Path
 from sqlite3 import OperationalError
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 from unittest.mock import _patch, patch
 
 import defusedxml.ElementTree as etree
 import pyproj
+import shapely.geometry as sgeom
 import simplejson as json
 from requests import Response
 from requests.adapters import HTTPAdapter
@@ -17,15 +18,6 @@ from requests.exceptions import RequestException
 from requests_cache import CachedSession
 from requests_cache.backends.sqlite import DbCache
 from shapely import ops
-from shapely.geometry import (
-    LineString,
-    MultiLineString,
-    MultiPoint,
-    MultiPolygon,
-    Point,
-    Polygon,
-    box,
-)
 from urllib3 import Retry
 
 from .exceptions import InvalidInputType, ServiceError, ThreadingException
@@ -33,6 +25,17 @@ from .exceptions import InvalidInputType, ServiceError, ThreadingException
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
 EXPIRE = 24 * 60 * 60
+G = TypeVar(
+    "G",
+    sgeom.Point,
+    sgeom.MultiPoint,
+    sgeom.Polygon,
+    sgeom.MultiPolygon,
+    sgeom.LineString,
+    sgeom.MultiLineString,
+    Tuple[float, float, float, float],
+    List[Tuple[float, float]],
+)
 
 
 class RetrySession:
@@ -110,7 +113,7 @@ class RetrySession:
         except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
         except RequestException as ex:
-            _check_response(resp)
+            check_response(resp)
             raise RequestException(f"{ex}")
 
     def post(
@@ -130,7 +133,7 @@ class RetrySession:
         except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
         except RequestException as ex:
-            _check_response(resp)
+            check_response(resp)
             raise RequestException(f"{ex}")
 
     def _backup_db(self) -> None:
@@ -285,9 +288,9 @@ class ESRIGeomQuery:
 
     Parameters
     ----------
-    geometry : tuple or Polygon or Point or LineString
+    geometry : tuple or sgeom.Polygon or sgeom.Point or sgeom.LineString
         The input geometry which can be a point (x, y), a list of points [(x, y), ...],
-        bbox (xmin, ymin, xmax, ymax), or a Shapely's Polygon.
+        bbox (xmin, ymin, xmax, ymax), or a Shapely's sgeom.Polygon.
     wkid : int
         The Well-known ID (WKID) of the geometry's spatial reference e.g., for EPSG:4326,
         4326 should be passed. Check
@@ -299,7 +302,7 @@ class ESRIGeomQuery:
         Tuple[float, float],
         List[Tuple[float, float]],
         Tuple[float, float, float, float],
-        Polygon,
+        sgeom.Polygon,
     ]
     wkid: int
 
@@ -332,8 +335,8 @@ class ESRIGeomQuery:
 
     def polygon(self) -> Dict[str, Union[str, bytes]]:
         """Query for a polygon."""
-        if not isinstance(self.geometry, Polygon):
-            raise InvalidInputType("geometry", "Shapely's Polygon")
+        if not isinstance(self.geometry, sgeom.Polygon):
+            raise InvalidInputType("geometry", "Shapely's sgeom.Polygon")
 
         geo_type = "esriGeometryPolygon"
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
@@ -341,8 +344,8 @@ class ESRIGeomQuery:
 
     def polyline(self) -> Dict[str, Union[str, bytes]]:
         """Query for a polyline."""
-        if not isinstance(self.geometry, LineString):
-            raise InvalidInputType("geometry", "Shapely's LineString")
+        if not isinstance(self.geometry, sgeom.LineString):
+            raise InvalidInputType("geometry", "Shapely's sgeom.LineString")
 
         geo_type = "esriGeometryPolyline"
         geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
@@ -371,100 +374,65 @@ class ESRIGeomQuery:
         }
 
 
-class MatchCRS:
+def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
     """Reproject a geometry to another CRS.
 
     Parameters
     ----------
+    geom : list or tuple or geometry
+        Input geometry which could be a list of coordinates such as ``[(x1, y1), ...]``,
+        a bounding box like so ``(xmin, ymin, xmax, ymax)``, or any valid ``shapely``'s
+        geometry such as sgeom.Polygon, sgeom.MultiPolygon, etc..
     in_crs : str
         Spatial reference of the input geometry
     out_crs : str
         Target spatial reference
+
+    Returns
+    -------
+    sgeom.LineString, sgeom.MultiLineString, sgeom.Polygon, sgeom.MultiPolygon, sgeom.Point, or sgeom.MultiPoint
+        Input geometry in the specified CRS.
+
+    Examples
+    --------
+    >>> from pygeoogc.utils import match_crs
+    >>> from shapely.geometry import Point
+    >>> point = Point(-7766049.665, 5691929.739)
+    >>> match_crs(point, "epsg:3857", "epsg:4326").xy
+    (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
+    >>> bbox = (-7766049.665, 5691929.739, -7763049.665, 5696929.739)
+    >>> match_crs(bbox, "epsg:3857", "epsg:4326")
+    (-69.7636111130079, 45.44549114818127, -69.73666165448431, 45.47699468552394)
+    >>> coords = [(-7766049.665, 5691929.739)]
+    >>> match_crs(coords, "epsg:3857", "epsg:4326")
+    [(-69.7636111130079, 45.44549114818127)]
     """
+    project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
 
-    def __init__(self, in_crs: str, out_crs: str):
-        self.project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
+    if isinstance(
+        geom,
+        (
+            sgeom.Polygon,
+            sgeom.LineString,
+            sgeom.MultiLineString,
+            sgeom.MultiPolygon,
+            sgeom.Point,
+            sgeom.MultiPoint,
+        ),
+    ):
+        return ops.transform(project, geom)
 
-    def geometry(
-        self, geom: Union[Polygon, LineString, MultiLineString, MultiPolygon, Point, MultiPoint]
-    ) -> Union[Polygon, LineString, MultiLineString, MultiPolygon, Point, MultiPoint]:
-        """Reproject a geometry to the specified output CRS.
+    if isinstance(geom, tuple) and len(geom) == 4:
+        return ops.transform(project, sgeom.box(*geom)).bounds
 
-        Parameters
-        ----------
-        geom : LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint
-            Input geometry.
+    if isinstance(geom, list) and all(len(c) == 2 for c in geom):
+        return list(zip(*project(*zip(*geom))))
 
-        Returns
-        -------
-        LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint
-            Input geometry in the specified CRS.
-
-        Examples
-        --------
-        >>> from pygeoogc import MatchCRS
-        >>> from shapely.geometry import Point
-        >>> point = Point(-7766049.665, 5691929.739)
-        >>> MatchCRS("epsg:3857", "epsg:4326").geometry(point).xy
-        (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
-        """
-        if not isinstance(
-            geom, (Polygon, LineString, MultiLineString, MultiPolygon, Point, MultiPoint)
-        ):
-            types = "LineString, MultiLineString, Polygon, MultiPolygon, Point, or MultiPoint"
-            raise InvalidInputType("geom", types)
-
-        return ops.transform(self.project, geom)
-
-    def bounds(self, geom: Tuple[float, float, float, float]) -> Tuple[float, float, float, float]:
-        """Reproject a bounding box to the specified output CRS.
-
-        Parameters
-        ----------
-        geom : tuple
-            Input bounding box (xmin, ymin, xmax, ymax).
-
-        Returns
-        -------
-        tuple
-            Input bounding box in the specified CRS.
-
-        Examples
-        --------
-        >>> from pygeoogc import MatchCRS
-        >>> bbox = (-7766049.665, 5691929.739, -7763049.665, 5696929.739)
-        >>> MatchCRS("epsg:3857", "epsg:4326").bounds(bbox)
-        (-69.7636111130079, 45.44549114818127, -69.73666165448431, 45.47699468552394)
-        """
-        if not (isinstance(geom, tuple) and len(geom) == 4):
-            raise InvalidInputType("geom", "tuple", BOX_ORD)
-
-        return ops.transform(self.project, box(*geom)).bounds
-
-    def coords(self, geom: List[Tuple[float, float]]) -> List[Tuple[Any, ...]]:
-        """Reproject a list of coordinates to the specified output CRS.
-
-        Parameters
-        ----------
-        geom : list of tuple
-            Input coords [(x1, y1), ...].
-
-        Returns
-        -------
-        tuple
-            Input list of coords in the specified CRS.
-
-        Examples
-        --------
-        >>> from pygeoogc import MatchCRS
-        >>> coords = [(-7766049.665, 5691929.739)]
-        >>> MatchCRS("epsg:3857", "epsg:4326").coords(coords)
-        [(-69.7636111130079, 45.44549114818127)]
-        """
-        if not (isinstance(geom, list) and all(len(c) == 2 for c in geom)):
-            raise InvalidInputType("geom", "list of tuples", "[(x1, y1), ...]")
-
-        return list(zip(*self.project(*zip(*geom))))
+    gtypes = (
+        "a list of coordinates such as [(x1, y1), ...],"
+        + "a bounding box like so (xmin, ymin, xmax, ymax), or any valid shapely's geometry."
+    )
+    raise InvalidInputType("geom", gtypes)
 
 
 def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
@@ -494,14 +462,14 @@ def bbox_resolution(
     """
     check_bbox(bbox)
 
-    bbox = MatchCRS(bbox_crs, DEF_CRS).bounds(bbox)
+    bbox = match_crs(bbox, bbox_crs, DEF_CRS)
     west, south, east, north = bbox
     geod = pyproj.Geod(ellps="WGS84")
 
-    linex = LineString([Point(west, south), Point(east, south)])
+    linex = sgeom.LineString([sgeom.Point(west, south), sgeom.Point(east, south)])
     delx = geod.geometry_length(linex)
 
-    liney = LineString([Point(west, south), Point(west, north)])
+    liney = sgeom.LineString([sgeom.Point(west, south), sgeom.Point(west, north)])
     dely = geod.geometry_length(liney)
 
     return int(delx / resolution), int(dely / resolution)
@@ -533,7 +501,7 @@ def bbox_decompose(
         The first element is a list of bboxes and the second one is width of the last bbox
     """
     check_bbox(bbox)
-    _bbox = MatchCRS(box_crs, DEF_CRS).bounds(bbox)
+    _bbox = match_crs(bbox, box_crs, DEF_CRS)
     width, height = bbox_resolution(_bbox, resolution, DEF_CRS)
 
     n_px = width * height
@@ -582,14 +550,17 @@ def bbox_decompose(
     bboxs = []
     for i, ((bottom, top), h) in enumerate(zip(lats, heights)):
         for j, ((left, right), w) in enumerate(zip(lons, widths)):
-            bx_crs = MatchCRS(DEF_CRS, box_crs).bounds((left, bottom, right, top))
+            bx_crs = match_crs((left, bottom, right, top), DEF_CRS, box_crs)
             bboxs.append((bx_crs, f"{i}_{j}", w, h))
     return bboxs
 
 
-def _check_response(resp: Response) -> None:
+def check_response(resp: Response) -> None:
     """Check if a ``requests.Resonse`` returned an error message."""
-    ctype = resp.headers["Content-Type"]
-    if "xml" in ctype or "html" in ctype:
+    ctype = resp.headers.get("Content-Type")
+    if isinstance(ctype, str) and ("xml" in ctype or "html" in ctype):
         root = etree.fromstring(resp.text)
-        raise ServiceError(root[-1][0].text.strip())
+        try:
+            raise ServiceError(root[-1][0].text.strip())
+        except IndexError:
+            raise ServiceError(root[-1].text.strip())
