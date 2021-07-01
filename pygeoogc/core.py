@@ -224,7 +224,7 @@ class ArcGISRESTfulBase:
 
             if crs is None:
                 raise ServiceUnavailable("The service doesn't provide CRS information.")
-            self.extent = utils.MatchCRS(crs, DEF_CRS).bounds(bounds)
+            self.extent = utils.match_crs(bounds, crs, DEF_CRS)
 
         except (JSONDecodeError, KeyError):
             raise ServiceError(self.base_url)
@@ -266,26 +266,21 @@ class ArcGISRESTfulBase:
         geo_crs: str = DEF_CRS,
     ) -> Dict[str, Union[str, bytes]]:
         """Generate geometry queries based on ESRI template."""
-        match_crs = utils.MatchCRS(geo_crs, self.crs)
+        geom = utils.match_crs(geom, geo_crs, self.crs)
 
         if isinstance(geom, tuple) and len(geom) == 4:
-            geom = match_crs.bounds(geom)  # type: ignore
             return utils.ESRIGeomQuery(geom, self.out_sr).bbox()
 
         if isinstance(geom, Point):
-            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
 
         if isinstance(geom, MultiPoint):
-            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery([(g.x, g.y) for g in geom], self.out_sr).multipoint()
 
         if isinstance(geom, Polygon):
-            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery(geom, self.out_sr).polygon()
 
         if isinstance(geom, LineString):
-            geom = match_crs.geometry(geom)
             return utils.ESRIGeomQuery(geom, self.out_sr).polyline()
 
         raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple, list")
@@ -370,7 +365,10 @@ class WMSBase:
 
     def get_validlayers(self) -> Dict[str, str]:
         """Get the layers supported by the WMS service."""
-        wms = WebMapService(self.url, version=self.version)
+        try:
+            wms = WebMapService(self.url, version=self.version)
+        except AttributeError:
+            raise ServiceUnavailable(self.url)
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
