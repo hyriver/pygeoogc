@@ -7,6 +7,7 @@ from pathlib import Path
 from sqlite3 import OperationalError
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 from unittest.mock import _patch, patch
+from uuid import uuid4
 
 import defusedxml.ElementTree as etree
 import pyproj
@@ -138,7 +139,7 @@ class RetrySession:
 
     def _backup_db(self) -> None:
         """Use a backup database if the current database is locked."""
-        self.cache_name = Path(f"{self.cache_name.parent}/{self.cache_name.stem}_back_up.sqlite")
+        self.cache_name = Path(f"{self.cache_name.parent}/{self.cache_name.stem}_{uuid4()}.sqlite")
         backend = DbCache(self.cache_name, fast_save=True, timeout=2)
         self.session = CachedSession(expire_after=EXPIRE, backend=backend)
         self.session.remove_expired_responses()
