@@ -11,6 +11,7 @@ New Features
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
+- Migrate to ``AsyncRetriever`` from ``requests-cache`` for all the web services.
 - Rename ``ServiceError`` to ``ServiceUnavailable`` and ``ServerError`` to ``ServiceError``
   Since it's more representative of the intended exception.
 - Raise for response status in ``RetrySession`` before the try-except block so
