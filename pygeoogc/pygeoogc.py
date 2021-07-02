@@ -1,5 +1,4 @@
 """Base classes and function for REST, WMS, and WMF services."""
-import collections
 import itertools
 import logging
 import sys
@@ -7,18 +6,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import cytoolz as tlz
+import async_retriever as ar
 import pyproj
 import shapely.ops as ops
 import yaml
-from requests import Response
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
-from simplejson import JSONDecodeError
 
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
-from .utils import RetrySession
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -136,14 +132,11 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if sql_clause:
             payload.update({"where": sql_clause})
 
-        resp = self.session.post(self.query_url, payload)
-
+        resp = self._get_response([payload])[0]
         try:
-            self.featureids = self.partition_oids(resp.json()["objectIds"])
-        except JSONDecodeError:
-            raise ZeroMatched
+            self.featureids = self.partition_oids(resp["objectIds"])
         except KeyError:
-            raise ZeroMatched(f"Service error message:\n{resp.json()['error']['message']}")
+            raise ZeroMatched(f"Service error message:\n{resp['error']['message']}")
 
     def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> None:
         """Get Object IDs based on a list of field IDs.
@@ -188,14 +181,12 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "returnIdsOnly": "true",
             "f": self.outformat,
         }
-        resp = self.session.post(self.query_url, payload)
 
+        resp = self._get_response([payload])[0]
         try:
-            self.featureids = self.partition_oids(resp.json()["objectIds"])
-        except JSONDecodeError:
-            raise ZeroMatched
+            self.featureids = self.partition_oids(resp["objectIds"])
         except KeyError:
-            raise ZeroMatched(f"Service error message:\n{resp.json()['error']['message']}")
+            raise ZeroMatched(f"Service error message:\n{resp['error']['message']}")
 
     def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
@@ -210,44 +201,19 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         dict
             (Geo)json response from the web service.
         """
-        payload = {
-            "returnGeometry": "true",
-            "outSR": self.out_sr,
-            "outfields": ",".join(self.outfields),
-            "ReturnM": return_m,
-            "f": self.outformat,
-        }
+        payloads = [
+            {
+                "objectIds": ",".join(ids),
+                "returnGeometry": "true",
+                "outSR": self.out_sr,
+                "outfields": ",".join(self.outfields),
+                "ReturnM": f"{return_m}".lower(),
+                "f": self.outformat,
+            }
+            for ids in self.featureids
+        ]
 
-        def getter(ids: Tuple[str, ...]) -> Union[Dict[str, Any], str]:
-            payload.update({"objectIds": ", ".join(ids)})
-            resp = self.session.post(self.query_url, payload)
-            try:
-                return resp.json()
-            except JSONDecodeError:
-                return "error"
-
-        resp = utils.threading(getter, self.featureids, max_workers=self.max_workers)
-
-        resp_types = collections.defaultdict(list)
-        for r in resp:
-            resp_types[type(r)].append(r)
-
-        valid_resp = resp_types.pop(dict)
-        if len(resp_types) != 0:
-            bad_resp_len = len(list(tlz.concat(resp_types.values())))
-            logger.warning(
-                ", ".join(
-                    [
-                        f"Found {bad_resp_len} errors in service responses",
-                        f"returning the {len(valid_resp)} remanining valid response(s).",
-                    ]
-                )
-            )
-
-        if len(valid_resp) == 0:
-            raise ZeroMatched
-
-        return valid_resp
+        return self._get_response(payloads, "POST")
 
 
 class WMS(WMSBase):
@@ -285,7 +251,6 @@ class WMS(WMSBase):
     ) -> None:
         super().__init__(url, layers, outformat, version, crs)
 
-        self.session = RetrySession()
         self.layers = [self.layers] if isinstance(self.layers, str) else self.layers
         if validation:
             self.validate_wms()
@@ -352,24 +317,29 @@ class WMS(WMSBase):
 
         geographic_crs = pyproj.CRS.from_user_input(self.crs).is_geographic
 
-        def _getmap(
+        def _get_payloads(
             args: Tuple[str, Tuple[Tuple[float, float, float, float], str, int, int]]
-        ) -> Tuple[str, bytes]:
+        ) -> Tuple[str, Dict[str, str]]:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
             if self.version != "1.1.1" and geographic_crs and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
+            _payload = payload.copy()
+            _payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
+            _payload["width"] = str(_width)
+            _payload["height"] = str(_height)
+            _payload["layers"] = lyr
+            return f"{lyr}_dd_{counter}", _payload
 
-            payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
-            payload["width"] = str(_width)
-            payload["height"] = str(_height)
-            payload["layers"] = lyr
-            resp = self.session.get(self.url, payload)
-            utils.check_response(resp)
-            return f"{lyr}_dd_{counter}", resp.content
-
-        return dict(_getmap(i) for i in itertools.product(self.layers, bounds))
+        layers, payloads = zip(*(_get_payloads(i) for i in itertools.product(self.layers, bounds)))
+        rbinary = ar.retrieve(
+            [self.url] * len(payloads),
+            "binary",
+            [{"params": p} for p in payloads],
+            max_workers=4,
+        )
+        return dict(zip(layers, rbinary))
 
 
 class WFS(WFSBase):
@@ -409,7 +379,6 @@ class WFS(WFSBase):
     ) -> None:
         super().__init__(url, layer, outformat, version, crs)
 
-        self.session = RetrySession()
         if validation:
             self.validate_wfs()
 
@@ -418,7 +387,7 @@ class WFS(WFSBase):
         bbox: Tuple[float, float, float, float],
         box_crs: str = DEF_CRS,
         always_xy: bool = False,
-    ) -> Response:
+    ) -> Union[str, bytes, Dict[str, Any]]:
         """Get data from a WFS service within a bounding box.
 
         Parameters
@@ -436,7 +405,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        Response
+        str or bytes or dict
             WFS query response within a bounding box.
         """
         utils.check_bbox(bbox)
@@ -457,9 +426,8 @@ class WFS(WFSBase):
             "bbox": f'{",".join(str(c) for c in bbox)},{box_crs}',
             "srsName": self.crs,
         }
-        resp = self.session.get(self.url, payload)
 
-        return resp
+        return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
 
     def getfeature_bygeom(
         self,
@@ -467,7 +435,7 @@ class WFS(WFSBase):
         geo_crs: str = DEF_CRS,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
-    ) -> Response:
+    ) -> Union[str, bytes, Dict[str, Any]]:
         """Get features based on a geometry.
 
         Parameters
@@ -498,7 +466,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        Response
+        str or bytes or dict
             WFS query response based on the given geometry.
         """
         geom = utils.match_crs(geometry, geo_crs, self.crs)
@@ -533,7 +501,7 @@ class WFS(WFSBase):
         self,
         featurename: str,
         featureids: Union[List[str], str],
-    ) -> Response:
+    ) -> Union[str, bytes, Dict[str, Any]]:
         """Get features based on feature IDs.
 
         Parameters
@@ -545,7 +513,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        Response
+        str or bytes or dict
             WMS query response.
         """
         valid_features = self.get_validnames()
@@ -564,7 +532,9 @@ class WFS(WFSBase):
 
         return self.getfeature_byfilter(f"{featurename} IN ({fid_list})")
 
-    def getfeature_byfilter(self, cql_filter: str, method: str = "GET") -> Response:
+    def getfeature_byfilter(
+        self, cql_filter: str, method: str = "GET"
+    ) -> Union[str, bytes, Dict[str, Any]]:
         """Get features based on a valid CQL filter.
 
         Notes
@@ -582,7 +552,7 @@ class WFS(WFSBase):
 
         Returns
         -------
-        Response
+        str or bytes or dict
             WFS query response
         """
         if not isinstance(cql_filter, str):
@@ -603,12 +573,14 @@ class WFS(WFSBase):
         }
 
         if method == "GET":
-            resp = self.session.get(self.url, payload)
+            resp = ar.retrieve([self.url], self.read_method, [{"params": payload}])
         elif method == "POST":
             headers = {"content-type": "application/x-www-form-urlencoded"}
-            resp = self.session.post(self.url, payload, headers)
+            resp = ar.retrieve(
+                [self.url], self.read_method, [{"data": payload, "headers": headers}], "POST"
+            )
 
-        return resp
+        return resp[0]
 
 
 class ServiceURL:

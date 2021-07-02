@@ -4,8 +4,9 @@ import logging
 import sys
 import urllib.parse as urlparse
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
+import async_retriever as ar
 import cytoolz as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
@@ -23,7 +24,6 @@ from .exceptions import (
     ServiceUnavailable,
     ZeroMatched,
 )
-from .utils import RetrySession
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -66,7 +66,7 @@ class RESTValidator(BaseModel):
     outformat: str = "geojson"
     outfields: Union[List[str], str] = "*"
     crs: str = DEF_CRS
-    max_workers: int = 2
+    max_workers: int = 4
 
     @validator("base_url")
     def _layer_from_url(cls, v):
@@ -176,8 +176,6 @@ class ArcGISRESTfulBase:
         self.field_types: Dict[str, str] = {}
         self.feature_types: Optional[Dict[str, str]] = None
 
-        self.session = RetrySession()
-
         self.initialize_service()
 
     def initialize_service(self) -> None:
@@ -207,10 +205,8 @@ class ArcGISRESTfulBase:
         return list(tlz.partition_all(self.max_nrecords, oid_list))
 
     def _set_service_properties(self) -> None:
-        resp = self.session.get(self.base_url, {"f": "json"})
-
         try:
-            rjson = resp.json()
+            rjson = ar.retrieve([self.base_url], "json", [{"params": {"f": "json"}}])[0]
             self.valid_layers = {f"{lyr['id']}": lyr["name"] for lyr in rjson["layers"]}
             self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
 
@@ -235,9 +231,7 @@ class ArcGISRESTfulBase:
 
     def _set_layer_properties(self) -> None:
         """Set properties of the target layer."""
-        resp = self.session.get(self.url, {"f": "json"})
-        rjson = resp.json()
-
+        rjson = ar.retrieve([self.url], "json", [{"params": {"f": "json"}}])[0]
         self.valid_fields = list(
             set(
                 utils.traverse_json(rjson, ["fields", "name"])
@@ -284,6 +278,19 @@ class ArcGISRESTfulBase:
             return utils.ESRIGeomQuery(geom, self.out_sr).polyline()
 
         raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple, list")
+
+    def _get_response(
+        self, payloads: List[Dict[str, str]], method: str = "GET"
+    ) -> List[Dict[str, Any]]:
+        """Send payload and get the response."""
+        req_key = "params" if method == "GET" else "data"
+        urls, kwds = zip(*((self.query_url, {req_key: p}) for p in payloads))
+        try:
+            return ar.retrieve(
+                urls, "json", kwds, request_method=method, max_workers=self.max_workers
+            )
+        except JSONDecodeError:
+            raise ZeroMatched
 
     def __repr__(self) -> str:
         """Print the service configuration."""
@@ -394,6 +401,9 @@ class WFSBase:
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
         epsg:4326.
+    read_method : str, optional
+        Method for reading the retrieved data, defaults to ``json``. Valid options are
+        ``json``, ``binary``, and ``text``.
     """
 
     url: str
@@ -401,16 +411,20 @@ class WFSBase:
     outformat: Optional[str] = None
     version: str = "2.0.0"
     crs: str = DEF_CRS
+    read_method: str = "json"
 
     def __repr__(self) -> str:
         """Print the services properties."""
-        return (
-            "Connected to the WFS service with the following properties:\n"
-            + f"URL: {self.url}\n"
-            + f"Version: {self.version}\n"
-            + f"Layer: {self.layer}\n"
-            + f"Output Format: {self.outformat}\n"
-            + f"Output CRS: {self.crs}"
+        return "\n".join(
+            [
+                "Connected to the WFS service with the following properties:",
+                f"URL: {self.url}",
+                f"Version: {self.version}",
+                f"Layer: {self.layer}",
+                f"Output Format: {self.outformat}",
+                f"Output CRS: {self.crs}",
+                f"Read Method: {self.read_method}",
+            ]
         )
 
     def validate_wfs(self) -> None:
@@ -460,19 +474,16 @@ class WFSBase:
             max_features: 1,
         }
 
-        session = RetrySession()
-        resp = session.get(self.url, payload)
-
-        r_json = resp.json()
+        rjson = ar.retrieve([self.url], "json", [{"params": payload}])[0]
         valid_fields = list(
             set(
-                utils.traverse_json(r_json, ["fields", "name"])
-                + utils.traverse_json(r_json, ["fields", "alias"])
+                utils.traverse_json(rjson, ["fields", "name"])
+                + utils.traverse_json(rjson, ["fields", "alias"])
                 + ["*"]
             )
         )
 
         if None in valid_fields:
-            valid_fields = list(utils.traverse_json(r_json, ["features", "properties"])[0].keys())
+            valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
 
         return valid_fields

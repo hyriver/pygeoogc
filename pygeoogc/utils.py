@@ -4,10 +4,8 @@ import socket
 from concurrent import futures
 from dataclasses import dataclass
 from pathlib import Path
-from sqlite3 import OperationalError
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
 from unittest.mock import _patch, patch
-from uuid import uuid4
 
 import defusedxml.ElementTree as etree
 import pyproj
@@ -43,7 +41,7 @@ class RetrySession:
     """Configures the passed-in session to retry on failed requests.
 
     The fails can be due to connection errors, specific HTTP response
-    codes and 30X redirections. The code is based on:
+    codes and 30X redirections. The code is was originally based on:
     https://github.com/bustawin/retry-requests
 
     Parameters
@@ -72,12 +70,9 @@ class RetrySession:
         self.cache_name = (
             Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
         )
-        try:
-            backend = DbCache(self.cache_name, fast_save=True, timeout=2)
-            self.session = CachedSession(expire_after=EXPIRE, backend=backend)
-            self.session.remove_expired_responses()
-        except OperationalError:
-            self._backup_db()
+        backend = DbCache(self.cache_name, fast_save=True, timeout=2)
+        self.session = CachedSession(expire_after=EXPIRE, backend=backend)
+        self.session.remove_expired_responses()
 
         self.retries = retries
         retry_args = {
@@ -108,9 +103,6 @@ class RetrySession:
         try:
             resp.raise_for_status()
             return resp
-        except OperationalError:
-            self._backup_db()
-            return self.session.get(url, params=payload, headers=headers)
         except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
         except RequestException as ex:
@@ -128,21 +120,11 @@ class RetrySession:
         try:
             resp.raise_for_status()
             return resp
-        except OperationalError:
-            self._backup_db()
-            return self.session.post(url, data=payload, headers=headers)
         except ConnectionError:
             raise ConnectionError(f"Connection failed after {self.retries} retries.")
         except RequestException as ex:
             check_response(resp)
             raise RequestException(f"{ex}")
-
-    def _backup_db(self) -> None:
-        """Use a backup database if the current database is locked."""
-        self.cache_name = Path(f"{self.cache_name.parent}/{self.cache_name.stem}_{uuid4()}.sqlite")
-        backend = DbCache(self.cache_name, fast_save=True, timeout=2)
-        self.session = CachedSession(expire_after=EXPIRE, backend=backend)
-        self.session.remove_expired_responses()
 
     @staticmethod
     def onlyipv4() -> _patch:
@@ -558,10 +540,10 @@ def bbox_decompose(
 
 def check_response(resp: Response) -> None:
     """Check if a ``requests.Resonse`` returned an error message."""
-    ctype = resp.headers.get("Content-Type")
-    if isinstance(ctype, str) and ("xml" in ctype or "html" in ctype):
+    try:
         root = etree.fromstring(resp.text)
-        try:
-            raise ServiceError(root[-1][0].text.strip())
-        except IndexError:
-            raise ServiceError(root[-1].text.strip())
+        raise ServiceError(root[-1][0].text.strip())
+    except IndexError:
+        raise ServiceError(root[-1].text.strip())
+    except etree.ParseError:
+        return

@@ -124,8 +124,8 @@ class TestWMS:
         """WMS by bounding box"""
         wms = WMS(self.wms_url, layers=self.layer, outformat="image/tiff", crs=DEF_CRS)
         print(wms)
-        r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
-        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11485083
+        r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=3e6)
+        assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11495526
 
 
 class TestWFS:
@@ -141,23 +141,23 @@ class TestWFS:
         """WFS by ID"""
         print(self.wfs)
         st = self.wfs.getfeature_byid("staid", "01031500")
-        assert st.json()["numberMatched"] == 1
+        assert st["numberMatched"] == 1
 
     def test_bygeom(self):
         """WFS by geometry"""
         r = self.wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
-        assert len(r.json()["features"]) == 7
+        assert len(r["features"]) == 7
 
     def test_bybox(self):
         """WFS by bounding box"""
         bbox = GEO_URB.bounds
         r = self.wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
-        assert len(r.json()["features"]) == 7
+        assert len(r["features"]) == 7
 
     def test_byfilter(self):
         """WFS by CQL filter"""
         wb = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
-        assert len(utils.traverse_json(wb.json(), ["features", "geometry", "coordinates"])) == 2
+        assert len(utils.traverse_json(wb, ["features", "geometry", "coordinates"])) == 2
 
 
 def test_decompose():
