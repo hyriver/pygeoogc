@@ -396,7 +396,7 @@ class WFSBase:
         The data format to request for data from the service, defaults to None which
          throws an error and includes all the available format offered by the service.
     version : str, optional
-        The WFS service version which should be either 1.1.1, 1.3.0, or 2.0.0.
+        The WFS service version which should be either 1.0.0, 1.1.0, or 2.0.0.
         Defaults to 2.0.0.
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
@@ -441,11 +441,15 @@ class WFSBase:
                 + " The following layers are available:\n"
                 + ", ".join(valid_layers)
             )
-
         if self.layer not in valid_layers:
             raise InvalidInputValue("layers", valid_layers)
 
-        valid_outformats = wfs.getOperationByName("GetFeature").parameters["outputFormat"]["values"]
+        wfs_features = wfs.getOperationByName("GetFeature")
+        if self.version == "1.0.0":
+            valid_outformats = [f.rsplit("}", 1)[-1] for f in wfs_features.formatOptions]
+        else:
+            valid_outformats = wfs_features.parameters["outputFormat"]["values"]
+
         valid_outformats = [v.lower() for v in valid_outformats]
         if self.outformat is None:
             raise MissingInputs(

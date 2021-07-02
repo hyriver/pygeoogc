@@ -357,7 +357,7 @@ class WFS(WFSBase):
         The data format to request for data from the service, defaults to None which
          throws an error and includes all the available format offered by the service.
     version : str, optional
-        The WFS service version which should be either 1.1.1, 1.3.0, or 2.0.0.
+        The WFS service version which should be either 1.0.0, 1.1.0, or 2.0.0.
         Defaults to 2.0.0.
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
@@ -411,7 +411,7 @@ class WFS(WFSBase):
         utils.check_bbox(bbox)
 
         if (
-            self.version != "1.1.1"
+            self.version != "1.0.0"
             and pyproj.CRS.from_user_input(box_crs).is_geographic
             and not always_xy
         ):
@@ -472,7 +472,7 @@ class WFS(WFSBase):
         geom = utils.match_crs(geometry, geo_crs, self.crs)
 
         if (
-            self.version != "1.1.1"
+            self.version != "1.0.0"
             and pyproj.CRS.from_user_input(geo_crs).is_geographic
             and not always_xy
         ):
