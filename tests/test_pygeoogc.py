@@ -162,15 +162,14 @@ class TestWFS:
     def test_wfs111(self):
         """WFS 1.0.0 by geom"""
         wfs = WFS(
-                ServiceURL().wfs.waterdata,
-                layer="wmadata:gagesii",
-                outformat="json",
-                version="1.0.0",
-                crs="epsg:4269",
-            )
+            ServiceURL().wfs.waterdata,
+            layer="wmadata:gagesii",
+            outformat="json",
+            version="1.0.0",
+            crs="epsg:4269",
+        )
         r = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
         assert len(r["features"]) == 7
-        
 
 
 def test_decompose():
