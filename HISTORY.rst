@@ -8,6 +8,7 @@ History
 New Features
 ~~~~~~~~~~~~
 - Add support for passing additional parameters to ``WMS`` requests such as ``styles``.
+- Add support for WFS version 1.0.0.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
