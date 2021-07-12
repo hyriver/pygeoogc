@@ -17,6 +17,9 @@ Internal Changes
   Since it's more representative of the intended exception.
 - Raise for response status in ``RetrySession`` before the try-except block so
   ``RequestsException`` can raised and its error messaged be parsed.
+- Deprecate ``utils.threading`` since all threading operations are now handled by
+  ``AsyncRetriever``.
+- Increase test coverage.
 
 0.11.0 (2021-06-18)
 -------------------
