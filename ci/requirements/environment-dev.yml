@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python>=3.8
+  - python>=3.9
 
   # async_retriever
   - aiodns
@@ -13,11 +13,11 @@ dependencies:
   - brotlipy
   - cchardet
   - cytoolz
-  - defusedxml
   - nest-asyncio
   - orjson
 
   # pygeoogc deps
+  - defusedxml
   - owslib
   - pydantic
   - pyyaml
@@ -39,6 +39,7 @@ dependencies:
 
   # py3dep
   - click
+  - richdem
 
   # pynhd deps
   - networkx
@@ -62,8 +63,6 @@ dependencies:
   - mapclassify
   - cartopy
   - colorcet
-  - hvplot
-  - geoviews
 
   # dev deps
   - codespell
@@ -77,21 +76,23 @@ dependencies:
   - pytest-xdist
   - setuptools-scm
 
-  # IDE deps
-  - jupyterlab
-  - jupyterlab-drawio
-  - jupyterlab-git
-  - jupyterlab-python-file
-  - jupyterlab-system-monitor
-  - jupyterlab_widgets
-  - ipywidgets
-  - nb_black
+  # ward deps
+  - tomli
+  - markupsafe
+  - click-completion
+  - click-default-group
+  - colorama
+  - commonmark
+  - cucumber-tag-expressions
+  - jinja2
+  - pprintpp
+  - pygments
+  - rich
+  - shellingham
 
   - pip
   - pip:
-    - nbmake
-    - jupyterlab-spellchecker
-    - jupyterlab-unfold
+    - ward
 
     - git+https://github.com/cheginit/async_retriever.git
     - git+https://github.com/cheginit/pygeoogc.git

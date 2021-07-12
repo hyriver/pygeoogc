@@ -11,11 +11,11 @@ dependencies:
   - brotlipy
   - cchardet
   - cytoolz
-  - defusedxml
   - nest-asyncio
   - orjson
 
   # pygeoogc deps
+  - defusedxml
   - owslib
   - pydantic
   - pyyaml
