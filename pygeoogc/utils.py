@@ -1,10 +1,9 @@
 """Some utilities for PyGeoOGC."""
 import math
 import socket
-from concurrent import futures
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 from unittest.mock import _patch, patch
 
 import defusedxml.ElementTree as etree
@@ -19,7 +18,7 @@ from requests_cache.backends.sqlite import DbCache
 from shapely import ops
 from urllib3 import Retry
 
-from .exceptions import InvalidInputType, ServiceError, ThreadingException
+from .exceptions import InvalidInputType, ServiceError
 
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
@@ -74,7 +73,7 @@ class RetrySession:
         self.session = CachedSession(expire_after=EXPIRE, backend=backend)
         self.session.remove_expired_responses()
 
-        self.retries = retries
+        retries = retries
         retry_args = {
             "total": retries,
             "read": retries,
@@ -87,8 +86,7 @@ class RetrySession:
         else:
             retry_args.update({"method_whitelist": False})
 
-        r = Retry(**retry_args)
-        adapter = HTTPAdapter(max_retries=r)
+        adapter = HTTPAdapter(max_retries=Retry(**retry_args))
         for prefix in prefixes:
             self.session.mount(prefix, adapter)
 
@@ -102,12 +100,13 @@ class RetrySession:
         resp = self.session.get(url, params=payload, headers=headers)
         try:
             resp.raise_for_status()
-            return resp
         except ConnectionError:
-            raise ConnectionError(f"Connection failed after {self.retries} retries.")
-        except RequestException as ex:
+            raise
+        except RequestException:
             check_response(resp)
-            raise RequestException(f"{ex}")
+            raise
+        else:
+            return resp
 
     def post(
         self,
@@ -119,85 +118,25 @@ class RetrySession:
         resp = self.session.post(url, data=payload, headers=headers)
         try:
             resp.raise_for_status()
-            return resp
         except ConnectionError:
-            raise ConnectionError(f"Connection failed after {self.retries} retries.")
-        except RequestException as ex:
+            raise
+        except RequestException:
             check_response(resp)
-            raise RequestException(f"{ex}")
+            raise
+        else:
+            return resp
 
     @staticmethod
     def onlyipv4() -> _patch:
         """Disable IPv6 and only use IPv4."""
-        orig_getaddrinfo = socket.getaddrinfo
+        getaddrinfo = socket.getaddrinfo
 
-        def getaddrinfo_ipv4(
-            host: str,
-            port: str,
-            family: socket.AddressFamily = socket.AF_INET,
-            ptype: int = 0,
-            proto: int = 0,
-            flags: int = 0,
-        ) -> List[
-            Tuple[
-                socket.AddressFamily,
-                socket.SocketKind,
-                int,
-                str,
-                Union[Tuple[str, int], Tuple[str, int, int, int]],
-            ]
-        ]:
-            return orig_getaddrinfo(
-                host=host,
-                port=port,
-                family=family,
-                type=ptype,
-                proto=proto,
-                flags=flags,
+        def _getaddrinfo_ipv4(host, port, family=0, ptype=0, proto=0, flags=0):
+            return getaddrinfo(
+                host=host, port=port, family=socket.AF_INET, type=ptype, proto=proto, flags=flags
             )
 
-        return patch("socket.getaddrinfo", side_effect=getaddrinfo_ipv4)
-
-
-def threading(
-    func: Callable,
-    iter_list: Iterable,
-    param_list: Optional[List[Any]] = None,
-    max_workers: int = 8,
-) -> List[Any]:
-    """Run a function in parallel with threading.
-
-    Notes
-    -----
-    This function is suitable for IO intensive functions.
-
-    Parameters
-    ----------
-    func : function
-        The function to be ran in threads
-    iter_list : list
-        The iterable for the function
-    param_list : list, optional
-        List of other parameters, defaults to an empty list
-    max_workers : int, optional
-        Maximum number of threads, defaults to 8
-
-    Returns
-    -------
-    list
-        A list of function returns for each iterable. The list is not ordered.
-    """
-    data = []
-    param_list = [] if param_list is None else param_list
-    with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_itr = {executor.submit(func, itr, *param_list): itr for itr in iter_list}
-        for future in futures.as_completed(future_to_itr):
-            itr = future_to_itr[future]
-            try:
-                data.append(future.result())
-            except Exception as exc:  # noqa: B902
-                raise ThreadingException(itr, exc)
-    return data
+        return patch("socket.getaddrinfo", side_effect=_getaddrinfo_ipv4)
 
 
 def traverse_json(
@@ -218,6 +157,18 @@ def traverse_json(
     -------
     list
         The items founds in the JSON
+
+    Examples
+    --------
+    >>> from pygeoogc.utils import traverse_json
+    >>> data = [{
+    ...     "employees": [
+    ...         {"name": "Alice", "role": "dev", "nbr": 1},
+    ...         {"name": "Bob", "role": "dev", "nbr": 2}],
+    ...     "firm": {"name": "Charlie's Waffle Emporium", "location": "CA"},
+    ... },]
+    >>> traverse_json(data, ["employees", "name"])
+    [['Alice', 'Bob']]
     """
 
     def extract(
@@ -292,49 +243,49 @@ class ESRIGeomQuery:
     def point(self) -> Dict[str, Union[str, bytes]]:
         """Query for a point."""
         if not (isinstance(self.geometry, tuple) and len(self.geometry) == 2):
-            raise InvalidInputType("geometry (point)", "tuple", "(x, y)")
+            raise InvalidInputType("geometry", "tuple", "(x, y)")
 
         geo_type = "esriGeometryPoint"
         geo_json = dict(zip(("x", "y"), self.geometry))
-        return self.get_payload(geo_type, geo_json)
+        return self._get_payload(geo_type, geo_json)
 
     def multipoint(self) -> Dict[str, Union[str, bytes]]:
         """Query for a multi-point."""
         if not (isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry)):
-            raise InvalidInputType("geometry (multi-point)", "list of tuples", "[(x, y), ...]")
+            raise InvalidInputType("geometry", "list of tuples", "[(x, y), ...]")
 
         geo_type = "esriGeometryMultipoint"
         geo_json = {"points": [[x, y] for x, y in self.geometry]}
-        return self.get_payload(geo_type, geo_json)
+        return self._get_payload(geo_type, geo_json)
 
     def bbox(self) -> Dict[str, Union[str, bytes]]:
         """Query for a bbox."""
         if not (isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4):
-            raise InvalidInputType("geometry (bbox)", "tuple or list", BOX_ORD)
+            raise InvalidInputType("geometry", "tuple", BOX_ORD)
 
         geo_type = "esriGeometryEnvelope"
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
-        return self.get_payload(geo_type, geo_json)
+        return self._get_payload(geo_type, geo_json)
 
     def polygon(self) -> Dict[str, Union[str, bytes]]:
         """Query for a polygon."""
         if not isinstance(self.geometry, sgeom.Polygon):
-            raise InvalidInputType("geometry", "Shapely's sgeom.Polygon")
+            raise InvalidInputType("geometry", "Polygon")
 
         geo_type = "esriGeometryPolygon"
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
-        return self.get_payload(geo_type, geo_json)
+        return self._get_payload(geo_type, geo_json)
 
     def polyline(self) -> Dict[str, Union[str, bytes]]:
         """Query for a polyline."""
         if not isinstance(self.geometry, sgeom.LineString):
-            raise InvalidInputType("geometry", "Shapely's sgeom.LineString")
+            raise InvalidInputType("geometry", "LineString")
 
         geo_type = "esriGeometryPolyline"
         geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
-        return self.get_payload(geo_type, geo_json)
+        return self._get_payload(geo_type, geo_json)
 
-    def get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
+    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
         """Generate a request payload based on ESRI template.
 
         Parameters
@@ -480,8 +431,22 @@ def bbox_decompose(
 
     Returns
     -------
-    tuple
-        The first element is a list of bboxes and the second one is width of the last bbox
+    list of tuples
+        Each tuple includes the following elements:
+
+        * Tuple of length 4 that represents a bounding box (west, south, east, north) of a cell,
+        * A label that represents cell ID starting from bottom-left to top-right, e.g.,
+            + ------- + ------- +
+            |         |         |
+            |   0_1   |   1_1   |
+            |         |         |
+            + ------- + ------- +
+            |         |         |
+            |   0_0   |   1_0   |
+            |         |         |
+            + ------- + ------- +
+        * Raster width of a cell,
+        * Raster height of a cell,
     """
     check_bbox(bbox)
     _bbox = match_crs(bbox, box_crs, DEF_CRS)
@@ -539,11 +504,14 @@ def bbox_decompose(
 
 
 def check_response(resp: Response) -> None:
-    """Check if a ``requests.Resonse`` returned an error message."""
+    """Extract error message from a response, if any."""
     try:
         root = etree.fromstring(resp.text)
-        raise ServiceError(root[-1][0].text.strip())
-    except IndexError:
-        raise ServiceError(root[-1].text.strip())
     except etree.ParseError:
         return
+    else:
+        try:
+            msg = root[-1][0].text.strip()
+        except IndexError:
+            msg = root[-1].text.strip()
+        raise ServiceError(msg)
