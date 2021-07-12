@@ -1,6 +1,5 @@
 """Some utilities for PyGeoOGC."""
 import math
-import socket
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
@@ -69,22 +68,17 @@ class RetrySession:
         self.cache_name = (
             Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
         )
-        backend = DbCache(self.cache_name, fast_save=True, timeout=2)
+        backend = DbCache(self.cache_name, fast_save=True, timeout=1)
         self.session = CachedSession(expire_after=EXPIRE, backend=backend)
-        self.session.remove_expired_responses()
 
-        retries = retries
         retry_args = {
             "total": retries,
             "read": retries,
             "connect": retries,
             "backoff_factor": backoff_factor,
             "status_forcelist": status_to_retry,
+            "allowed_methods": False,
         }
-        if hasattr(Retry.DEFAULT, "allowed_methods"):
-            retry_args.update({"allowed_methods": False})
-        else:
-            retry_args.update({"method_whitelist": False})
 
         adapter = HTTPAdapter(max_retries=Retry(**retry_args))
         for prefix in prefixes:
@@ -100,8 +94,6 @@ class RetrySession:
         resp = self.session.get(url, params=payload, headers=headers)
         try:
             resp.raise_for_status()
-        except ConnectionError:
-            raise
         except RequestException:
             check_response(resp)
             raise
@@ -118,8 +110,6 @@ class RetrySession:
         resp = self.session.post(url, data=payload, headers=headers)
         try:
             resp.raise_for_status()
-        except ConnectionError:
-            raise
         except RequestException:
             check_response(resp)
             raise
@@ -129,14 +119,7 @@ class RetrySession:
     @staticmethod
     def onlyipv4() -> _patch:
         """Disable IPv6 and only use IPv4."""
-        getaddrinfo = socket.getaddrinfo
-
-        def _getaddrinfo_ipv4(host, port, family=0, ptype=0, proto=0, flags=0):
-            return getaddrinfo(
-                host=host, port=port, family=socket.AF_INET, type=ptype, proto=proto, flags=flags
-            )
-
-        return patch("socket.getaddrinfo", side_effect=_getaddrinfo_ipv4)
+        return patch("socket.has_ipv6", False)
 
 
 def traverse_json(

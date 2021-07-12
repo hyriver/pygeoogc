@@ -2,6 +2,7 @@
 import io
 import sys
 import zipfile
+from unittest.mock import patch
 
 import pytest
 from shapely.geometry import LineString, Polygon
@@ -210,14 +211,14 @@ def test_esriquery():
 
 def test_ipv4():
     """Only IPv4"""
-    url = f"{ServiceURL().http.ssebopeta}/det2004003.modisSSEBopETactual.zip"
+    url = f"{ServiceURL().http.ssebopeta}/det2005150.modisSSEBopETactual.zip"
     session = RetrySession()
-    with session.onlyipv4():
+    with patch("socket.has_ipv6", False):
         r = session.get(url)
         z = zipfile.ZipFile(io.BytesIO(r.content))
         fname = z.read(z.filelist[0].filename)
 
-    assert sys.getsizeof(fname) == 4361682
+    assert sys.getsizeof(fname) == 20283088
 
 
 def test_urls():
