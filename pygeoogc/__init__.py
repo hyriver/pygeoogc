@@ -7,7 +7,6 @@ from .exceptions import (
     MissingInputs,
     ServiceError,
     ServiceUnavailable,
-    ThreadingException,
     ZeroMatched,
 )
 from .print_versions import show_versions
@@ -17,5 +16,19 @@ from .utils import RetrySession
 try:
     __version__ = get_distribution(__name__).version
 except DistributionNotFound:
-    # package is not installed
-    pass
+    __version__ = "999"
+
+__all__ = [
+    "ArcGISRESTful",
+    "WFS",
+    "WMS",
+    "ServiceURL",
+    "RetrySession",
+    "InvalidInputType",
+    "InvalidInputValue",
+    "MissingInputs",
+    "ServiceError",
+    "ServiceUnavailable",
+    "ZeroMatched",
+    "show_versions",
+]
