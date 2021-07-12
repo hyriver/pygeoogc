@@ -1,6 +1,4 @@
 """Tests for exceptions and requests"""
-from sqlite3 import OperationalError
-
 import pytest
 from pydantic import ValidationError
 
@@ -12,7 +10,6 @@ from pygeoogc import (
     RetrySession,
     ServiceError,
     ServiceURL,
-    ThreadingException,
     ZeroMatched,
 )
 
@@ -59,7 +56,7 @@ class TestRESTException:
     def test_rest_oid_none(self):
         with pytest.raises(ZeroMatched) as ex:
             _ = self.rest_wbd.partition_oids(None)
-        assert "Query returned no" in str(ex.value)
+        assert "Service returned no features" in str(ex.value)
 
     def test_rest_unsupported_geometry(self):
         with pytest.raises(InvalidInputType) as ex:
@@ -75,3 +72,20 @@ class TestRESTException:
         with pytest.raises(ZeroMatched) as ex:
             self.rest_wbd.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER")
         assert "Unable to complete operation" in str(ex.value)
+
+
+class TestRetrySession:
+    def test_parse_err_message(self):
+        with pytest.raises(ServiceError) as ex:
+            url = f"{ServiceURL().restful.nwis}/dv"
+            payload = {
+                "format": "json",
+                "sites": "01031500xx",
+                "startDT": "2005-01-01",
+                "endDT": "2005-01-31",
+                "parameterCd": "00060",
+                "statCd": "00003",
+                "siteStatus": "all",
+            }
+            _ = RetrySession().post(url, payload)
+        assert "character is not a digit" in str(ex.value)

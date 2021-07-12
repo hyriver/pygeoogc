@@ -30,7 +30,7 @@ class TestREST:
     wbd_url: str = ServiceURL().restful.wbd
     fab_url: str = f"{ServiceURL().restful.nhd_fabric}/1"
     epa_url: str = "https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus/NHDPlus/MapServer"
-    nhd_url: str = ServiceURL().restful.nhdplushr_edits
+    nhd_url: str = ServiceURL().restful.nhdplushr
 
     def test_byid(self):
         """RESTFul by ID"""
@@ -85,7 +85,7 @@ class TestREST:
     def test_bysql(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
-        hr.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
+        hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
         resp = hr.get_features(return_m=True)
 
         assert len(resp[0]["features"]) == 3
@@ -94,7 +94,7 @@ class TestREST:
     def test_byfield(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
-        hr.oids_byfield("NHDFlowline.PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
+        hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
         resp = hr.get_features()
 
         assert len(resp[0]["features"]) == 3
@@ -210,10 +210,7 @@ def test_esriquery():
 
 def test_ipv4():
     """Only IPv4"""
-    url = (
-        "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus"
-        + "/eta/modis_eta/daily/downloads/det2004003.modisSSEBopETactual.zip"
-    )
+    url = f"{ServiceURL().http.ssebopeta}/det2004003.modisSSEBopETactual.zip"
     session = RetrySession()
     with session.onlyipv4():
         r = session.get(url)
