@@ -135,8 +135,8 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         resp = self._get_response([payload])[0]
         try:
             self.featureids = self.partition_oids(resp["objectIds"])
-        except KeyError:
-            raise ZeroMatched(f"Service error message:\n{resp['error']['message']}")
+        except KeyError as ex:
+            raise ZeroMatched(resp["error"]["message"]) from ex
 
     def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> None:
         """Get Object IDs based on a list of field IDs.
@@ -185,8 +185,8 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         resp = self._get_response([payload])[0]
         try:
             self.featureids = self.partition_oids(resp["objectIds"])
-        except KeyError:
-            raise ZeroMatched(f"Service error message:\n{resp['error']['message']}")
+        except KeyError as ex:
+            raise ZeroMatched(resp["error"]["message"]) from ex
 
     def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.

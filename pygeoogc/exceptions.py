@@ -36,25 +36,6 @@ class ServiceUnavailable(Exception):
         return self.message
 
 
-class ThreadingException(Exception):
-    """Exception raised when the requested data is not available on the server.
-
-    Parameters
-    ----------
-    itr : int
-        The number of iteration where the exception occurred
-    msg : str
-        The exception error message
-    """
-
-    def __init__(self, itr: int, msg: Exception) -> None:
-        self.message = f"{itr}: {msg}"
-        super().__init__(self.message)
-
-    def __str__(self) -> str:
-        return self.message
-
-
 class ZeroMatched(ValueError):
     """Exception raised when a function argument is missing.
 
@@ -64,8 +45,11 @@ class ZeroMatched(ValueError):
         The exception error message
     """
 
-    def __init__(self, msg: str = "") -> None:
-        self.message = f"Query returned no feature ID. {msg}"
+    def __init__(self, msg: Optional[str] = None) -> None:
+        if msg is None:
+            self.message = "Service returned no features."
+        else:
+            self.message = f"Service returned no features with the following error message:\n{msg}"
         super().__init__(self.message)
 
     def __str__(self) -> str:

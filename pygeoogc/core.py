@@ -90,8 +90,8 @@ class RESTValidator(BaseModel):
     def _valid_crs(cls, v):
         try:
             return pyproj.CRS(v)
-        except pyproj.exceptions.CRSError:
-            raise InvalidInputType("crs", "a valid CRS")
+        except pyproj.exceptions.CRSError as ex:
+            raise InvalidInputType("crs", "a valid CRS") from ex
 
     @validator("max_workers")
     def _positive_integer_threads(cls, v):
@@ -212,18 +212,14 @@ class ArcGISRESTfulBase:
 
             extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
             bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
-            crs: Optional[str] = None
             for f in ["latestWkid", "wkid", "wkt"]:
                 if f in extent["spatialReference"]:
                     crs = extent["spatialReference"][f]
                     break
-
-            if crs is None:
-                raise ServiceUnavailable("The service doesn't provide CRS information.")
             self.extent = utils.match_crs(bounds, crs, DEF_CRS)
 
-        except (JSONDecodeError, KeyError):
-            raise ServiceError(self.base_url)
+        except (JSONDecodeError, KeyError) as ex:
+            raise ServiceError(self.base_url) from ex
 
         with contextlib.suppress(KeyError):
             self.units = rjson["units"].replace("esri", "").lower()
@@ -353,8 +349,8 @@ class WMSBase:
         """Validate input arguments with the WMS service."""
         try:
             wms = WebMapService(self.url, version=self.version)
-        except AttributeError:
-            raise ServiceUnavailable(self.url)
+        except AttributeError as ex:
+            raise ServiceUnavailable(self.url) from ex
 
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
         valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
@@ -374,8 +370,8 @@ class WMSBase:
         """Get the layers supported by the WMS service."""
         try:
             wms = WebMapService(self.url, version=self.version)
-        except AttributeError:
-            raise ServiceUnavailable(self.url)
+        except AttributeError as ex:
+            raise ServiceUnavailable(self.url) from ex
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
@@ -431,8 +427,8 @@ class WFSBase:
         """Validate input arguments with the WFS service."""
         try:
             wfs = WebFeatureService(self.url, version=self.version)
-        except AttributeError:
-            raise ServiceUnavailable(self.url)
+        except AttributeError as ex:
+            raise ServiceUnavailable(self.url) from ex
 
         valid_layers = list(wfs.contents)
         if self.layer is None:
