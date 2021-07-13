@@ -11,7 +11,7 @@ import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, RetrySession, ServiceURL, utils
 
 DEF_CRS = "epsg:4326"
-ALT_CRS = "epsg:2149"
+ALT_CRS = "epsg:4269"
 GEO_NAT = Polygon(
     [[-69.77, 45.07], [-69.31, 45.07], [-69.31, 45.45], [-69.77, 45.45], [-69.77, 45.07]]
 )
@@ -30,7 +30,7 @@ COORDS = [(-118.72, 34.118), (-118.31, 34.518)]
 class TestREST:
     wbd_url: str = ServiceURL().restful.wbd
     fab_url: str = f"{ServiceURL().restful.nhd_fabric}/1"
-    epa_url: str = "https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus/NHDPlus/MapServer"
+    epa_url: str = ServiceURL().restful.nhdplus_epa
     nhd_url: str = ServiceURL().restful.nhdplushr
 
     def test_byid(self):
@@ -77,7 +77,7 @@ class TestREST:
 
         service = ArcGISRESTful(self.epa_url, 2, outformat="json")
         service.oids_bygeom(
-            geom, geo_crs="epsg:4269", sql_clause="FTYPE NOT IN (420,428,566)", distance=1500
+            geom, geo_crs=ALT_CRS, sql_clause="FTYPE NOT IN (420,428,566)", distance=1500
         )
         resp = service.get_features(return_m=True)
         assert len(resp[0]["features"]) == 3
@@ -135,7 +135,7 @@ class TestWFS:
         layer="wmadata:gagesii",
         outformat="application/json",
         version="2.0.0",
-        crs="epsg:4269",
+        crs=ALT_CRS,
     )
 
     def test_byid(self):
@@ -167,7 +167,7 @@ class TestWFS:
             layer="wmadata:gagesii",
             outformat="json",
             version="1.0.0",
-            crs="epsg:4269",
+            crs=ALT_CRS,
         )
         r = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
         assert len(r["features"]) == 7
@@ -189,7 +189,7 @@ def test_decompose():
 )
 def test_matchcrs(geo, gtype, expected):
     """Match CRS"""
-    matched = utils.match_crs(geo, DEF_CRS, ALT_CRS)
+    matched = utils.match_crs(geo, DEF_CRS, "epsg:2149")
     if gtype == "coords":
         val = matched[-1][0]
     elif gtype == "geometry":
