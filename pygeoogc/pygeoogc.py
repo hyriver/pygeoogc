@@ -132,7 +132,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if sql_clause:
             payload.update({"where": sql_clause})
 
-        resp = self._get_response([payload])[0]
+        resp = self._get_response([payload], method="POST")[0]
         try:
             self.featureids = self.partition_oids(resp["objectIds"])
         except KeyError as ex:
