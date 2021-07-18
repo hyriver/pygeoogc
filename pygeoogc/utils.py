@@ -419,6 +419,7 @@ def bbox_decompose(
 
         * Tuple of length 4 that represents a bounding box (west, south, east, north) of a cell,
         * A label that represents cell ID starting from bottom-left to top-right, e.g.,
+
           + ------- + ------- +
           |         |         |
           |   0_1   |   1_1   |
@@ -428,6 +429,7 @@ def bbox_decompose(
           |   0_0   |   1_0   |
           |         |         |
           + ------- + ------- +
+
         * Raster width of a cell,
         * Raster height of a cell
 
