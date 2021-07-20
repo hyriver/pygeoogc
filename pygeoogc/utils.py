@@ -421,17 +421,17 @@ def bbox_decompose(
         * A label that represents cell ID starting from bottom-left to top-right.::
 
           + ------- + ------- +
-          |         |         |
-          |   0_1   |   1_1   |
-          |         |         |
+          ;         ;         ;
+          ;   0_1   ;   1_1   ;
+          ;         ;         ;
           + ------- + ------- +
-          |         |         |
-          |   0_0   |   1_0   |
-          |         |         |
+          ;         ;         ;
+          ;   0_0   ;   1_0   ;
+          ;         ;         ;
           + ------- + ------- +
 
         * Raster width of a cell,
-        * Raster height of a cell
+        * Raster height of a cell.
 
     """
     check_bbox(bbox)
