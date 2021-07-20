@@ -418,7 +418,7 @@ def bbox_decompose(
         Each tuple includes the following elements:
 
         * Tuple of length 4 that represents a bounding box (west, south, east, north) of a cell,
-        * A label that represents cell ID starting from bottom-left to top-right, e.g.,
+        * A label that represents cell ID starting from bottom-left to top-right.::
 
           + ------- + ------- +
           |         |         |
