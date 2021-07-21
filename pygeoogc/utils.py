@@ -398,7 +398,7 @@ def bbox_decompose(
     box_crs: str = DEF_CRS,
     max_px: int = 8000000,
 ) -> List[Tuple[Tuple[float, float, float, float], str, int, int]]:
-    """Split the bounding box vertically for WMS requests.
+    r"""Split the bounding box vertically for WMS requests.
 
     Parameters
     ----------
@@ -423,13 +423,13 @@ def bbox_decompose(
         * Raster height of a cell.::
 
           + ------- + ------- +
-          ;         ;         ;
-          ;   0_1   ;   1_1   ;
-          ;         ;         ;
+          |         |         |
+          |   0_1   |   1_1   |
+          |         |         |
           + ------- + ------- +
-          ;         ;         ;
-          ;   0_0   ;   1_0   ;
-          ;         ;         ;
+          |         |         |
+          |   0_0   |   1_0   |
+          |         |         |
           + ------- + ------- +
 
     """
