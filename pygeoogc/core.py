@@ -180,6 +180,7 @@ class ArcGISRESTfulBase:
         self.retry: bool = False
         self.return_m: bool = False
         self.n_missing: int = 0
+        self.total_n_features: int = 0
         self.failed_path: Path = Path("cache", f"{uuid.uuid4().hex}.txt")
 
         self.initialize_service()
