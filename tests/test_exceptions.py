@@ -71,7 +71,7 @@ class TestRESTException:
     def test_rest_wrong_sql(self):
         with pytest.raises(ZeroMatched) as ex:
             self.rest_wbd.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER")
-        assert "Unable to complete operation" in str(ex.value)
+        assert "no features" in str(ex.value)
 
 
 class TestRetrySession:

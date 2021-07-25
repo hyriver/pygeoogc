@@ -82,6 +82,31 @@ class TestREST:
         resp = service.get_features(return_m=True)
         assert len(resp[0]["features"]) == 3
 
+    def test_retry(self):
+        rest_url = "/".join(
+            [
+                "http://cohgims.houstontx.gov/arcgis/rest/services",
+                "PUD_Utility/StormwaterUtilities/MapServer/3",
+            ]
+        )
+        rest = ArcGISRESTful(rest_url)
+        print(rest)
+        oids = [
+            1006322,
+            1006323,
+            1006324,
+            1245206,
+            323351,
+            324961,
+            474077,
+            503848,
+            584849,
+            585138,
+        ]
+        rest.featureids = rest.partition_oids(oids)
+        resp = rest.get_features()
+        assert len(resp) == 3
+
     @pytest.mark.slow
     def test_bysql(self):
         """RESTFul by SQL filter"""
