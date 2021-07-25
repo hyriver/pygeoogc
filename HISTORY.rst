@@ -7,6 +7,11 @@ History
 
 New Features
 ~~~~~~~~~~~~
+- Add a new method to ``ArcGISRESTFul`` class for automatically retrying the failed requests.
+  This private method plucks out individual features that were in a failed request with
+  several features. This happens when there are some object IDs that are not available on the
+  server, and they are included in the request. In these situations the request will fail, although
+  there are valid object IDs in the request. This method will pluck out the valid object IDs.
 - Add support for passing additional parameters to ``WMS`` requests such as ``styles``.
 - Add support for WFS version 1.0.0.
 
