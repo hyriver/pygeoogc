@@ -188,33 +188,6 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         except KeyError as ex:
             raise ZeroMatched(resp["error"]["message"]) from ex
 
-    def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
-        """Get features based on the feature IDs.
-
-        Parameters
-        ----------
-        return_m : bool
-            Whether to activate the Return M (measure) in the request, defaults to False.
-
-        Returns
-        -------
-        dict
-            (Geo)json response from the web service.
-        """
-        payloads = [
-            {
-                "objectIds": ",".join(ids),
-                "returnGeometry": "true",
-                "outSR": self.out_sr,
-                "outfields": ",".join(self.outfields),
-                "ReturnM": f"{return_m}".lower(),
-                "f": self.outformat,
-            }
-            for ids in self.featureids
-        ]
-
-        return self._get_response(payloads, "POST")
-
 
 class WMS(WMSBase):
     """Get data from a WMS service within a geometry or bounding box.

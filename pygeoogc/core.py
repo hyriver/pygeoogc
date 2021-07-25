@@ -3,7 +3,9 @@ import contextlib
 import logging
 import sys
 import urllib.parse as urlparse
+import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import async_retriever as ar
@@ -175,6 +177,10 @@ class ArcGISRESTfulBase:
         self.valid_fields: List[str] = []
         self.field_types: Dict[str, str] = {}
         self.feature_types: Optional[Dict[str, str]] = None
+        self.retry: bool = False
+        self.return_m: bool = False
+        self.n_missing: int = 0
+        self.failed_path: Path = Path("cache", f"{uuid.uuid4().hex}.txt")
 
         self.initialize_service()
 
@@ -201,8 +207,36 @@ class ArcGISRESTfulBase:
         oid_list = [str(oids)] if isinstance(oids, int) else [str(v) for v in oids]
 
         self.n_features = len(oid_list)
-        logger.info(f"Found {self.n_features:,} features in the requested region.")
-        return list(tlz.partition_all(self.max_nrecords, oid_list))
+        if not self.retry:
+            logger.info(f"Found {self.n_features:,} features in the requested region.")
+        return list(tlz.partition_all(self.max_nrecords, sorted(oid_list)))
+
+    def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
+        """Get features based on the feature IDs.
+
+        Parameters
+        ----------
+        return_m : bool
+            Whether to activate the Return M (measure) in the request, defaults to False.
+
+        Returns
+        -------
+        dict
+            (Geo)json response from the web service.
+        """
+        payloads = [
+            {
+                "objectIds": ",".join(ids),
+                "returnGeometry": "true",
+                "outSR": self.out_sr,
+                "outfields": ",".join(self.outfields),
+                "ReturnM": f"{return_m}".lower(),
+                "f": self.outformat,
+            }
+            for ids in self.featureids
+        ]
+
+        return self._get_response(payloads, "POST")
 
     def _set_service_properties(self) -> None:
         try:
@@ -273,7 +307,43 @@ class ArcGISRESTfulBase:
         if isinstance(geom, LineString):
             return utils.ESRIGeomQuery(geom, self.out_sr).polyline()
 
-        raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple, list")
+        raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple")
+
+    def _retry(self, return_m: bool, partition_fac: float) -> List[Dict[str, Any]]:
+        """Retry failed requests."""
+        with open(self.failed_path) as f:
+            oids = [int(i) for i in f.read().splitlines()]
+
+        max_nrecords = self.max_nrecords
+        self.max_nrecords = int(partition_fac * max_nrecords)
+        self.featureids = self.partition_oids(oids)
+        self.max_nrecords = max_nrecords
+
+        return self.get_features(return_m)
+
+    def _retry_failed_requests(self) -> List[Dict[str, Any]]:
+        """Retry failed requests."""
+        self.retry = True
+        partition_fac = 0.5
+        features = []
+        while True:
+            try:
+                features.append(self._retry(self.return_m, partition_fac))
+            except ServiceError:
+                partition_fac *= 0.5
+                try:
+                    features.append(self._retry(self.return_m, partition_fac))
+                except ServiceError:
+                    features.append(self._retry(self.return_m, 1.0 / self.max_nrecords))
+                    break
+
+        logger.info(
+            f"Total of {self.n_missing} out of {self.total_n_features} "
+            + "features are not available on the server."
+        )
+        self.failed_path.unlink()
+        self.retry = False
+        return list(tlz.concat(features))
 
     def _get_response(
         self, payloads: List[Dict[str, str]], method: str = "GET"
@@ -282,11 +352,58 @@ class ArcGISRESTfulBase:
         req_key = "params" if method == "GET" else "data"
         urls, kwds = zip(*((self.query_url, {req_key: p}) for p in payloads))
         try:
-            return ar.retrieve(
+            resp = ar.retrieve(
                 urls, "json", kwds, request_method=method, max_workers=self.max_workers
             )
         except JSONDecodeError:
             raise ZeroMatched
+
+        resp = self._cleanup_resp(resp, payloads)
+        return resp
+
+    def _cleanup_resp(
+        self, resp: List[Dict[str, Any]], payloads: List[Dict[str, str]]
+    ) -> List[Dict[str, Any]]:
+        """Remove failed responses."""
+        fails = [i for i, r in enumerate(resp) if "error" in r]
+
+        if len(fails) > 0:
+            err = resp[fails[0]]["error"]["message"]
+            resp = [r for i, r in enumerate(resp) if i not in fails]
+            if len(resp) == 0 and self.retry:
+                raise ServiceError(err)
+
+            if "objectIds" in payloads[fails[0]]:
+                oids = list(tlz.concat(payloads[i]["objectIds"].split(",") for i in fails))
+                self.n_missing = len(oids)
+
+                with open(self.failed_path, "w") as f:
+                    f.write("\n".join(oids))
+
+                if not self.retry:
+                    self.return_m = bool(payloads[0]["ReturnM"])
+                    self.total_n_features = self.n_features
+                    logger.info(
+                        " ".join(
+                            [
+                                f"Found {len(fails)} failed requests.",
+                                "Retrying to pluck out all available features.",
+                            ]
+                        )
+                    )
+                    resp.extend(self._retry_failed_requests())
+            else:
+                if len(resp) == 0:
+                    raise ZeroMatched
+
+                msg = (
+                    "Service failed to process some of the queries with"
+                    + "the following message, returning the rest:\n"
+                    + err
+                )
+                logger.warning(msg)
+
+        return resp
 
     def __repr__(self) -> str:
         """Print the service configuration."""
