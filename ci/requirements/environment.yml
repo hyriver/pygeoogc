@@ -27,7 +27,6 @@ dependencies:
   - urllib3
 
   # test deps
-  - nox
   - pytest
   - pytest-clarity
   - pytest-cov
