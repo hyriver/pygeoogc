@@ -94,9 +94,8 @@ class RetrySession:
         resp = self.session.get(url, params=payload, headers=headers)
         try:
             resp.raise_for_status()
-        except RequestException:
-            check_response(resp)
-            raise
+        except RequestException as ex:
+            raise ServiceError(check_response(resp.text)) from ex
         else:
             return resp
 
@@ -110,9 +109,8 @@ class RetrySession:
         resp = self.session.post(url, data=payload, headers=headers)
         try:
             resp.raise_for_status()
-        except RequestException:
-            check_response(resp)
-            raise
+        except RequestException as ex:
+            raise ServiceError(check_response(resp.text)) from ex
         else:
             return resp
 
@@ -490,15 +488,14 @@ def bbox_decompose(
     return bboxs
 
 
-def check_response(resp: Response) -> None:
+def check_response(resp: str) -> str:
     """Extract error message from a response, if any."""
     try:
-        root = etree.fromstring(resp.text)
+        root = etree.fromstring(resp)
     except etree.ParseError:
-        return
+        return resp
     else:
         try:
-            msg = root[-1][0].text.strip()
+            return root[-1][0].text.strip()
         except IndexError:
-            msg = root[-1].text.strip()
-        raise ServiceError(msg)
+            return root[-1].text.strip()
