@@ -2,8 +2,12 @@
 History
 =======
 
-0.11.1 (unreleased)
+0.11.1 (31-07-21)
 -------------------
+
+The highlight of this release is migrating to use ``AsyncRetriever`` that can improve
+the network response time significantly. Another highlight is a major refactoring of
+``ArcGISRESTFul`` that improves performance and reduce code complexity.
 
 New Features
 ~~~~~~~~~~~~
