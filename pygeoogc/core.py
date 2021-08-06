@@ -325,18 +325,15 @@ class ArcGISRESTfulBase:
     def _retry_failed_requests(self) -> List[Dict[str, Any]]:
         """Retry failed requests."""
         self.retry = True
-        partition_fac = 0.5
+        fac_min = 1.0 / self.max_nrecords
+        n_retry = 4
+        partition_fac = [(0.5 - fac_min) / (n_retry - 1) * i + fac_min for i in range(n_retry)]
         features = []
-        while True:
+        for f in partition_fac[::-1]:
             try:
-                features.append(self._retry(self.return_m, partition_fac))
+                features.append(self._retry(self.return_m, f))
             except ServiceError:
-                partition_fac *= 0.5
-                try:
-                    features.append(self._retry(self.return_m, partition_fac))
-                except ServiceError:
-                    features.append(self._retry(self.return_m, 1.0 / self.max_nrecords))
-                    break
+                continue
 
         logger.info(
             f"Total of {self.n_missing} out of {self.total_n_features} "
