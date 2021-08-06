@@ -2,6 +2,14 @@
 History
 =======
 
+0.11.2 (unreleased)
+-------------------
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Simplify the retry logic ``ArcGISRESTFul`` by making it run four times and
+  making sure that the last retry is one object id per request
+
 0.11.1 (31-07-21)
 -------------------
 
