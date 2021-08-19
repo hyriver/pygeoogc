@@ -2,15 +2,15 @@
 History
 =======
 
-0.11.2 (unreleased)
+0.11.2 (2021-08-19)
 -------------------
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
 - Simplify the retry logic ``ArcGISRESTFul`` by making it run four times and
-  making sure that the last retry is one object id per request
+  making sure that the last retry is one object id per request.
 
-0.11.1 (31-07-21)
+0.11.1 (2021-07-31)
 -------------------
 
 The highlight of this release is migrating to use ``AsyncRetriever`` that can improve
