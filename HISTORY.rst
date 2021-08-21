@@ -2,6 +2,17 @@
 History
 =======
 
+0.11.3 (2021-08-21)
+-------------------
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+
+- Fix a bug in ``WFS.getfeature_byid`` when the number of IDs exceeds the service's
+  limit by splitting large requests into multiple smaller requests. A new arguments
+  called ``max_nrecords`` has been added to ``WFS`` to control the maximum number
+  of records per request, and the default value is 1000.
+
 0.11.2 (2021-08-19)
 -------------------
 
