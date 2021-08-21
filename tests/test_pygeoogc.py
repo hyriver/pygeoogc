@@ -167,7 +167,7 @@ class TestWFS:
         """WFS by ID"""
         print(self.wfs)
         st = self.wfs.getfeature_byid("staid", "01031500")
-        assert st["numberMatched"] == 1
+        assert st[0]["numberMatched"] == 1
 
     def test_bygeom(self):
         """WFS by geometry"""

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import async_retriever as ar
+import cytoolz as tlz
 import pyproj
 import shapely.ops as ops
 import yaml
@@ -423,7 +424,7 @@ class WFS(WFSBase):
             If the returned value does not have any geometry, it indicates that most probably the
             axis order does not match. You can set this to True in that case.
         predicate : str, optional
-            The geometric prediacte to use for requesting the data, defaults to ``INTERSECTS``.
+            The geometric predicate to use for requesting the data, defaults to ``INTERSECTS``.
             Valid predicates are:
 
             * ``EQUALS``
@@ -474,7 +475,7 @@ class WFS(WFSBase):
         self,
         featurename: str,
         featureids: Union[List[str], str],
-    ) -> Union[str, bytes, Dict[str, Any]]:
+    ) -> List[Union[str, bytes, Dict[str, Any]]]:
         """Get features based on feature IDs.
 
         Parameters
@@ -493,17 +494,22 @@ class WFS(WFSBase):
         if featurename not in valid_features:
             raise InvalidInputValue("featurename", valid_features)
 
-        featureids = featureids if isinstance(featureids, list) else [featureids]
+        if not isinstance(featureids, (str, int, list)):
+            raise InvalidInputType("featureids", "str or list of str")
+
+        featureids = [featureids] if isinstance(featureids, (str, int)) else featureids
 
         if len(featureids) == 0:
             raise InvalidInputType("featureids", "int or str or list")
 
-        fid_list = ", ".join(f"'{fid}'" for fid in featureids)
+        fid_list = (
+            ", ".join(f"'{fid}'" for fid in fids) for fids in tlz.partition_all(1000, featureids)
+        )
 
-        if len(featureids) > 200:
-            return self.getfeature_byfilter(f"{featurename} IN ({fid_list})", method="POST")
-
-        return self.getfeature_byfilter(f"{featurename} IN ({fid_list})")
+        return [
+            self.getfeature_byfilter(f"{featurename} IN ({fids})", method="POST")
+            for fids in fid_list
+        ]
 
     def getfeature_byfilter(
         self, cql_filter: str, method: str = "GET"
