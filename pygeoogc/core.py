@@ -515,6 +515,10 @@ class WFSBase:
     read_method : str, optional
         Method for reading the retrieved data, defaults to ``json``. Valid options are
         ``json``, ``binary``, and ``text``.
+    max_nrecords : int, optional
+        The maximum number of records in a single request to be retrieved from the service,
+        defaults to 1000. If the number of records requested is greater than this value,
+        it will be split into multiple requests.
     """
 
     url: str
@@ -523,6 +527,7 @@ class WFSBase:
     version: str = "2.0.0"
     crs: str = DEF_CRS
     read_method: str = "json"
+    max_nrecords: int = 1000
 
     def __repr__(self) -> str:
         """Print the services properties."""

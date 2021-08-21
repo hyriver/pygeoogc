@@ -503,7 +503,8 @@ class WFS(WFSBase):
             raise InvalidInputType("featureids", "int or str or list")
 
         fid_list = (
-            ", ".join(f"'{fid}'" for fid in fids) for fids in tlz.partition_all(1000, featureids)
+            ", ".join(f"'{fid}'" for fid in fids)
+            for fids in tlz.partition_all(self.max_nrecords, featureids)
         )
 
         return [
@@ -552,14 +553,12 @@ class WFS(WFSBase):
         }
 
         if method == "GET":
-            resp = ar.retrieve([self.url], self.read_method, [{"params": payload}])
-        elif method == "POST":
-            headers = {"content-type": "application/x-www-form-urlencoded"}
-            resp = ar.retrieve(
-                [self.url], self.read_method, [{"data": payload, "headers": headers}], "POST"
-            )
+            return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
 
-        return resp[0]
+        headers = {"content-type": "application/x-www-form-urlencoded"}
+        return ar.retrieve(
+            [self.url], self.read_method, [{"data": payload, "headers": headers}], "POST"
+        )[0]
 
 
 class ServiceURL:
