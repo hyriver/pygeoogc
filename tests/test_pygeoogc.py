@@ -161,6 +161,7 @@ class TestWFS:
         outformat="application/json",
         version="2.0.0",
         crs=ALT_CRS,
+        max_nrecords=5,
     )
 
     def test_byid(self):
