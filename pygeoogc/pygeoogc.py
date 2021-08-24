@@ -336,6 +336,13 @@ class WFS(WFSBase):
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
         epsg:4326.
+    read_method : str, optional
+        Method for reading the retrieved data, defaults to ``json``. Valid options are
+        ``json``, ``binary``, and ``text``.
+    max_nrecords : int, optional
+        The maximum number of records in a single request to be retrieved from the service,
+        defaults to 1000. If the number of records requested is greater than this value,
+        it will be split into multiple requests.
     validation : bool, optional
         Validate the input arguments from the WFS service, defaults to True. Set this
         to False if you are sure all the WFS settings such as layer and crs are correct
@@ -349,9 +356,11 @@ class WFS(WFSBase):
         outformat: Optional[str] = None,
         version: str = "2.0.0",
         crs: str = DEF_CRS,
+        read_method: str = "json",
+        max_nrecords: int = 1000,
         validation: bool = True,
     ) -> None:
-        super().__init__(url, layer, outformat, version, crs)
+        super().__init__(url, layer, outformat, version, crs, read_method, max_nrecords)
 
         if validation:
             self.validate_wfs()
