@@ -2,6 +2,14 @@
 History
 =======
 
+0.11.4 (2021-08-26)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Add URL for `PyGeoAPI <https://labs.waterdata.usgs.gov/api/nldi/pygeoapi>`__ service.
+
+
 0.11.3 (2021-08-21)
 -------------------
 
