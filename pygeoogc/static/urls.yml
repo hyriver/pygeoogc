@@ -18,6 +18,7 @@ restful:
   nid_2019: https://ags02.sec.usace.army.mil/server/rest/services/Water_Resources/NID2019_U/MapServer
   airmap: https://api.airmap.com/elevation/v1/ele
   nm_pqs: https://nationalmap.gov/epqs/pqs.php
+  pygeoapi: https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes
 
 wfs:
   fema: https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer
