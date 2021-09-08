@@ -21,7 +21,7 @@ dependencies:
   - pyyaml
   - pyproj
   - requests
-  - requests-cache
+  - requests-cache>=0.8
   - shapely
   - simplejson
   - urllib3
