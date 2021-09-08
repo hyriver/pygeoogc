@@ -2,6 +2,13 @@
 History
 =======
 
+0.11.5 (unreleased)
+-------------------
+
+Bug Fixes
+~~~~~~~~~
+- Update the code to use the latest ``requsts-cache`` API.
+
 0.11.4 (2021-08-26)
 -------------------
 
