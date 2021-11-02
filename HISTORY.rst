@@ -2,6 +2,20 @@
 History
 =======
 
+0.11.6 (unreleased)
+-------------------
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+- Remove the ``onlyipv4`` method from ``RetrySession`` since it can be easily
+  be achieved using ``with unittest.mock.patch("socket.has_ipv6", False):``.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Use the ``geoms`` method for iterating over geometries to address the
+  deprecation warning of ``shapely``.
+
+
 0.11.5 (2021-09-09)
 -------------------
 
@@ -22,7 +36,6 @@ New Features
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
-
 - Fix a bug in ``WFS.getfeature_byid`` when the number of IDs exceeds the service's
   limit by splitting large requests into multiple smaller requests.
 - Add two new arguments, ``max_nrecords`` and ``read_method``, to ``WFS`` to control
