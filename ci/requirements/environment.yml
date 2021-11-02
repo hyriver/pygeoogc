@@ -23,6 +23,7 @@ dependencies:
   - requests
   - requests-cache>=0.8
   - shapely
+  - simplejson
   - urllib3
 
   # test deps
