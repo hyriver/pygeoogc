@@ -11,6 +11,7 @@ dependencies:
   - brotlipy
   - cchardet
   - cytoolz
+  - importlib_metadata
   - nest-asyncio
   - ujson
 
@@ -19,21 +20,18 @@ dependencies:
   - owslib
   - pydantic
   - pyyaml
-  - pyproj
+  - pyproj>=1.2
   - requests
   - requests-cache>=0.8
   - shapely
-  - simplejson
   - urllib3
 
   # test deps
-  - pytest
   - pytest-clarity
   - pytest-cov
   - pytest-sugar
   - pytest-xdist
   - psutil
-  - toml
 
   - pip
   - pip:

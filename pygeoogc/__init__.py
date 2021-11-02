@@ -1,6 +1,4 @@
 """Top-level package for PyGeoOGC."""
-from pkg_resources import DistributionNotFound, get_distribution
-
 from .exceptions import (
     InvalidInputType,
     InvalidInputValue,
@@ -14,8 +12,13 @@ from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
 from .utils import RetrySession
 
 try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
+    import importlib.metadata as metadata
+except ImportError:
+    import importlib_metadata as metadata  # type: ignore[no-redef]
+
+try:
+    __version__ = metadata.version("pygeoogc")
+except Exception:
     __version__ = "999"
 
 __all__ = [
