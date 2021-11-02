@@ -1,8 +1,6 @@
 """Tests for PyGeoOGC package."""
 import io
 import sys
-import zipfile
-from unittest.mock import patch
 
 import pytest
 from shapely.geometry import LineString, Polygon
@@ -233,18 +231,6 @@ def test_esriquery():
         point["geometryType"] == "esriGeometryPoint"
         and line["geometryType"] == "esriGeometryPolyline"
     )
-
-
-def test_ipv4():
-    """Only IPv4"""
-    url = f"{ServiceURL().http.ssebopeta}/det2005150.modisSSEBopETactual.zip"
-    session = RetrySession()
-    with patch("socket.has_ipv6", False):
-        r = session.get(url)
-        z = zipfile.ZipFile(io.BytesIO(r.content))
-        fname = z.read(z.filelist[0].filename)
-
-    assert sys.getsizeof(fname) == 20283088
 
 
 def test_urls():

@@ -3,7 +3,6 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
-from unittest.mock import _patch, patch
 
 import defusedxml.ElementTree as etree
 import pyproj
@@ -113,11 +112,6 @@ class RetrySession:
             raise ServiceError(check_response(resp.text)) from ex
         else:
             return resp
-
-    @staticmethod
-    def onlyipv4() -> _patch:
-        """Disable IPv6 and only use IPv4."""
-        return patch("socket.has_ipv6", False)
 
 
 def traverse_json(
