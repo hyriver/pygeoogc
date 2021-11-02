@@ -300,7 +300,7 @@ class ArcGISRESTfulBase:
             return utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
 
         if isinstance(geom, MultiPoint):
-            return utils.ESRIGeomQuery([(g.x, g.y) for g in geom], self.out_sr).multipoint()
+            return utils.ESRIGeomQuery([(g.x, g.y) for g in geom.geoms], self.out_sr).multipoint()
 
         if isinstance(geom, Polygon):
             return utils.ESRIGeomQuery(geom, self.out_sr).polygon()
