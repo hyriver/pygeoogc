@@ -16,3 +16,7 @@ doctest_optionflags = 'NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER'
 markers = [
     "slow",
 ]
+testpaths = [
+    "tests",
+    "pygeoogc",
+]
