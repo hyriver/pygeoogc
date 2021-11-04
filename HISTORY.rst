@@ -14,6 +14,9 @@ Internal Changes
 ~~~~~~~~~~~~~~~~
 - Use the ``geoms`` method for iterating over geometries to address the
   deprecation warning of ``shapely``.
+- Use ``importlib-metadata`` for getting the version insead of ``pkg_resources``
+  to decrease import time as discussed in this
+  `issue <https://github.com/pydata/xarray/issues/5676>`__.
 
 
 0.11.5 (2021-09-09)
