@@ -105,7 +105,6 @@ class TestREST:
         resp = rest.get_features()
         assert len(resp) == 3
 
-    @pytest.mark.slow
     def test_bysql(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
@@ -114,7 +113,6 @@ class TestREST:
 
         assert len(resp[0]["features"]) == 3
 
-    @pytest.mark.slow
     def test_byfield(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
