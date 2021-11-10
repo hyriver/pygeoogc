@@ -27,6 +27,7 @@ dependencies:
   - urllib3
 
   # test deps
+  - pandas
   - pytest-cov
   - pytest-xdist
   - psutil
