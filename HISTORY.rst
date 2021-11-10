@@ -2,7 +2,7 @@
 History
 =======
 
-0.11.6 (2021-11-09)
+0.11.7 (2021-11-09)
 -------------------
 
 Breaking Changes
@@ -17,6 +17,7 @@ Internal Changes
 - Use ``importlib-metadata`` for getting the version insead of ``pkg_resources``
   to decrease import time as discussed in this
   `issue <https://github.com/pydata/xarray/issues/5676>`__.
+- Remove unnecessary dependency on ``simplejson`` and use ``ujson`` instead.
 
 
 0.11.5 (2021-09-09)
