@@ -15,7 +15,6 @@ from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from pydantic import AnyHttpUrl, BaseModel, validator
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
-from simplejson import JSONDecodeError
 
 from . import utils
 from .exceptions import (
@@ -253,7 +252,7 @@ class ArcGISRESTfulBase:
                     break
             self.extent = utils.match_crs(bounds, crs, DEF_CRS)
 
-        except (JSONDecodeError, KeyError) as ex:
+        except (ValueError, KeyError) as ex:
             raise ServiceError(self.base_url) from ex
 
         with contextlib.suppress(KeyError):
@@ -353,7 +352,7 @@ class ArcGISRESTfulBase:
             resp = ar.retrieve(
                 urls, "json", kwds, request_method=method, max_workers=self.max_workers
             )
-        except JSONDecodeError:
+        except ValueError:
             raise ZeroMatched
 
         resp = self._cleanup_resp(resp, payloads)

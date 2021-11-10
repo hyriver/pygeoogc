@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 import defusedxml.ElementTree as etree
 import pyproj
 import shapely.geometry as sgeom
-import simplejson as json
+import ujson as json
 from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
