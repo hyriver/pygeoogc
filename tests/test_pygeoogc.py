@@ -2,11 +2,12 @@
 import io
 import sys
 
+import pandas as pd
 import pytest
 from shapely.geometry import LineString, Polygon
 
 import pygeoogc as ogc
-from pygeoogc import WFS, WMS, ArcGISRESTful, RetrySession, ServiceURL, utils
+from pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL, utils
 
 DEF_CRS = "epsg:4326"
 ALT_CRS = "epsg:4269"
@@ -154,33 +155,45 @@ class TestWFS:
     wfs: WFS = WFS(
         ServiceURL().wfs.waterdata,
         layer="wmadata:gagesii",
-        outformat="application/json",
+        outformat="csv",
+        read_method="text",
         version="2.0.0",
         crs=ALT_CRS,
         max_nrecords=5,
     )
 
+    def to_df(self, r):
+        return pd.read_csv(io.StringIO(r))
+
     def test_byid(self):
         """WFS by ID"""
         print(self.wfs)
-        st = self.wfs.getfeature_byid("staid", "01031500")
-        assert st[0]["numberMatched"] == 1
+        stations = [
+            "01011000",
+            "01013500",
+            "01015800",
+            "01016500",
+            "01017000",
+            "01017060",
+        ]
+        resps = self.wfs.getfeature_byid("staid", stations)
+        assert pd.concat(self.to_df(r) for r in resps).shape[0] == len(stations)
 
     def test_bygeom(self):
         """WFS by geometry"""
         r = self.wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
-        assert len(r["features"]) == 7
+        assert self.to_df(r).shape[0] == 7
 
     def test_bybox(self):
         """WFS by bounding box"""
         bbox = GEO_URB.bounds
         r = self.wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
-        assert len(r["features"]) == 7
+        assert self.to_df(r).shape[0] == 7
 
     def test_byfilter(self):
         """WFS by CQL filter"""
-        wb = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
-        assert len(utils.traverse_json(wb, ["features", "geometry", "coordinates"])) == 2
+        r = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
+        assert self.to_df(r).shape[0] == 2
 
     def test_wfs111(self):
         """WFS 1.0.0 by geom"""
