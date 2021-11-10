@@ -27,9 +27,7 @@ dependencies:
   - urllib3
 
   # test deps
-  - pytest-clarity
   - pytest-cov
-  - pytest-sugar
   - pytest-xdist
   - psutil
 
