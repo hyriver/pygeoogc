@@ -513,7 +513,7 @@ class WFS(WFSBase):
 
         fid_list = (
             ", ".join(f"'{fid}'" for fid in fids)
-            for fids in tlz.partition_all(self.max_nrecords, featureids)
+            for fids in tlz.partition_all(self.max_nrecords, set(featureids))
         )
 
         return [

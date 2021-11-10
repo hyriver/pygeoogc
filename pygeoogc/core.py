@@ -588,7 +588,7 @@ class WFSBase:
         payload = {
             "service": "wfs",
             "version": self.version,
-            "outputFormat": self.outformat,
+            "outputFormat": "application/json",
             "request": "GetFeature",
             "typeName": self.layer,
             max_features: 1,
