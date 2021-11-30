@@ -123,6 +123,8 @@ class TestREST:
         assert len(resp[0]["features"]) == 3
 
 
+
+@pytest.mark.filterwarnings("ignore:.*Content metadata*.")
 class TestWMS:
     wms_url: str = ServiceURL().wms.gebco
     layer: str = "GEBCO_LATEST"
