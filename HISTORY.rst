@@ -2,7 +2,7 @@
 History
 =======
 
-0.11.8 (unreleased)
+0.12.0 (unreleased)
 -------------------
 
 New Features
