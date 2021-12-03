@@ -2,6 +2,13 @@
 History
 =======
 
+0.11.8 (unreleased)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Add a new argument to ``ArcGISRESTful`` called ``verbose`` to turn off all info logs.
+
 0.11.7 (2021-11-09)
 -------------------
 
@@ -14,7 +21,7 @@ Internal Changes
 ~~~~~~~~~~~~~~~~
 - Use the ``geoms`` method for iterating over geometries to address the
   deprecation warning of ``shapely``.
-- Use ``importlib-metadata`` for getting the version insead of ``pkg_resources``
+- Use ``importlib-metadata`` for getting the version instead of ``pkg_resources``
   to decrease import time as discussed in this
   `issue <https://github.com/pydata/xarray/issues/5676>`__.
 - Remove unnecessary dependency on ``simplejson`` and use ``ujson`` instead.
@@ -52,7 +59,7 @@ Internal Changes
 Internal Changes
 ~~~~~~~~~~~~~~~~
 - Simplify the retry logic ``ArcGISRESTFul`` by making it run four times and
-  making sure that the last retry is one object id per request.
+  making sure that the last retry is one object ID per request.
 
 0.11.1 (2021-07-31)
 -------------------
@@ -77,7 +84,7 @@ Internal Changes
 - Rename ``ServiceError`` to ``ServiceUnavailable`` and ``ServerError`` to ``ServiceError``
   Since it's more representative of the intended exception.
 - Raise for response status in ``RetrySession`` before the try-except block so
-  ``RequestsException`` can raised and its error messaged be parsed.
+  ``RequestsException`` can raise and its error messaged be parsed.
 - Deprecate ``utils.threading`` since all threading operations are now handled by
   ``AsyncRetriever``.
 - Increase test coverage.
@@ -110,7 +117,7 @@ Breaking Changes
 Internal Changes
 ~~~~~~~~~~~~~~~~
 - Refactor ``ArcGISRESTfulBase`` class to reduce its code complexity and make the service
-  initialization logic much simpler. The class is faster since it makes less requests during
+  initialization logic much simpler. The class is faster since it makes fewer requests during
   the initialization process.
 - Add ``pydantic`` as a new dependency that takes care of ``ArcGISRESTfulBase`` validation.
 - Use persistent caching for all send/receive requests that can significantly improve the
@@ -122,13 +129,13 @@ Internal Changes
 0.10.1 (2021-03-27)
 -------------------
 
-- Add announcement regarding the new name for the softwate stack, HyRiver.
+- Add announcement regarding the new name for the software stack, HyRiver.
 - Improve ``pip`` installation and release workflow.
 
 0.10.0 (2021-03-06)
 -------------------
 
-- The first release after renaming ``hydrodata`` to ``pygeohydro``.
+- The first release after renaming ``hydrodata`` to ``PyGeoHydro``.
 - Fix ``extent`` property of ``ArcGISRESTful`` being set to ``None`` incorrectly.
 - Add ``feature types`` property to ``ArcGISRESTFul`` for getting names and IDs of types
   of features in the database.
@@ -142,18 +149,18 @@ Internal Changes
 0.9.0 (2021-02-14)
 ------------------
 
-- Bump version to the same version as pygeohydro.
+- Bump version to the same version as PyGeoHydro.
 - Add support for query by point and multi-points to ``ArcGISRESTful.bygeom``.
 - Add support for buffer distance to ``ArcGISRESTful.bygeom``.
 - Add support for generating ESRI-based queries for points and multi-points
   to ``ESRIGeomQuery``.
 - Add all the missing type annotations.
-- Update the Daymet url to version 4. You can check the release information
+- Update the Daymet URL to version 4. You can check the release information
   `here <https://daac.ornl.gov/DAYMET/guides/Daymet_Daily_V4.html>`_
-- Use ``cytoolz`` library for some of the operations for improving performance.
+- Use ``cytoolz`` library for improving performance of some operations.
 - Add ``extent`` property to ``ArcGISRESTful`` class that get the spatial extent
   of the service.
-- Add url to ``airmap`` service for getting elevation data at 30 m resolution.
+- Add URL to ``airmap`` service for getting elevation data at 30 m resolution.
 
 0.2.3 (2020-12-19)
 -------------------
@@ -188,7 +195,7 @@ Internal Changes
 -------------------
 
 - Improved ``bbox_decompose`` to fix the ``WMS`` issue with high resolution requests.
-- Replaces ``simplejson`` with ``orjson`` to speed up json operations.
+- Replaces ``simplejson`` with ``orjson`` to speed up JSON operations.
 
 0.1.8 (2020-08-12)
 ------------------
