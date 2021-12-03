@@ -119,10 +119,11 @@ class ArcGISRESTfulBase:
     ----------
     base_url : str, optional
         The ArcGIS RESTful service url. The URL must either include a layer number
-        after the last ``/`` in the url or the target layer must be passed as an argument.
+        after the last ``/`` in the url or the target layer must be passed as an
+        argument.
     layer : int, optional
-        Target layer number, defaults to None. If None layer number must be included as after
-        the last ``/`` in ``base_url``.
+        Target layer number, defaults to None. If None layer number must be
+        included as after the last ``/`` in ``base_url``.
     outformat : str, optional
         One of the output formats offered by the selected layer. If not correct
         a list of available formats is shown, defaults to ``geojson``.
@@ -136,7 +137,11 @@ class ArcGISRESTfulBase:
         Max number of simultaneous requests, default to 2. Note
         that some services might face issues when several requests are sent
         simultaneously and will return the requests partially. It's recommended
-        to avoid using too many workers unless you are certain the web service can handle it.
+        to avoid using too many workers unless you are certain the web service
+        can handle it.
+    verbose : bool, optional
+        If True, prints information about the requests and responses,
+        defaults to False.
     """
 
     def __init__(
@@ -147,6 +152,7 @@ class ArcGISRESTfulBase:
         outfields: Union[List[str], str] = "*",
         crs: Union[str, pyproj.CRS] = DEF_CRS,
         max_workers: int = 1,
+        verboose: bool = False,
     ) -> None:
         validated = RESTValidator(
             base_url=base_url,
@@ -162,6 +168,7 @@ class ArcGISRESTfulBase:
         self.outfields = validated.outfields
         self.crs = validated.crs
         self.max_workers = validated.max_workers
+        self.verboose = verboose
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -199,15 +206,14 @@ class ArcGISRESTfulBase:
         if any(f not in self.valid_fields for f in self.outfields):
             raise InvalidInputValue("outfields", self.valid_fields)
 
-    def partition_oids(self, oids: Union[List[int], int, None]) -> List[Tuple[str, ...]]:
+    def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
         """Partition feature IDs based on service's max record number."""
-        if oids is None:
+        oid_list = [str(oids)] if isinstance(oids, int) else [str(v) for v in oids]
+        if len(oid_list) == 0:
             raise ZeroMatched
 
-        oid_list = [str(oids)] if isinstance(oids, int) else [str(v) for v in oids]
-
         self.n_features = len(oid_list)
-        if not self.retry:
+        if not self.retry and self.verboose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
         return list(tlz.partition_all(self.max_nrecords, sorted(oid_list)))
 
@@ -333,11 +339,11 @@ class ArcGISRESTfulBase:
                 features.append(self._retry(self.return_m, f))
             except ServiceError:
                 continue
-
-        logger.info(
-            f"Total of {self.n_missing} out of {self.total_n_features} "
-            + "features are not available on the server."
-        )
+        if self.verboose:
+            logger.info(
+                f"Total of {self.n_missing} out of {self.total_n_features} "
+                + "features are not available on the server."
+            )
         self.failed_path.unlink()
         self.retry = False
         return list(tlz.concat(features))
@@ -380,14 +386,15 @@ class ArcGISRESTfulBase:
                 if not self.retry:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.total_n_features = self.n_features
-                    logger.info(
-                        " ".join(
-                            [
-                                f"Found {len(fails)} failed requests.",
-                                "Retrying to pluck out all available features.",
-                            ]
+                    if self.verboose:
+                        logger.info(
+                            " ".join(
+                                [
+                                    f"Found {len(fails)} failed requests.",
+                                    "Retrying to pluck out all available features.",
+                                ]
+                            )
                         )
-                    )
                     resp.extend(self._retry_failed_requests())
             else:
                 if len(resp) == 0:
