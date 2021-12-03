@@ -36,33 +36,32 @@ class TestREST:
         """RESTFul by ID"""
         wbd2 = ArcGISRESTful(self.wbd_url, 1, outfields=["huc2", "name", "areaacres"])
         print(wbd2)
-        wbd2.featureids = wbd2.partition_oids(list(range(1, 6)))
-        huc2 = wbd2.get_features()
+        huc2 = wbd2.get_features(wbd2.partition_oids(list(range(1, 6))))
 
         assert len(huc2[0]["features"]) == 5
 
     def test_geom_point_line(self):
         wbd2 = ArcGISRESTful(self.wbd_url, 1)
-        wbd2.oids_bygeom((-70.02580, 44.43280), spatial_relation="esriSpatialRelWithin")
-        huc2 = wbd2.get_features()
+        oids = wbd2.oids_bygeom((-70.02580, 44.43280), spatial_relation="esriSpatialRelWithin")
+        huc2 = wbd2.get_features(oids)
         point = len(huc2[0]["features"])
 
-        wbd2.oids_bygeom(
+        oids = wbd2.oids_bygeom(
             LineString([(-70.02580, 44.43280), (-71.02580, 44.43280)]),
             spatial_relation="esriSpatialRelWithin",
         )
-        huc2 = wbd2.get_features()
+        huc2 = wbd2.get_features(oids)
         line = len(huc2[0]["features"])
         assert point == line
 
     def test_bygeom(self):
         """RESTFul by geometry"""
         geofab = ArcGISRESTful(self.fab_url, max_workers=4)
-        geofab.oids_bygeom(GEO_NAT.bounds)
-        geofab.oids_bygeom(GEO_NAT)
-        wb_all = geofab.get_features()
-        geofab.oids_bygeom(GEO_NAT, sql_clause="areasqkm > 20")
-        wb_large = geofab.get_features()
+        _ = geofab.oids_bygeom(GEO_NAT.bounds)
+        oids = geofab.oids_bygeom(GEO_NAT)
+        wb_all = geofab.get_features(oids)
+        oids = geofab.oids_bygeom(GEO_NAT, sql_clause="areasqkm > 20")
+        wb_large = geofab.get_features(oids)
         assert len(wb_all[0]["features"]) - len(wb_large[0]["features"]) == 915
 
     def test_bymultipoint(self):
@@ -75,10 +74,10 @@ class TestREST:
         ]
 
         service = ArcGISRESTful(self.epa_url, 2, outformat="json")
-        service.oids_bygeom(
+        oids = service.oids_bygeom(
             geom, geo_crs=ALT_CRS, sql_clause="FTYPE NOT IN (420,428,566)", distance=1500
         )
-        resp = service.get_features(return_m=True)
+        resp = service.get_features(oids, return_m=True)
         assert len(resp[0]["features"]) == 3
 
     def test_retry(self):
@@ -102,23 +101,22 @@ class TestREST:
             584849,
             585138,
         ]
-        rest.featureids = rest.partition_oids(oids)
-        resp = rest.get_features()
+        resp = rest.get_features(rest.partition_oids(oids))
         assert len(resp) == 3
 
     def test_bysql(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
-        hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
-        resp = hr.get_features(return_m=True)
+        oids = hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
+        resp = hr.get_features(oids, return_m=True)
 
         assert len(resp[0]["features"]) == 3
 
     def test_byfield(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
-        hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
-        resp = hr.get_features()
+        oids = hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
+        resp = hr.get_features(oids)
 
         assert len(resp[0]["features"]) == 3
 
