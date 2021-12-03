@@ -1,7 +1,5 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import itertools
-import logging
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -16,13 +14,6 @@ from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygo
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter(""))
-logger.handlers = [handler]
-logger.propagate = False
 
 DEF_CRS = "epsg:4326"
 
@@ -50,7 +41,11 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         Number of simultaneous download, default to 1, i.e., no threading. Note
         that some services might face issues when several requests are sent
         simultaneously and will return the requests partially. It's recommended
-        to avoid performing threading unless you are certain the web service can handle it.
+        to avoid using too many workers unless you are certain the web service
+        can handle it.
+    verbose : bool, optional
+        If True, prints information about the requests and responses,
+        defaults to False.
     """
 
     def oids_bygeom(
