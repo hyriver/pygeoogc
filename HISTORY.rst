@@ -7,7 +7,18 @@ History
 
 New Features
 ~~~~~~~~~~~~
-- Add a new argument to ``ArcGISRESTful`` called ``verbose`` to turn off all info logs.
+- Add a new argument to ``ArcGISRESTful`` called ``verbose`` to turn on/off all info level logs.
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+- All ``oids_by*`` methods of ``ArcGISRESTful`` class now return a list of object IDs rather
+  than setting ``self.featureids``. This makes it possible to pass the outputs of the ``oids_by*``
+  functions directly to the ``get_features`` method.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Explicitly set a minimum value of 1 for the maximum number of feature IDs per request
+  in ``ArcGISRESTful``, i.e., ``self.max_nrecords``.
 
 0.11.7 (2021-11-09)
 -------------------
