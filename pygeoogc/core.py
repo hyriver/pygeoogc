@@ -172,7 +172,6 @@ class ArcGISRESTfulBase:
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
-        self.featureids: List[Tuple[str, ...]] = []
         self.url = f"{self.base_url}/{self.layer}"
         self.query_url = f"{self.url}/query"
         self.valid_layers: Dict[str, str] = {}
@@ -215,9 +214,11 @@ class ArcGISRESTfulBase:
         self.n_features = len(oid_list)
         if not self.retry and self.verboose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
-        return list(tlz.partition_all(self.max_nrecords, sorted(oid_list)))
+        return tlz.partition_all(self.max_nrecords, sorted(oid_list))
 
-    def get_features(self, return_m: bool = False) -> List[Dict[str, Any]]:
+    def get_features(
+        self, featureids: List[Tuple[str, ...]], return_m: bool = False
+    ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
         Parameters
@@ -239,7 +240,7 @@ class ArcGISRESTfulBase:
                 "ReturnM": f"{return_m}".lower(),
                 "f": self.outformat,
             }
-            for ids in self.featureids
+            for ids in featureids
         ]
 
         return self._get_response(payloads, "POST")
@@ -321,11 +322,11 @@ class ArcGISRESTfulBase:
             oids = [int(i) for i in f.read().splitlines()]
 
         max_nrecords = self.max_nrecords
-        self.max_nrecords = int(partition_fac * max_nrecords)
-        self.featureids = self.partition_oids(oids)
+        self.max_nrecords = int(max(partition_fac * max_nrecords, 1))
+        features = self.get_features(self.partition_oids(oids), return_m)
         self.max_nrecords = max_nrecords
 
-        return self.get_features(return_m)
+        return features
 
     def _retry_failed_requests(self) -> List[Dict[str, Any]]:
         """Retry failed requests."""

@@ -63,7 +63,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
-    ) -> None:
+    ) -> List[Tuple[str, ...]]:
         """Get feature IDs within a geometry that can be combined with a SQL where clause.
 
         Parameters
@@ -130,11 +130,11 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
         resp = self._get_response([payload], method="POST")[0]
         try:
-            self.featureids = self.partition_oids(resp["objectIds"])
+            return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
             raise ZeroMatched(resp["error"]["message"]) from ex
 
-    def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> None:
+    def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> List[Tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
 
         Parameters
@@ -153,9 +153,9 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         else:
             fids = ", ".join(f"{i}" for i in ids)
 
-        self.oids_bysql(f"{field} IN ({fids})")
+        return self.oids_bysql(f"{field} IN ({fids})")
 
-    def oids_bysql(self, sql_clause: str) -> None:
+    def oids_bysql(self, sql_clause: str) -> List[Tuple[str, ...]]:
         """Get feature IDs using a valid SQL 92 WHERE clause.
 
         Notes
@@ -180,7 +180,7 @@ class ArcGISRESTful(ArcGISRESTfulBase):
 
         resp = self._get_response([payload])[0]
         try:
-            self.featureids = self.partition_oids(resp["objectIds"])
+            return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
             raise ZeroMatched(resp["error"]["message"]) from ex
 
