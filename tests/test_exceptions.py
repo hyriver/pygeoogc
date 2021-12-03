@@ -53,9 +53,9 @@ class TestRESTException:
             _ = ArcGISRESTful(f"{self.wbd_url}_extra_bit", 1)
         assert "_extra_bit" in str(ex.value)
 
-    def test_rest_oid_none(self):
+    def test_rest_zero_oid(self):
         with pytest.raises(ZeroMatched) as ex:
-            _ = self.rest_wbd.partition_oids(None)
+            _ = self.rest_wbd.partition_oids([])
         assert "Service returned no features" in str(ex.value)
 
     def test_rest_unsupported_geometry(self):
