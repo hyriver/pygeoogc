@@ -155,7 +155,6 @@ class ArcGISRESTfulBase:
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        get_geometry: bool = True,
         crs: Union[str, pyproj.CRS] = DEF_CRS,
         max_workers: int = 1,
         verbose: bool = False,
@@ -214,17 +213,21 @@ class ArcGISRESTfulBase:
 
     def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
         """Partition feature IDs based on service's max record number."""
-        oid_list = [str(oids)] if isinstance(oids, int) else [str(v) for v in oids]
+        oid_list = [oids] if isinstance(oids, int) else set(oids)
         if len(oid_list) == 0:
             raise ZeroMatched
 
         self.n_features = len(oid_list)
         if not self.retry and self.verbose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
-        return tlz.partition_all(self.max_nrecords, sorted(oid_list))
+        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])
 
     def get_features(
-        self, featureids: List[Tuple[str, ...]], return_m: bool = False, get_geometry: bool = True
+        self,
+        featureids: List[Tuple[str, ...]],
+        return_m: bool = False,
+        get_geometry: bool = True,
+        disable: bool = False,
     ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
@@ -236,6 +239,9 @@ class ArcGISRESTfulBase:
             Whether to activate the Return M (measure) in the request, defaults to False.
         get_geometry : bool, optional
             Whether to return the geometry of the feature, defaults to True.
+        disable: bool, optional
+            If ``True`` temporarily disable the caching requests and get new responses
+            from the server, defaults to False.
 
         Returns
         -------
@@ -327,14 +333,17 @@ class ArcGISRESTfulBase:
 
         raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple")
 
-    def _retry(self, return_m: bool, partition_fac: float) -> List[Dict[str, Any]]:
+    def _retry(
+        self, return_m: bool, return_geo: bool, partition_fac: float
+    ) -> List[Dict[str, Any]]:
         """Retry failed requests."""
         with open(self.failed_path) as f:
             oids = [int(i) for i in f.read().splitlines()]
 
         max_nrecords = self.max_nrecords
         self.max_nrecords = int(max(partition_fac * max_nrecords, 1))
-        features = self.get_features(self.partition_oids(oids), return_m)
+        features = self.get_features(self.partition_oids(oids), return_m, return_geo, disable=True)
+        print(len(features))
         self.max_nrecords = max_nrecords
 
         return features
@@ -348,27 +357,38 @@ class ArcGISRESTfulBase:
         features = []
         for f in partition_fac[::-1]:
             try:
-                features.append(self._retry(self.return_m, f))
+                features.append(self._retry(self.return_m, self.return_geo, f))
             except ServiceError:
                 continue
         if self.verbose:
-            logger.info(
-                f"Total of {self.n_missing} out of {self.total_n_features} "
-                + "features are not available on the server."
+            failed_path = Path("cache", "failed_request_ids.txt")
+            self.failed_path.rename(failed_path)
+            logger.warning(
+                " ".join(
+                    [
+                        f"Total of {self.n_missing} out of {self.total_n_features}",
+                        "requested features are not available in the dataset.",
+                        f"They have been saved in the file {failed_path}.",
+                    ]
+                )
             )
-        self.failed_path.unlink()
         self.retry = False
         return list(tlz.concat(features))
 
     def _get_response(
-        self, payloads: List[Dict[str, str]], method: str = "GET"
+        self, payloads: List[Dict[str, str]], method: str = "GET", disable: bool = False
     ) -> List[Dict[str, Any]]:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"
         urls, kwds = zip(*((self.query_url, {req_key: p}) for p in payloads))
         try:
             resp = ar.retrieve(
-                urls, "json", kwds, request_method=method, max_workers=self.max_workers
+                urls,
+                "json",
+                kwds,
+                request_method=method,
+                max_workers=self.max_workers,
+                disable=disable,
             )
         except ValueError:
             raise ZeroMatched
@@ -397,6 +417,7 @@ class ArcGISRESTfulBase:
 
                 if not self.retry:
                     self.return_m = bool(payloads[0]["ReturnM"])
+                    self.return_geo = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
                     if self.verbose:
                         logger.info(
