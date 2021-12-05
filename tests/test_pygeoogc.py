@@ -1,6 +1,7 @@
 """Tests for PyGeoOGC package."""
 import io
 import sys
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -87,7 +88,7 @@ class TestREST:
                 "PUD_Utility/StormwaterUtilities/MapServer/3",
             ]
         )
-        rest = ArcGISRESTful(rest_url)
+        rest = ArcGISRESTful(rest_url, verbose=True)
         print(rest)
         oids = [
             1006322,
@@ -102,7 +103,10 @@ class TestREST:
             585138,
         ]
         resp = rest.get_features(rest.partition_oids(oids))
-        assert len(resp) == 3
+
+        with open(Path("cache", "failed_request_ids.txt")) as f:
+            f_oids = [int(i) for i in f.read().splitlines()]
+        assert len(resp) == 3 and len(f_oids) == (len(oids) - len(resp))
 
     def test_bysql(self):
         """RESTFul by SQL filter"""
