@@ -52,14 +52,18 @@ class RESTValidator(BaseModel):
         It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
-        all the available fields which is the default behaviour.
+        all the available fields which is the default setting.
     crs : str, optional
         The spatial reference of the output data, defaults to EPSG:4326
     max_workers : int, optional
         Max number of simultaneous requests, default to 2. Note
         that some services might face issues when several requests are sent
         simultaneously and will return the requests partially. It's recommended
-        to avoid using too many workers unless you are certain the web service can handle it.
+        to avoid using too many workers unless you are certain the web service
+        can handle it.
+    verbose : bool, optional
+        If True, prints information about the requests and responses,
+        defaults to False.
     """
 
     base_url: AnyHttpUrl
@@ -67,7 +71,8 @@ class RESTValidator(BaseModel):
     outformat: str = "geojson"
     outfields: Union[List[str], str] = "*"
     crs: str = DEF_CRS
-    max_workers: int = 4
+    max_workers: int = 1
+    verbose: bool = False
 
     @validator("base_url")
     def _layer_from_url(cls, v):
@@ -130,7 +135,7 @@ class ArcGISRESTfulBase:
         It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
-        all the available fields which is the default behaviour.
+        all the available fields which is the default setting.
     crs : str, optional
         The spatial reference of the output data, defaults to EPSG:4326
     max_workers : int, optional
@@ -150,9 +155,10 @@ class ArcGISRESTfulBase:
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
+        get_geometry: bool = True,
         crs: Union[str, pyproj.CRS] = DEF_CRS,
         max_workers: int = 1,
-        verboose: bool = False,
+        verbose: bool = False,
     ) -> None:
         validated = RESTValidator(
             base_url=base_url,
@@ -161,6 +167,7 @@ class ArcGISRESTfulBase:
             outfields=outfields,
             crs=crs,
             max_workers=max_workers,
+            verbose=verbose,
         )
         self.base_url = validated.base_url[0]
         self.layer = validated.layer
@@ -168,7 +175,7 @@ class ArcGISRESTfulBase:
         self.outfields = validated.outfields
         self.crs = validated.crs
         self.max_workers = validated.max_workers
-        self.verboose = verboose
+        self.verbose = validated.verbose
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -212,19 +219,23 @@ class ArcGISRESTfulBase:
             raise ZeroMatched
 
         self.n_features = len(oid_list)
-        if not self.retry and self.verboose:
+        if not self.retry and self.verbose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
         return tlz.partition_all(self.max_nrecords, sorted(oid_list))
 
     def get_features(
-        self, featureids: List[Tuple[str, ...]], return_m: bool = False
+        self, featureids: List[Tuple[str, ...]], return_m: bool = False, get_geometry: bool = True
     ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
         Parameters
         ----------
-        return_m : bool
+        featureids : list
+            List of feature IDs.
+        return_m : bool, optional
             Whether to activate the Return M (measure) in the request, defaults to False.
+        get_geometry : bool, optional
+            Whether to return the geometry of the feature, defaults to True.
 
         Returns
         -------
@@ -234,7 +245,7 @@ class ArcGISRESTfulBase:
         payloads = [
             {
                 "objectIds": ",".join(ids),
-                "returnGeometry": "true",
+                "returnGeometry": f"{get_geometry}".lower(),
                 "outSR": self.out_sr,
                 "outfields": ",".join(self.outfields),
                 "ReturnM": f"{return_m}".lower(),
@@ -340,7 +351,7 @@ class ArcGISRESTfulBase:
                 features.append(self._retry(self.return_m, f))
             except ServiceError:
                 continue
-        if self.verboose:
+        if self.verbose:
             logger.info(
                 f"Total of {self.n_missing} out of {self.total_n_features} "
                 + "features are not available on the server."
@@ -387,7 +398,7 @@ class ArcGISRESTfulBase:
                 if not self.retry:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.total_n_features = self.n_features
-                    if self.verboose:
+                    if self.verbose:
                         logger.info(
                             " ".join(
                                 [
