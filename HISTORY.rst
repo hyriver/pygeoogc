@@ -10,6 +10,8 @@ New Features
 - Add a new argument to ``ArcGISRESTful`` called ``verbose`` to turn on/off all info level logs.
 - Add an option to ``ArcGISRESTful.get_features`` called ``get_geometry`` to turn on/off
   requesting the data with or without geometry.
+- Now, ``ArcGISRESTful`` saves the object IDs of the features that user requested but are
+  not available in the database to ``./cache/failed_request_ids.txt``. 
 
 Breaking Changes
 ~~~~~~~~~~~~~~~~
