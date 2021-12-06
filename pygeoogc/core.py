@@ -73,6 +73,7 @@ class RESTValidator(BaseModel):
     crs: str = DEF_CRS
     max_workers: int = 1
     verbose: bool = False
+    disable_retry: bool = False
 
     @validator("base_url")
     def _layer_from_url(cls, v):
@@ -147,6 +148,10 @@ class ArcGISRESTfulBase:
     verbose : bool, optional
         If True, prints information about the requests and responses,
         defaults to False.
+    disable_retry : bool, optional
+        If ``True`` in case there are any failed queries, no retrying attempts
+        is done and object IDs of the failed requests is saved to a text file
+        which its path can be accessed via ``self.failed_path``.
     """
 
     def __init__(
@@ -158,6 +163,7 @@ class ArcGISRESTfulBase:
         crs: Union[str, pyproj.CRS] = DEF_CRS,
         max_workers: int = 1,
         verbose: bool = False,
+        disable_retry: bool = False,
     ) -> None:
         validated = RESTValidator(
             base_url=base_url,
@@ -167,6 +173,7 @@ class ArcGISRESTfulBase:
             crs=crs,
             max_workers=max_workers,
             verbose=verbose,
+            disable_retry=disable_retry,
         )
         self.base_url = validated.base_url[0]
         self.layer = validated.layer
@@ -175,6 +182,7 @@ class ArcGISRESTfulBase:
         self.crs = validated.crs
         self.max_workers = validated.max_workers
         self.verbose = validated.verbose
+        self.disable_retry = validated.disable_retry
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -188,11 +196,11 @@ class ArcGISRESTfulBase:
         self.valid_fields: List[str] = []
         self.field_types: Dict[str, str] = {}
         self.feature_types: Optional[Dict[str, str]] = None
-        self.retry_loop: bool = False
         self.return_m: bool = False
         self.n_missing: int = 0
         self.total_n_features: int = 0
-        self.failed_path: Path = Path("cache", f"{uuid.uuid4().hex}.txt")
+        self.failed_path: Optional[Path] = None
+        self.request_id: Optional[str] = None
 
         self.initialize_service()
 
@@ -212,13 +220,13 @@ class ArcGISRESTfulBase:
             raise InvalidInputValue("outfields", self.valid_fields)
 
     def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
-        """Partition feature IDs based on service's max record number."""
+        """Partition feature IDs based on ``self.max_nrecords``."""
         oid_list = [oids] if isinstance(oids, int) else set(oids)
         if len(oid_list) == 0:
             raise ZeroMatched
 
         self.n_features = len(oid_list)
-        if not self.retry_loop and self.verbose:
+        if not self.disable_retry and self.verbose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
         return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])
 
@@ -236,10 +244,11 @@ class ArcGISRESTfulBase:
         featureids : list
             List of feature IDs.
         return_m : bool, optional
-            Whether to activate the Return M (measure) in the request, defaults to False.
+            Whether to activate the Return M (measure) in the request,
+            defaults to ``False``.
         get_geometry : bool, optional
-            Whether to return the geometry of the feature, defaults to True.
-        disable: bool, optional
+            Whether to return the geometry of the feature, defaults to ``True``.
+        disable : bool, optional
             If ``True`` temporarily disable the caching requests and get new responses
             from the server, defaults to False.
 
@@ -259,6 +268,8 @@ class ArcGISRESTfulBase:
             }
             for ids in featureids
         ]
+        if self.request_id is None:
+            self.request_id = uuid.uuid4().hex
 
         return self._get_response(payloads, "POST", disable)
 
@@ -337,7 +348,7 @@ class ArcGISRESTfulBase:
         self, return_m: bool, return_geo: bool, partition_fac: float
     ) -> List[Dict[str, Any]]:
         """Retry failed requests."""
-        with open(self.failed_path) as f:
+        with open(self.failed_path) as f:  # type: ignore
             oids = [int(i) for i in f.read().splitlines()]
 
         max_nrecords = self.max_nrecords
@@ -349,7 +360,7 @@ class ArcGISRESTfulBase:
 
     def _retry_failed_requests(self) -> List[Dict[str, Any]]:
         """Retry failed requests."""
-        self.retry_loop = True
+        self.disable_retry = True
         fac_min = 1.0 / self.max_nrecords
         n_retry = 4
         partition_fac = [(0.5 - fac_min) / (n_retry - 1) * i + fac_min for i in range(n_retry)]
@@ -359,19 +370,7 @@ class ArcGISRESTfulBase:
                 features.append(self._retry(self.return_m, self.return_geo, f))
             except ServiceError:
                 continue
-        if self.verbose:
-            failed_path = Path("cache", "failed_request_ids.txt")
-            self.failed_path.rename(failed_path)
-            logger.warning(
-                " ".join(
-                    [
-                        f"Total of {self.n_missing} out of {self.total_n_features}",
-                        "requested features are not available in the dataset.",
-                        f"They have been saved in the file {failed_path}.",
-                    ]
-                )
-            )
-        self.retry_loop = False
+        self.disable_retry = False
         return list(tlz.concat(features))
 
     def _get_response(
@@ -393,6 +392,8 @@ class ArcGISRESTfulBase:
             raise ZeroMatched
 
         resp = self._cleanup_resp(resp, payloads)
+        if len(resp) == 0:
+            raise ZeroMatched
         return resp
 
     def _cleanup_resp(
@@ -404,39 +405,39 @@ class ArcGISRESTfulBase:
         if len(fails) > 0:
             err = resp[fails[0]]["error"]["message"]
             resp = [r for i, r in enumerate(resp) if i not in fails]
-            if len(resp) == 0 and self.retry_loop:
+            if len(resp) == 0 and self.disable_retry:
                 raise ServiceError(err)
 
             if "objectIds" in payloads[fails[0]]:
                 oids = list(tlz.concat(payloads[i]["objectIds"].split(",") for i in fails))
                 self.n_missing = len(oids)
 
+                self.failed_path = Path("cache", f"failed_ids_{self.request_id}.txt")
                 with open(self.failed_path, "w") as f:
                     f.write("\n".join(oids))
 
-                if not self.retry_loop:
+                if not self.disable_retry:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.return_geo = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
                     if self.verbose:
-                        logger.info(
+                        logger.info(f"Found {len(fails)} failed requests. Retrying ...")
+                    resp.extend(self._retry_failed_requests())
+
+                    if self.verbose:
+                        logger.warning(
                             " ".join(
                                 [
-                                    f"Found {len(fails)} failed requests.",
-                                    "Retrying to pluck out all available features.",
+                                    f"Total of {self.n_missing} out of {self.total_n_features}",
+                                    "requested features are not available in the dataset.",
+                                    "Returning the successfully retrieved features."
+                                    "The failed object IDs have been saved in the",
+                                    f"file {self.failed_path}. The service returned the",
+                                    "following error message for the failed requests:\n",
+                                    err,
                                 ]
                             )
                         )
-                    resp.extend(self._retry_failed_requests())
-            else:
-                if len(resp) == 0:
-                    raise ZeroMatched
-
-                logger.warning(
-                    "Service failed to process some of the queries with "
-                    + "the following message, returning the rest:\n"
-                    + err
-                )
 
         return resp
 
