@@ -432,12 +432,11 @@ class ArcGISRESTfulBase:
                 if len(resp) == 0:
                     raise ZeroMatched
 
-                msg = (
-                    "Service failed to process some of the queries with"
+                logger.warning(
+                    "Service failed to process some of the queries with "
                     + "the following message, returning the rest:\n"
                     + err
                 )
-                logger.warning(msg)
 
         return resp
 
