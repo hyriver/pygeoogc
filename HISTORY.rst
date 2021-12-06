@@ -12,6 +12,10 @@ New Features
   requesting the data with or without geometry.
 - Now, ``ArcGISRESTful`` saves the object IDs of the features that user requested but are
   not available in the database to ``./cache/failed_request_ids.txt``.
+- Add a new parameter to ``ArcGISRESTful`` called ``disable_retry`` that If ``True`` in case
+  there are any failed queries, no retrying attempts is done and object IDs of the failed
+  requests are saved to a text file which its path can be accessed via
+  ``ArcGISRESTful.client.failed_path``.
 
 Breaking Changes
 ~~~~~~~~~~~~~~~~
@@ -21,6 +25,8 @@ Breaking Changes
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
+- Make ``ArcGISRESTful`` less cluttered by instantiating ``ArcGISRESTfulBase`` in the
+  ``init`` method of ``ArcGISRESTful`` rather than inheriting from its base class.
 - Explicitly set a minimum value of 1 for the maximum number of feature IDs per request
   in ``ArcGISRESTful``, i.e., ``self.max_nrecords``.
 
