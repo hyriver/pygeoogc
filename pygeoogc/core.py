@@ -188,7 +188,7 @@ class ArcGISRESTfulBase:
         self.valid_fields: List[str] = []
         self.field_types: Dict[str, str] = {}
         self.feature_types: Optional[Dict[str, str]] = None
-        self.retry: bool = False
+        self.retry_loop: bool = False
         self.return_m: bool = False
         self.n_missing: int = 0
         self.total_n_features: int = 0
@@ -218,7 +218,7 @@ class ArcGISRESTfulBase:
             raise ZeroMatched
 
         self.n_features = len(oid_list)
-        if not self.retry and self.verbose:
+        if not self.retry_loop and self.verbose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
         return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])
 
@@ -260,7 +260,7 @@ class ArcGISRESTfulBase:
             for ids in featureids
         ]
 
-        return self._get_response(payloads, "POST")
+        return self._get_response(payloads, "POST", disable)
 
     def _set_service_properties(self) -> None:
         try:
@@ -343,14 +343,13 @@ class ArcGISRESTfulBase:
         max_nrecords = self.max_nrecords
         self.max_nrecords = int(max(partition_fac * max_nrecords, 1))
         features = self.get_features(self.partition_oids(oids), return_m, return_geo, disable=True)
-        print(len(features))
         self.max_nrecords = max_nrecords
 
         return features
 
     def _retry_failed_requests(self) -> List[Dict[str, Any]]:
         """Retry failed requests."""
-        self.retry = True
+        self.retry_loop = True
         fac_min = 1.0 / self.max_nrecords
         n_retry = 4
         partition_fac = [(0.5 - fac_min) / (n_retry - 1) * i + fac_min for i in range(n_retry)]
@@ -372,7 +371,7 @@ class ArcGISRESTfulBase:
                     ]
                 )
             )
-        self.retry = False
+        self.retry_loop = False
         return list(tlz.concat(features))
 
     def _get_response(
@@ -405,7 +404,7 @@ class ArcGISRESTfulBase:
         if len(fails) > 0:
             err = resp[fails[0]]["error"]["message"]
             resp = [r for i, r in enumerate(resp) if i not in fails]
-            if len(resp) == 0 and self.retry:
+            if len(resp) == 0 and self.retry_loop:
                 raise ServiceError(err)
 
             if "objectIds" in payloads[fails[0]]:
@@ -415,7 +414,7 @@ class ArcGISRESTfulBase:
                 with open(self.failed_path, "w") as f:
                     f.write("\n".join(oids))
 
-                if not self.retry:
+                if not self.retry_loop:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.return_geo = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
