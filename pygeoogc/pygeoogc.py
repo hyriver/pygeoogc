@@ -1,5 +1,6 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import itertools
+import uuid
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -18,7 +19,7 @@ from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
 DEF_CRS = "epsg:4326"
 
 
-class ArcGISRESTful(ArcGISRESTfulBase):
+class ArcGISRESTful:
     """Access to an ArcGIS REST service.
 
     Parameters
@@ -46,7 +47,33 @@ class ArcGISRESTful(ArcGISRESTfulBase):
     verbose : bool, optional
         If True, prints information about the requests and responses,
         defaults to False.
+    disable_retry : bool, optional
+        If ``True`` in case there are any failed queries, no retrying attempts
+        is done and object IDs of the failed requests is saved to a text file
+        which its path can be accessed via ``self.client.failed_path``.
     """
+
+    def __init__(
+        self,
+        base_url: str,
+        layer: Optional[int] = None,
+        outformat: str = "geojson",
+        outfields: Union[List[str], str] = "*",
+        crs: Union[str, pyproj.CRS] = DEF_CRS,
+        max_workers: int = 1,
+        verbose: bool = False,
+        disable_retry: bool = False,
+    ) -> None:
+        self.client = ArcGISRESTfulBase(
+            base_url=base_url,
+            layer=layer,
+            outformat=outformat,
+            outfields=outfields,
+            crs=crs,
+            max_workers=max_workers,
+            verbose=verbose,
+            disable_retry=disable_retry,
+        )
 
     def oids_bygeom(
         self,
@@ -93,6 +120,9 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             Valid SQL 92 WHERE clause, default to None.
         distance : int, optional
             Buffer distance in meters for the input geometries, default to None.
+        generate_id : bool, optional
+            If ``True`` generate a unique identifier for the request that can be accessed
+            via ``self.client.request_id``. Defaults to ``True``.
         """
         valid_spatialrels = [
             "esriSpatialRelIntersects",
@@ -113,14 +143,14 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
             geom = MultiPoint(geom)
 
-        geom_query = self._esri_query(geom, geo_crs)
+        geom_query = self.client._esri_query(geom, geo_crs)
 
         payload = {
             **geom_query,  # type: ignore
             "spatialRel": spatial_relation,
             "returnGeometry": "false",
             "returnIdsOnly": "true",
-            "f": self.outformat,
+            "f": self.client.outformat,
         }
         if distance:
             payload.update({"distance": f"{distance}", "units": "esriSRUnit_Meter"})
@@ -128,7 +158,9 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         if sql_clause:
             payload.update({"where": sql_clause})
 
-        resp = self._get_response([payload], method="POST")[0]
+        self.client.request_id = uuid.uuid4().hex
+
+        resp = self.client._get_response([payload], method="POST")[0]
         try:
             return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
@@ -144,10 +176,10 @@ class ArcGISRESTful(ArcGISRESTfulBase):
         ids : str or list
             A list of target ID(s).
         """
-        if field not in self.valid_fields:
-            raise InvalidInputValue("field", self.valid_fields)
+        if field not in self.client.valid_fields:
+            raise InvalidInputValue("field", self.client.valid_fields)
 
-        ftype = self.field_types[field]
+        ftype = self.client.field_types[field]
         if "string" in ftype:
             fids = ", ".join(f"'{i}'" for i in ids)
         else:
@@ -175,14 +207,52 @@ class ArcGISRESTful(ArcGISRESTfulBase):
             "where": sql_clause,
             "returnGeometry": "false",
             "returnIdsOnly": "true",
-            "f": self.outformat,
+            "f": self.client.outformat,
         }
+        self.client.request_id = uuid.uuid4().hex
 
-        resp = self._get_response([payload])[0]
+        resp = self.client._get_response([payload])[0]
         try:
             return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
             raise ZeroMatched(resp["error"]["message"]) from ex
+
+    def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
+        """Partition feature IDs based on ``self.max_nrecords``."""
+        return self.client.partition_oids(oids)
+
+    def get_features(
+        self,
+        featureids: List[Tuple[str, ...]],
+        return_m: bool = False,
+        get_geometry: bool = True,
+        disable: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """Get features based on the feature IDs.
+
+        Parameters
+        ----------
+        featureids : list
+            List of feature IDs.
+        return_m : bool, optional
+            Whether to activate the Return M (measure) in the request,
+            defaults to ``False``.
+        get_geometry : bool, optional
+            Whether to return the geometry of the feature, defaults to ``True``.
+        disable : bool, optional
+            If ``True`` temporarily disable the caching requests and get new responses
+            from the server, defaults to False.
+
+        Returns
+        -------
+        dict
+            (Geo)json response from the web service.
+        """
+        return self.client.get_features(featureids, return_m, get_geometry, disable)
+
+    def __repr__(self) -> str:
+        """Print the service configuration."""
+        return self.client.__repr__()
 
 
 class WMS(WMSBase):
