@@ -33,6 +33,7 @@ handler.setFormatter(logging.Formatter(""))
 logger.handlers = [handler]
 logger.propagate = False
 DEF_CRS = "epsg:4326"
+EXPIRE = -1
 
 
 class RESTValidator(BaseModel):
@@ -64,6 +65,12 @@ class RESTValidator(BaseModel):
     verbose : bool, optional
         If True, prints information about the requests and responses,
         defaults to False.
+    disable_retry : bool, optional
+        If ``True`` in case there are any failed queries, no retrying attempts
+        is done and object IDs of the failed requests is saved to a text file
+        which its path can be accessed via ``self.failed_path``.
+    expire_after : int, optional
+        Expiration time for response caching in seconds, defaults to -1 (never expire).
     """
 
     base_url: AnyHttpUrl
@@ -74,6 +81,7 @@ class RESTValidator(BaseModel):
     max_workers: int = 1
     verbose: bool = False
     disable_retry: bool = False
+    expire_after: float = EXPIRE
 
     @validator("base_url")
     def _layer_from_url(cls, v):
@@ -152,6 +160,8 @@ class ArcGISRESTfulBase:
         If ``True`` in case there are any failed queries, no retrying attempts
         is done and object IDs of the failed requests is saved to a text file
         which its path can be accessed via ``self.failed_path``.
+    expire_after : int, optional
+        Expiration time for response caching in seconds, defaults to -1 (never expire).
     """
 
     def __init__(
@@ -164,6 +174,7 @@ class ArcGISRESTfulBase:
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
+        expire_after: float = EXPIRE,
     ) -> None:
         validated = RESTValidator(
             base_url=base_url,
@@ -174,6 +185,7 @@ class ArcGISRESTfulBase:
             max_workers=max_workers,
             verbose=verbose,
             disable_retry=disable_retry,
+            expire_after=expire_after,
         )
         self.base_url = validated.base_url[0]
         self.layer = validated.layer
@@ -183,6 +195,7 @@ class ArcGISRESTfulBase:
         self.max_workers = validated.max_workers
         self.verbose = validated.verbose
         self.disable_retry = validated.disable_retry
+        self.expire_after = validated.expire_after
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -275,7 +288,9 @@ class ArcGISRESTfulBase:
 
     def _set_service_properties(self) -> None:
         try:
-            rjson = ar.retrieve([self.base_url], "json", [{"params": {"f": "json"}}])[0]
+            rjson = ar.retrieve(
+                [self.base_url], "json", [{"params": {"f": "json"}}], expire_after=self.expire_after
+            )[0]
             self.valid_layers = {f"{lyr['id']}": lyr["name"] for lyr in rjson["layers"]}
             self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
 
@@ -296,7 +311,9 @@ class ArcGISRESTfulBase:
 
     def _set_layer_properties(self) -> None:
         """Set properties of the target layer."""
-        rjson = ar.retrieve([self.url], "json", [{"params": {"f": "json"}}])[0]
+        rjson = ar.retrieve(
+            [self.url], "json", [{"params": {"f": "json"}}], expire_after=self.expire_after
+        )[0]
         self.valid_fields = list(
             set(
                 utils.traverse_json(rjson, ["fields", "name"])
@@ -387,6 +404,7 @@ class ArcGISRESTfulBase:
                 request_method=method,
                 max_workers=self.max_workers,
                 disable=disable,
+                expire_after=self.expire_after,
             )
         except ValueError:
             raise ZeroMatched
@@ -478,6 +496,8 @@ class WMSBase:
     crs : str, optional
         The spatial reference system to be used for requesting the data, defaults to
         epsg:4326.
+    expire_after : int, optional
+        Expiration time for response caching in seconds, defaults to -1 (never expire).
     """
 
     url: AnyHttpUrl
@@ -485,6 +505,7 @@ class WMSBase:
     outformat: str
     version: str = "1.3.0"
     crs: str = DEF_CRS
+    expire_after: float = EXPIRE
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -561,6 +582,8 @@ class WFSBase:
         The maximum number of records in a single request to be retrieved from the service,
         defaults to 1000. If the number of records requested is greater than this value,
         it will be split into multiple requests.
+    expire_after : int, optional
+        Expiration time for response caching in seconds, defaults to -1 (never expire).
     """
 
     url: AnyHttpUrl
@@ -570,6 +593,7 @@ class WFSBase:
     crs: str = DEF_CRS
     read_method: str = "json"
     max_nrecords: int = 1000
+    expire_after: float = EXPIRE
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -636,7 +660,9 @@ class WFSBase:
             max_features: 1,
         }
 
-        rjson = ar.retrieve([self.url], "json", [{"params": payload}])[0]
+        rjson = ar.retrieve(
+            [self.url], "json", [{"params": payload}], expire_after=self.expire_after
+        )[0]
         valid_fields = list(
             set(
                 utils.traverse_json(rjson, ["fields", "name"])
