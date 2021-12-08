@@ -16,6 +16,11 @@ New Features
   there are any failed queries, no retrying attempts is done and object IDs of the failed
   requests are saved to a text file which its path can be accessed via
   ``ArcGISRESTful.client.failed_path``.
+- Set response caching expiration time to never expire, for all base classes. A new argument
+  has been added to all three base classes called ``expire_after`` that can be used to set
+  the expiration time.
+- Add a new method to all three base classes called ``clear_cache`` that clears all cached
+  responses for that specific client.
 
 Breaking Changes
 ~~~~~~~~~~~~~~~~
