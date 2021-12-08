@@ -10,6 +10,7 @@ import cytoolz as tlz
 import pyproj
 import shapely.ops as ops
 import yaml
+from pydantic import AnyHttpUrl
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from . import utils
@@ -55,7 +56,7 @@ class ArcGISRESTful:
 
     def __init__(
         self,
-        base_url: str,
+        base_url: AnyHttpUrl,
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
@@ -250,6 +251,10 @@ class ArcGISRESTful:
         """
         return self.client.get_features(featureids, return_m, get_geometry, disable)
 
+    def clear_cache(self) -> None:
+        """Delete cached responses associated with the service."""
+        [ar.delete_url_cache(self.client.base_url, m) for m in ["GET", "POST"]]
+
     def __repr__(self) -> str:
         """Print the service configuration."""
         return self.client.__repr__()
@@ -281,7 +286,7 @@ class WMS(WMSBase):
 
     def __init__(
         self,
-        url: str,
+        url: AnyHttpUrl,
         layers: Union[str, List[str]],
         outformat: str,
         version: str = "1.3.0",
@@ -416,7 +421,7 @@ class WFS(WFSBase):
 
     def __init__(
         self,
-        url: str,
+        url: AnyHttpUrl,
         layer: Optional[str] = None,
         outformat: Optional[str] = None,
         version: str = "2.0.0",

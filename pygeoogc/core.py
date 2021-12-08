@@ -156,7 +156,7 @@ class ArcGISRESTfulBase:
 
     def __init__(
         self,
-        base_url: str,
+        base_url: AnyHttpUrl,
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
@@ -480,7 +480,7 @@ class WMSBase:
         epsg:4326.
     """
 
-    url: str
+    url: AnyHttpUrl
     layers: Union[str, List[str]]
     outformat: str
     version: str = "1.3.0"
@@ -528,6 +528,10 @@ class WMSBase:
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
+    def clear_cache(self) -> None:
+        """Delete cached responses associated with the service."""
+        [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
+
 
 @dataclass
 class WFSBase:
@@ -559,7 +563,7 @@ class WFSBase:
         it will be split into multiple requests.
     """
 
-    url: str
+    url: AnyHttpUrl
     layer: Optional[str] = None
     outformat: Optional[str] = None
     version: str = "2.0.0"
@@ -645,3 +649,7 @@ class WFSBase:
             valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
 
         return valid_fields
+
+    def clear_cache(self) -> None:
+        """Delete cached responses associated with the service."""
+        [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
