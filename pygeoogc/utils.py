@@ -215,7 +215,7 @@ class ESRIGeomQuery:
     ]
     wkid: int
 
-    def point(self) -> Dict[str, Union[str, bytes]]:
+    def point(self) -> Mapping[str, str]:
         """Query for a point."""
         if not (isinstance(self.geometry, tuple) and len(self.geometry) == 2):
             raise InvalidInputType("geometry", "tuple", "(x, y)")
@@ -224,7 +224,7 @@ class ESRIGeomQuery:
         geo_json = dict(zip(("x", "y"), self.geometry))
         return self._get_payload(geo_type, geo_json)
 
-    def multipoint(self) -> Dict[str, Union[str, bytes]]:
+    def multipoint(self) -> Mapping[str, str]:
         """Query for a multi-point."""
         if not (isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry)):
             raise InvalidInputType("geometry", "list of tuples", "[(x, y), ...]")
@@ -233,7 +233,7 @@ class ESRIGeomQuery:
         geo_json = {"points": [[x, y] for x, y in self.geometry]}
         return self._get_payload(geo_type, geo_json)
 
-    def bbox(self) -> Dict[str, Union[str, bytes]]:
+    def bbox(self) -> Mapping[str, str]:
         """Query for a bbox."""
         if not (isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4):
             raise InvalidInputType("geometry", "tuple", BOX_ORD)
@@ -242,7 +242,7 @@ class ESRIGeomQuery:
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
         return self._get_payload(geo_type, geo_json)
 
-    def polygon(self) -> Dict[str, Union[str, bytes]]:
+    def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
         if not isinstance(self.geometry, sgeom.Polygon):
             raise InvalidInputType("geometry", "Polygon")
@@ -251,7 +251,7 @@ class ESRIGeomQuery:
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
         return self._get_payload(geo_type, geo_json)
 
-    def polyline(self) -> Dict[str, Union[str, bytes]]:
+    def polyline(self) -> Mapping[str, str]:
         """Query for a polyline."""
         if not isinstance(self.geometry, sgeom.LineString):
             raise InvalidInputType("geometry", "LineString")
@@ -260,7 +260,7 @@ class ESRIGeomQuery:
         geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
         return self._get_payload(geo_type, geo_json)
 
-    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
+    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Mapping[str, str]:
         """Generate a request payload based on ESRI template.
 
         Parameters
