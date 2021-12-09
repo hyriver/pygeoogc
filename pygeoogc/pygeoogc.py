@@ -146,10 +146,10 @@ class ArcGISRESTful:
         elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
             geom = MultiPoint(geom)
 
-        geom_query = self.client._esri_query(geom, geo_crs)
+        geom_query = self.client.esri_query(geom, geo_crs)
 
         payload = {
-            **geom_query,  # type: ignore
+            **geom_query,
             "spatialRel": spatial_relation,
             "returnGeometry": "false",
             "returnIdsOnly": "true",
@@ -163,7 +163,7 @@ class ArcGISRESTful:
 
         self.client.request_id = uuid.uuid4().hex
 
-        resp = self.client._get_response([payload], method="POST")[0]
+        resp = self.client.get_response([payload], method="POST")[0]
         try:
             return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
@@ -214,7 +214,7 @@ class ArcGISRESTful:
         }
         self.client.request_id = uuid.uuid4().hex
 
-        resp = self.client._get_response([payload])[0]
+        resp = self.client.get_response([payload])[0]
         try:
             return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
@@ -255,7 +255,7 @@ class ArcGISRESTful:
 
     def clear_cache(self) -> None:
         """Delete cached responses associated with the service."""
-        [ar.delete_url_cache(self.client.base_url, m) for m in ["GET", "POST"]]
+        _ = [ar.delete_url_cache(self.client.base_url, m) for m in ["GET", "POST"]]
 
     def __repr__(self) -> str:
         """Print the service configuration."""
