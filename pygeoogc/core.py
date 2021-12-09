@@ -6,7 +6,7 @@ import urllib.parse as urlparse
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -210,6 +210,7 @@ class ArcGISRESTfulBase:
         self.field_types: Dict[str, str] = {}
         self.feature_types: Optional[Dict[str, str]] = None
         self.return_m: bool = False
+        self.return_goe: bool = True
         self.n_missing: int = 0
         self.total_n_features: int = 0
         self.failed_path: Optional[Path] = None
@@ -284,7 +285,7 @@ class ArcGISRESTfulBase:
         if self.request_id is None:
             self.request_id = uuid.uuid4().hex
 
-        return self._get_response(payloads, "POST", disable)
+        return self.get_response(payloads, "POST", disable)
 
     def _set_service_properties(self) -> None:
         try:
@@ -330,7 +331,7 @@ class ArcGISRESTfulBase:
                 zip((tlz.pluck("id", rjson["types"])), tlz.pluck("name", rjson["types"]))
             )
 
-    def _esri_query(
+    def esri_query(
         self,
         geom: Union[
             LineString,
@@ -340,7 +341,7 @@ class ArcGISRESTfulBase:
             Tuple[float, float, float, float],
         ],
         geo_crs: str = DEF_CRS,
-    ) -> Dict[str, Union[str, bytes]]:
+    ) -> Mapping[str, str]:
         """Generate geometry queries based on ESRI template."""
         geom = utils.match_crs(geom, geo_crs, self.crs)
 
@@ -375,7 +376,7 @@ class ArcGISRESTfulBase:
 
         return features
 
-    def _retry_failed_requests(self) -> List[Dict[str, Any]]:
+    def retry_failed_requests(self) -> List[Dict[str, Any]]:
         """Retry failed requests."""
         self.disable_retry = True
         fac_min = 1.0 / self.max_nrecords
@@ -384,13 +385,13 @@ class ArcGISRESTfulBase:
         features = []
         for f in partition_fac[::-1]:
             try:
-                features.append(self._retry(self.return_m, self.return_geo, f))
+                features.append(self._retry(self.return_m, self.return_geom, f))
             except ServiceError:
                 continue
         self.disable_retry = False
         return list(tlz.concat(features))
 
-    def _get_response(
+    def get_response(
         self, payloads: List[Dict[str, str]], method: str = "GET", disable: bool = False
     ) -> List[Dict[str, Any]]:
         """Send payload and get the response."""
@@ -436,11 +437,11 @@ class ArcGISRESTfulBase:
 
                 if not self.disable_retry:
                     self.return_m = bool(payloads[0]["ReturnM"])
-                    self.return_geo = bool(payloads[0]["returnGeometry"])
+                    self.return_geom = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
                     if self.verbose:
                         logger.info(f"Found {len(fails)} failed requests. Retrying ...")
-                    resp.extend(self._retry_failed_requests())
+                    resp.extend(self.retry_failed_requests())
 
                     if self.verbose:
                         logger.warning(
@@ -551,7 +552,7 @@ class WMSBase:
 
     def clear_cache(self) -> None:
         """Delete cached responses associated with the service."""
-        [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
+        _ = [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
 
 
 @dataclass
@@ -678,4 +679,4 @@ class WFSBase:
 
     def clear_cache(self) -> None:
         """Delete cached responses associated with the service."""
-        [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
+        _ = [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
