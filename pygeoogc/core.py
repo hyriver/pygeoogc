@@ -210,7 +210,7 @@ class ArcGISRESTfulBase:
         self.field_types: Dict[str, str] = {}
         self.feature_types: Optional[Dict[str, str]] = None
         self.return_m: bool = False
-        self.return_goe: bool = True
+        self.return_geom: bool = True
         self.n_missing: int = 0
         self.total_n_features: int = 0
         self.failed_path: Optional[Path] = None
