@@ -180,7 +180,8 @@ class TestWFS:
             "01017060",
         ]
         resps = self.wfs.getfeature_byid("staid", stations)
-        assert pd.concat(self.to_df(r) for r in resps).shape[0] == len(stations)
+        df = pd.concat(self.to_df(r) for r in resps)
+        assert set(df.staid.unique()) == {int(s) for s in stations}
 
     def test_bygeom(self):
         """WFS by geometry"""
