@@ -52,6 +52,8 @@ class ArcGISRESTful:
         which its path can be accessed via ``self.client.failed_path``.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -65,6 +67,7 @@ class ArcGISRESTful:
         verbose: bool = False,
         disable_retry: bool = False,
         expire_after: float = EXPIRE,
+        disable_caching: bool = False,
     ) -> None:
         self.client = ArcGISRESTfulBase(
             base_url=base_url,
@@ -76,6 +79,7 @@ class ArcGISRESTful:
             verbose=verbose,
             disable_retry=disable_retry,
             expire_after=expire_after,
+            disable_caching=disable_caching,
         )
 
     def oids_bygeom(
@@ -163,7 +167,7 @@ class ArcGISRESTful:
 
         self.client.request_id = uuid.uuid4().hex
 
-        resp = self.client.get_response([payload], method="POST")[0]
+        resp = self.client.get_response(self.client.query_url, [payload], method="POST")[0]
         try:
             return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
@@ -214,7 +218,7 @@ class ArcGISRESTful:
         }
         self.client.request_id = uuid.uuid4().hex
 
-        resp = self.client.get_response([payload])[0]
+        resp = self.client.get_response(self.client.query_url, [payload])[0]
         try:
             return self.partition_oids(resp["objectIds"])
         except KeyError as ex:
@@ -229,7 +233,6 @@ class ArcGISRESTful:
         featureids: List[Tuple[str, ...]],
         return_m: bool = False,
         get_geometry: bool = True,
-        disable: bool = False,
     ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
@@ -242,20 +245,13 @@ class ArcGISRESTful:
             defaults to ``False``.
         get_geometry : bool, optional
             Whether to return the geometry of the feature, defaults to ``True``.
-        disable : bool, optional
-            If ``True`` temporarily disable the caching requests and get new responses
-            from the server, defaults to False.
 
         Returns
         -------
         dict
             (Geo)json response from the web service.
         """
-        return self.client.get_features(featureids, return_m, get_geometry, disable)
-
-    def clear_cache(self) -> None:
-        """Delete cached responses associated with the service."""
-        _ = [ar.delete_url_cache(self.client.base_url, m) for m in ["GET", "POST"]]
+        return self.client.get_features(featureids, return_m, get_geometry)
 
     def __repr__(self) -> str:
         """Print the service configuration."""
@@ -286,6 +282,8 @@ class WMS(WMSBase):
         to avoid sending extra requests.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -297,8 +295,17 @@ class WMS(WMSBase):
         crs: str = DEF_CRS,
         validation: bool = True,
         expire_after: float = EXPIRE,
+        disable_caching: bool = False,
     ) -> None:
-        super().__init__(url, layers, outformat, version, crs, expire_after)
+        super().__init__(
+            url=url,
+            layers=layers,
+            outformat=outformat,
+            version=version,
+            crs=crs,
+            expire_after=expire_after,
+            disable_caching=disable_caching,
+        )
 
         self.layers = [self.layers] if isinstance(self.layers, str) else self.layers
         if validation:
@@ -388,6 +395,7 @@ class WMS(WMSBase):
             [{"params": p} for p in payloads],
             max_workers=4,
             expire_after=self.expire_after,
+            disable=self.disable_caching,
         )
         return dict(zip(layers, rbinary))
 
@@ -425,6 +433,8 @@ class WFS(WFSBase):
         to avoid sending extra requests.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -438,9 +448,18 @@ class WFS(WFSBase):
         max_nrecords: int = 1000,
         validation: bool = True,
         expire_after: float = EXPIRE,
+        disable_caching: bool = False,
     ) -> None:
         super().__init__(
-            url, layer, outformat, version, crs, read_method, max_nrecords, expire_after
+            url=url,
+            layer=layer,
+            outformat=outformat,
+            version=version,
+            crs=crs,
+            read_method=read_method,
+            max_nrecords=max_nrecords,
+            expire_after=expire_after,
+            disable_caching=disable_caching,
         )
 
         if validation:
@@ -492,7 +511,11 @@ class WFS(WFSBase):
         }
 
         return ar.retrieve(
-            [self.url], self.read_method, [{"params": payload}], expire_after=self.expire_after
+            [self.url],
+            self.read_method,
+            [{"params": payload}],
+            expire_after=self.expire_after,
+            disable=self.disable_caching,
         )[0]
 
     def getfeature_bygeom(
@@ -646,7 +669,11 @@ class WFS(WFSBase):
 
         if method == "GET":
             return ar.retrieve(
-                [self.url], self.read_method, [{"params": payload}], expire_after=self.expire_after
+                [self.url],
+                self.read_method,
+                [{"params": payload}],
+                expire_after=self.expire_after,
+                disable=self.disable_caching,
             )[0]
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
@@ -656,6 +683,7 @@ class WFS(WFSBase):
             [{"data": payload, "headers": headers}],
             "POST",
             expire_after=self.expire_after,
+            disable=self.disable_caching,
         )[0]
 
 
