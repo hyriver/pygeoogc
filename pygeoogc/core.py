@@ -4,7 +4,6 @@ import logging
 import sys
 import urllib.parse as urlparse
 import uuid
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
@@ -71,6 +70,8 @@ class RESTValidator(BaseModel):
         which its path can be accessed via ``self.failed_path``.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     base_url: AnyHttpUrl
@@ -82,6 +83,7 @@ class RESTValidator(BaseModel):
     verbose: bool = False
     disable_retry: bool = False
     expire_after: float = EXPIRE
+    disable_caching: bool = False
 
     @validator("base_url")
     def _layer_from_url(cls, v):
@@ -162,6 +164,8 @@ class ArcGISRESTfulBase:
         which its path can be accessed via ``self.failed_path``.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -175,6 +179,7 @@ class ArcGISRESTfulBase:
         verbose: bool = False,
         disable_retry: bool = False,
         expire_after: float = EXPIRE,
+        disable_caching: bool = False,
     ) -> None:
         validated = RESTValidator(
             base_url=base_url,
@@ -186,6 +191,7 @@ class ArcGISRESTfulBase:
             verbose=verbose,
             disable_retry=disable_retry,
             expire_after=expire_after,
+            disable_caching=disable_caching,
         )
         self.base_url = validated.base_url[0]
         self.layer = validated.layer
@@ -196,6 +202,7 @@ class ArcGISRESTfulBase:
         self.verbose = validated.verbose
         self.disable_retry = validated.disable_retry
         self.expire_after = validated.expire_after
+        self.disable_caching = validated.disable_caching
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -249,7 +256,6 @@ class ArcGISRESTfulBase:
         featureids: List[Tuple[str, ...]],
         return_m: bool = False,
         get_geometry: bool = True,
-        disable: bool = False,
     ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
@@ -262,9 +268,6 @@ class ArcGISRESTfulBase:
             defaults to ``False``.
         get_geometry : bool, optional
             Whether to return the geometry of the feature, defaults to ``True``.
-        disable : bool, optional
-            If ``True`` temporarily disable the caching requests and get new responses
-            from the server, defaults to False.
 
         Returns
         -------
@@ -285,13 +288,16 @@ class ArcGISRESTfulBase:
         if self.request_id is None:
             self.request_id = uuid.uuid4().hex
 
-        return self.get_response(payloads, "POST", disable)
+        resp = self.get_response(self.query_url, payloads, "POST")
+
+        resp = self._cleanup_resp(resp, payloads)
+        if len(resp) == 0:
+            raise ZeroMatched
+        return resp
 
     def _set_service_properties(self) -> None:
         try:
-            rjson = ar.retrieve(
-                [self.base_url], "json", [{"params": {"f": "json"}}], expire_after=self.expire_after
-            )[0]
+            rjson = self.get_response(self.base_url, [{"f": "json"}])[0]
             self.valid_layers = {f"{lyr['id']}": lyr["name"] for lyr in rjson["layers"]}
             self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
 
@@ -312,9 +318,7 @@ class ArcGISRESTfulBase:
 
     def _set_layer_properties(self) -> None:
         """Set properties of the target layer."""
-        rjson = ar.retrieve(
-            [self.url], "json", [{"params": {"f": "json"}}], expire_after=self.expire_after
-        )[0]
+        rjson = self.get_response(self.url, [{"f": "json"}])[0]
         self.valid_fields = list(
             set(
                 utils.traverse_json(rjson, ["fields", "name"])
@@ -371,14 +375,18 @@ class ArcGISRESTfulBase:
 
         max_nrecords = self.max_nrecords
         self.max_nrecords = int(max(partition_fac * max_nrecords, 1))
-        features = self.get_features(self.partition_oids(oids), return_m, return_geo, disable=True)
+        features = self.get_features(self.partition_oids(oids), return_m, return_geo)
         self.max_nrecords = max_nrecords
 
         return features
 
     def retry_failed_requests(self) -> List[Dict[str, Any]]:
         """Retry failed requests."""
+        retry = self.disable_retry
         self.disable_retry = True
+        caching = self.disable_caching
+        self.disable_caching = True
+
         fac_min = 1.0 / self.max_nrecords
         n_retry = 4
         partition_fac = [(0.5 - fac_min) / (n_retry - 1) * i + fac_min for i in range(n_retry)]
@@ -388,32 +396,29 @@ class ArcGISRESTfulBase:
                 features.append(self._retry(self.return_m, self.return_geom, f))
             except ServiceError:
                 continue
-        self.disable_retry = False
+
+        self.disable_retry = retry
+        self.disable_caching = caching
         return list(tlz.concat(features))
 
     def get_response(
-        self, payloads: List[Dict[str, str]], method: str = "GET", disable: bool = False
+        self, url: str, payloads: List[Dict[str, str]], method: str = "GET"
     ) -> List[Dict[str, Any]]:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"
-        urls, kwds = zip(*((self.query_url, {req_key: p}) for p in payloads))
+        urls, kwds = zip(*((url, {req_key: p}) for p in payloads))
         try:
-            resp = ar.retrieve(
+            return ar.retrieve(
                 urls,
                 "json",
                 kwds,
                 request_method=method,
                 max_workers=self.max_workers,
-                disable=disable,
+                disable=self.disable_caching,
                 expire_after=self.expire_after,
             )
         except ValueError:
             raise ZeroMatched
-
-        resp = self._cleanup_resp(resp, payloads)
-        if len(resp) == 0:
-            raise ZeroMatched
-        return resp
 
     def _cleanup_resp(
         self, resp: List[Dict[str, Any]], payloads: List[Dict[str, str]]
@@ -478,8 +483,7 @@ class ArcGISRESTfulBase:
         )
 
 
-@dataclass
-class WMSBase:
+class WMSBase(BaseModel):
     """Base class for accessing a WMS service.
 
     Parameters
@@ -499,6 +503,8 @@ class WMSBase:
         epsg:4326.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     url: AnyHttpUrl
@@ -507,6 +513,7 @@ class WMSBase:
     version: str = "1.3.0"
     crs: str = DEF_CRS
     expire_after: float = EXPIRE
+    disable_caching: bool = False
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -550,13 +557,8 @@ class WMSBase:
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
-    def clear_cache(self) -> None:
-        """Delete cached responses associated with the service."""
-        _ = [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
 
-
-@dataclass
-class WFSBase:
+class WFSBase(BaseModel):
     """Base class for WFS service.
 
     Parameters
@@ -585,6 +587,8 @@ class WFSBase:
         it will be split into multiple requests.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
+    disable_caching : bool, optional
+        If ``True``, disable caching requests, defaults to False.
     """
 
     url: AnyHttpUrl
@@ -595,6 +599,7 @@ class WFSBase:
     read_method: str = "json"
     max_nrecords: int = 1000
     expire_after: float = EXPIRE
+    disable_caching: bool = False
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -660,9 +665,8 @@ class WFSBase:
             "typeName": self.layer,
             max_features: 1,
         }
-
         rjson = ar.retrieve(
-            [self.url], "json", [{"params": payload}], expire_after=self.expire_after
+            [self.url], "json", [{"params": payload}], disable=self.disable_caching
         )[0]
         valid_fields = list(
             set(
@@ -676,7 +680,3 @@ class WFSBase:
             valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
 
         return valid_fields
-
-    def clear_cache(self) -> None:
-        """Delete cached responses associated with the service."""
-        _ = [ar.delete_url_cache(self.url, m) for m in ["GET", "POST"]]
