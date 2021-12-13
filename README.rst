@@ -115,9 +115,15 @@ general interfaces to web services that are based on
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. Although
 all these web service have limits on the number of features per requests (e.g., 1000
 objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides
-the requests into smaller chunks, under-the-hood, and then merges the results. Moreover,
-under-the-hood, this package uses ``requests-cache`` for persistent caching that can improve
-the performance significantly.
+the requests into smaller chunks, under-the-hood, and then merges the results.
+
+All functions and classes that request data from web services use ``async_retriever``
+that offers response caching. By default, the expiration time is set to never expire.
+All these functions and classes have two optional parameters for controlling the cache:
+``expire_after`` and ``disable_caching``. You can use ``expire_after`` to set the expiration
+time in seconds. If ``expire_after`` is set to ``-1``, the cache will never expire (default).
+You can use ``disable_caching`` if you don't want to use the cached responses. The cached
+responses are stored in the ``./cache/aiohttp_cache.sqlite`` file.
 
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in four categories: ``ServiceURL().restful``,
@@ -166,13 +172,15 @@ PyGeoOGC has three main classes:
 
 You can find some example notebooks `here <https://github.com/cheginit/HyRiver-examples>`__.
 
-You can even try using PyGeoOGC without installing it on you system by clicking on the binder
-badge below the PyGeoOGC banner. A Jupyter notebook instance with the software stack
-pre-installed will be launched in your web browser and you can start coding!
+Furthermore, you can try using PyNHD without even installing it on your system by
+clicking on the binder badge below the PyNHD banner. A JupyterLab instance
+with the software stack pre-installed and all example notebooks will be launched
+in your web browser, and you can start coding!
 
 Please note that since this project is in early development stages, while the provided
 functionalities should be stable, changes in APIs are possible in new releases. But we
-appreciate it if you give this project a try and provide feedback. Contributions are most welcome.
+appreciate it if you give this project a try and provide feedback.
+Contributions are most welcome.
 
 Moreover, requests for additional functionalities can be submitted via
 `issue tracker <https://github.com/cheginit/pygeoogc/issues>`__.
@@ -187,7 +195,8 @@ You can install PyGeoOGC using ``pip``:
     $ pip install pygeoogc
 
 Alternatively, PyGeoOGC can be installed from the ``conda-forge`` repository
-using `Conda <https://docs.conda.io/en/latest/>`__:
+using `Conda <https://docs.conda.io/en/latest/>`__
+or `Mamba <https://github.com/conda-forge/miniforge>`__:
 
 .. code-block:: console
 
