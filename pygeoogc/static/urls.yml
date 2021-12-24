@@ -15,8 +15,7 @@ restful:
   nhdplushr_edits: https://edits.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/NHDPlus_HR/MapServer
   nhdplus_epa: https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus/NHDPlus/MapServer
   nhd_fabric: https://watersgeo.epa.gov/arcgis/rest/services/Support/CatchmentFabric/MapServer
-  nid_2: https://ags02.sec.usace.army.mil/server/rest/services/Water_Resources/NID2019_U/MapServer
-  nid_3: https://ags03.sec.usace.army.mil/server/rest/services/Dams_Public/MapServer
+  nid: https://nid.sec.usace.army.mil/api
   airmap: https://api.airmap.com/elevation/v1/ele
   nm_pqs: https://nationalmap.gov/epqs/pqs.php
   pygeoapi: https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes
