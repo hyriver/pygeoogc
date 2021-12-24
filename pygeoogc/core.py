@@ -49,7 +49,6 @@ class RESTValidator(BaseModel):
     outformat : str, optional
         One of the output formats offered by the selected layer. If not correct
         a list of available formats is shown, defaults to ``geojson``.
-        It defaults to ``esriSpatialRelIntersects``.
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default setting.
@@ -255,7 +254,7 @@ class ArcGISRESTfulBase:
         self,
         featureids: List[Tuple[str, ...]],
         return_m: bool = False,
-        get_geometry: bool = True,
+        return_geom: bool = True,
     ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
@@ -266,7 +265,7 @@ class ArcGISRESTfulBase:
         return_m : bool, optional
             Whether to activate the Return M (measure) in the request,
             defaults to ``False``.
-        get_geometry : bool, optional
+        return_geom : bool, optional
             Whether to return the geometry of the feature, defaults to ``True``.
 
         Returns
@@ -277,7 +276,7 @@ class ArcGISRESTfulBase:
         payloads = [
             {
                 "objectIds": ",".join(ids),
-                "returnGeometry": f"{get_geometry}".lower(),
+                "returnGeometry": f"{return_geom}".lower(),
                 "outSR": self.out_sr,
                 "outfields": ",".join(self.outfields),
                 "ReturnM": f"{return_m}".lower(),

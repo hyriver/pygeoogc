@@ -232,7 +232,7 @@ class ArcGISRESTful:
         self,
         featureids: List[Tuple[str, ...]],
         return_m: bool = False,
-        get_geometry: bool = True,
+        return_geom: bool = True,
     ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
@@ -243,7 +243,7 @@ class ArcGISRESTful:
         return_m : bool, optional
             Whether to activate the Return M (measure) in the request,
             defaults to ``False``.
-        get_geometry : bool, optional
+        return_geom : bool, optional
             Whether to return the geometry of the feature, defaults to ``True``.
 
         Returns
@@ -251,7 +251,7 @@ class ArcGISRESTful:
         dict
             (Geo)json response from the web service.
         """
-        return self.client.get_features(featureids, return_m, get_geometry)
+        return self.client.get_features(featureids, return_m, return_geom)
 
     def __repr__(self) -> str:
         """Print the service configuration."""
