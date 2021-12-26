@@ -20,7 +20,7 @@ from .exceptions import InvalidInputType, ServiceError
 
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
-EXPIRE = 24 * 60 * 60
+EXPIRE = -1
 G = TypeVar(
     "G",
     sgeom.Point,
