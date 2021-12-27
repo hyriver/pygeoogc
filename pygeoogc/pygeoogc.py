@@ -21,6 +21,14 @@ from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
 class ArcGISRESTful:
     """Access to an ArcGIS REST service.
 
+    Notes
+    -----
+    By default, all retrieval methods retry to get the missing feature IDs,
+    if there are any. You can disable this behavior by setting ``disable_retry``
+    to ``True``. If there are any missing feature IDs after the retry,
+    they are saved to a text file, path of which can be accessed by
+    ``self.client.failed_path``.
+
     Parameters
     ----------
     base_url : str, optional
@@ -127,9 +135,11 @@ class ArcGISRESTful:
             Valid SQL 92 WHERE clause, default to None.
         distance : int, optional
             Buffer distance in meters for the input geometries, default to None.
-        generate_id : bool, optional
-            If ``True`` generate a unique identifier for the request that can be accessed
-            via ``self.client.request_id``. Defaults to ``True``.
+
+        Returns
+        -------
+        list of tuples
+            A list of feature IDs partitioned by ``self.max_nrecords``.
         """
         valid_spatialrels = [
             "esriSpatialRelIntersects",
@@ -182,6 +192,11 @@ class ArcGISRESTful:
             Name of the target field that IDs belong to.
         ids : str or list
             A list of target ID(s).
+
+        Returns
+        -------
+        list of tuples
+            A list of feature IDs partitioned by ``self.max_nrecords``.
         """
         if field not in self.client.valid_fields:
             raise InvalidInputValue("field", self.client.valid_fields)
@@ -206,6 +221,11 @@ class ArcGISRESTful:
         ----------
         sql_clause : str
             A valid SQL 92 WHERE clause.
+
+        Returns
+        -------
+        list of tuples
+            A list of feature IDs partitioned by ``self.max_nrecords``.
         """
         if not isinstance(sql_clause, str):
             raise InvalidInputType("sql_clause", "str")
@@ -225,7 +245,18 @@ class ArcGISRESTful:
             raise ZeroMatched(resp["error"]["message"]) from ex
 
     def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
-        """Partition feature IDs based on ``self.max_nrecords``."""
+        """Partition feature IDs based on ``self.max_nrecords``.
+
+        Parameters
+        ----------
+        oids : list of int or int
+            A list of feature ID(s).
+
+        Returns
+        -------
+        list of tuples
+            A list of feature IDs partitioned by ``self.max_nrecords``.
+        """
         return self.client.partition_oids(oids)
 
     def get_features(
@@ -397,7 +428,7 @@ class WMS(WMSBase):
             expire_after=self.expire_after,
             disable=self.disable_caching,
         )
-        return dict(zip(layers, rbinary))
+        return dict(zip(layers, rbinary))  # type: ignore
 
 
 class WFS(WFSBase):

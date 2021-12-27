@@ -85,32 +85,32 @@ class RESTValidator(BaseModel):
     disable_caching: bool = False
 
     @validator("base_url")
-    def _layer_from_url(cls, v):
+    def _layer_from_url(cls, v: AnyHttpUrl) -> Tuple[str, Optional[int]]:
         return cls._split_url(urlparse.unquote(v))
 
     @validator("layer")
-    def _integer_layer(cls, v, values):
+    def _integer_layer(cls, v: Optional[int], values: Dict[str, Any]) -> int:
         if v is None:
-            lyr = values["base_url"][1]
-            if lyr is None:
+            try:
+                return int(values["base_url"][1])
+            except TypeError as ex:
                 msg = "Either layer must be passed as an argument or be included in ``base_url``"
-                raise MissingInputs(msg)
-            return lyr
+                raise MissingInputs(msg) from ex
         return v
 
     @validator("outfields")
-    def _outfields_to_list(cls, v):
+    def _outfields_to_list(cls, v: Union[List[str], str]) -> List[str]:
         return v if isinstance(v, list) else [v]
 
     @validator("crs")
-    def _valid_crs(cls, v):
+    def _valid_crs(cls, v: str) -> pyproj.CRS:
         try:
             return pyproj.CRS(v)
         except pyproj.exceptions.CRSError as ex:
             raise InvalidInputType("crs", "a valid CRS") from ex
 
     @validator("max_workers")
-    def _positive_integer_threads(cls, v):
+    def _positive_integer_threads(cls, v: int) -> int:
         if v <= 0:
             raise InvalidInputType("max_workers", "positive integer")
         return v
@@ -248,7 +248,7 @@ class ArcGISRESTfulBase:
         self.n_features = len(oid_list)
         if not self.disable_retry and self.verbose:
             logger.info(f"Found {self.n_features:,} features in the requested region.")
-        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])
+        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
 
     def get_features(
         self,
@@ -407,10 +407,10 @@ class ArcGISRESTfulBase:
         req_key = "params" if method == "GET" else "data"
         urls, kwds = zip(*((url, {req_key: p}) for p in payloads))
         try:
-            return ar.retrieve(
+            return ar.retrieve(  # type: ignore
                 urls,
                 "json",
-                kwds,
+                list(kwds),
                 request_method=method,
                 max_workers=self.max_workers,
                 disable=self.disable_caching,
@@ -665,17 +665,21 @@ class WFSBase(BaseModel):
             max_features: 1,
         }
         rjson = ar.retrieve(
-            [self.url], "json", [{"params": payload}], disable=self.disable_caching
+            [self.url],
+            "json",
+            [{"params": payload}],
+            expire_after=self.expire_after,
+            disable=self.disable_caching,
         )[0]
         valid_fields = list(
             set(
-                utils.traverse_json(rjson, ["fields", "name"])
-                + utils.traverse_json(rjson, ["fields", "alias"])
+                utils.traverse_json(rjson, ["fields", "name"])  # type: ignore
+                + utils.traverse_json(rjson, ["fields", "alias"])  # type: ignore
                 + ["*"]
             )
         )
 
         if None in valid_fields:
-            valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
+            valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())  # type: ignore
 
         return valid_fields

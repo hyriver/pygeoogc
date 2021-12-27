@@ -8,10 +8,9 @@ import defusedxml.ElementTree as etree
 import pyproj
 import shapely.geometry as sgeom
 import ujson as json
-from requests import Response
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
-from requests_cache import CachedSession
+from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
 from urllib3 import Retry
@@ -291,7 +290,7 @@ def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
     geom : list or tuple or geometry
         Input geometry which could be a list of coordinates such as ``[(x1, y1), ...]``,
         a bounding box like so ``(xmin, ymin, xmax, ymax)``, or any valid ``shapely``'s
-        geometry such as sgeom.Polygon, sgeom.MultiPolygon, etc..
+        geometry such as ``Polygon``, ``MultiPolygon``, etc..
     in_crs : str
         Spatial reference of the input geometry
     out_crs : str
@@ -299,8 +298,8 @@ def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
 
     Returns
     -------
-    sgeom.LineString, sgeom.MultiLineString, sgeom.Polygon, sgeom.MultiPolygon, sgeom.Point, or sgeom.MultiPoint
-        Input geometry in the specified CRS.
+    same type as the input geometry
+        Transformed geometry in the target CRS.
 
     Examples
     --------
@@ -329,10 +328,10 @@ def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
             sgeom.MultiPoint,
         ),
     ):
-        return ops.transform(project, geom)
+        return ops.transform(project, geom)  # type: ignore
 
     if isinstance(geom, tuple) and len(geom) == 4:
-        return ops.transform(project, sgeom.box(*geom)).bounds
+        return ops.transform(project, sgeom.box(*geom)).bounds  # type: ignore
 
     if isinstance(geom, list) and all(len(c) == 2 for c in geom):
         return list(zip(*project(*zip(*geom))))
@@ -490,6 +489,6 @@ def check_response(resp: str) -> str:
         return resp
     else:
         try:
-            return root[-1][0].text.strip()
+            return str(root[-1][0].text).strip()
         except IndexError:
-            return root[-1].text.strip()
+            return str(root[-1].text).strip()
