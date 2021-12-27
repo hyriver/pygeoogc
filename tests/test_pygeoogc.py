@@ -104,7 +104,7 @@ class TestREST:
         ]
         resp = rest.get_features(rest.partition_oids(oids))
 
-        with open(Path("cache", "failed_request_ids.txt")) as f:
+        with open(rest.client.failed_path) as f:
             f_oids = [int(i) for i in f.read().splitlines()]
         assert len(resp) == 3 and len(f_oids) == (len(oids) - len(resp))
 
