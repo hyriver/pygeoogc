@@ -114,8 +114,8 @@ general interfaces to web services that are based on
 `WMS <https://en.wikipedia.org/wiki/Web_Map_Service>`__, and
 `WFS <https://en.wikipedia.org/wiki/Web_Feature_Service>`__. Although
 all these web service have limits on the number of features per requests (e.g., 1000
-objectIDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides
-the requests into smaller chunks, under-the-hood, and then merges the results.
+object IDs for a RESTful request or 8 million pixels for a WMS request), PyGeoOGC divides
+requests into smaller chunks, under-the-hood, and then merges the results.
 
 All functions and classes that request data from web services use ``async_retriever``
 that offers response caching. By default, the expiration time is set to never expire.
@@ -154,7 +154,7 @@ PyGeoOGC has three main classes:
   name(s), and output format. Additionally, target CRS and the web service version can be provided.
   Upon instantiation, we can use ``getmap_bybox`` method class to get the target raster data
   within a bounding box. The box can be in any valid CRS and if it is different from the default
-  CRS, EPSG:4326, it should be passed using ``box_crs`` argument. The service response can be
+  CRS, ``EPSG:4326``, it should be passed using ``box_crs`` argument. The service response can be
   converted into a ``xarray.Dataset`` using ``gtiff2xarray`` function from PyGeoUtils.
 
 * ``WFS``: Instantiation of this class is similar to ``WMS``. The only difference is that
@@ -167,13 +167,13 @@ PyGeoOGC has three main classes:
   - ``getfeature_byfilter``: Get the data based on any valid
     `CQL <https://docs.geoserver.org/latest/en/user/tutorials/cql/cql_tutorial.html>`__ filter.
 
-  You can convert the returned response of this function to a GeoDataFrame using ``json2geodf``
+  You can convert the returned response of this function to a ``GeoDataFrame`` using ``json2geodf``
   function from PyGeoUtils package.
 
 You can find some example notebooks `here <https://github.com/cheginit/HyRiver-examples>`__.
 
-Furthermore, you can try using PyNHD without even installing it on your system by
-clicking on the binder badge below the PyNHD banner. A JupyterLab instance
+Furthermore, you can try using PyGeoOGC without even installing it on your system by
+clicking on the binder badge below the PyGeoOGC banner. A JupyterLab instance
 with the software stack pre-installed and all example notebooks will be launched
 in your web browser, and you can start coding!
 
@@ -227,15 +227,14 @@ within a geometry as follows:
 
     hr = ArcGISRESTful(ServiceURL().restful.nhdplushr, 2, outformat="json")
 
-    hr.oids_bygeom(basin_geom, "epsg:4326")
-    resp = hr.get_features()
+    resp = hr.get_features(hr.oids_bygeom(basin_geom, "epsg:4326"))
     flowlines = geoutils.json2geodf(resp)
 
 Note ``oids_bygeom`` has three additional arguments: ``sql_clause``, ``spatial_relation``,
-and ``distance``. We can use ``sql_clause`` for passing any valid SQL WHERE clause and
+and ``distance``. We can use ``sql_clause`` for passing any valid SQL WHERE clauses and
 ``spatial_relation`` for specifying the target predicate such as
-intersect, contain, cross, etc.. The default predicate is intersect
-(``esriSpatialRelIntersects``). We can use ``distance`` for specifying the buffer
+intersect, contain, cross, etc. The default predicate is intersect
+(``esriSpatialRelIntersects``). Additionally, we can use ``distance`` for specifying the buffer
 distance from the input geometry for getting features.
 
 We can also submit a query based on IDs of any valid field in the database. If the measure
@@ -243,8 +242,8 @@ property is desired you can pass ``return_m`` as ``True`` to the ``get_features`
 
 .. code-block:: python
 
-    hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
-    resp = hr.get_features(return_m=True)
+    oids = hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
+    resp = hr.get_features(oids, return_m=True)
     flowlines = geoutils.json2geodf(resp)
 
 Additionally, any valid SQL 92 WHERE clause can be used. For more details look
@@ -254,8 +253,8 @@ areas larger than 0.5 sqkm.
 
 .. code-block:: python
 
-    hr.oids_bygeom(basin_geom, geo_crs="epsg:4326", sql_clause="AREASQKM > 0.5")
-    resp = hr.get_features()
+    oids = hr.oids_bygeom(basin_geom, geo_crs="epsg:4326", sql_clause="AREASQKM > 0.5")
+    resp = hr.get_features(oids)
     catchments = geoutils.json2geodf(resp)
 
 A WMS-based example is shown below:
