@@ -2,7 +2,7 @@
 History
 =======
 
-0.12.0 (unreleased)
+0.12.0 (2021-12-27)
 -------------------
 
 New Features
@@ -34,6 +34,7 @@ Internal Changes
   ``init`` method of ``ArcGISRESTful`` rather than inheriting from its base class.
 - Explicitly set a minimum value of 1 for the maximum number of feature IDs per request
   in ``ArcGISRESTful``, i.e., ``self.max_nrecords``.
+- Add all the missing types so ``mypy --strict`` passes.
 
 0.11.7 (2021-11-09)
 -------------------
