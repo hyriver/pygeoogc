@@ -334,7 +334,8 @@ def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
         return ops.transform(project, sgeom.box(*geom)).bounds  # type: ignore
 
     if isinstance(geom, list) and all(len(c) == 2 for c in geom):
-        return list(zip(*project(*zip(*geom))))
+        xx, yy = zip(*geom)
+        return list(zip(*project(xx, yy)))
 
     gtypes = (
         "a list of coordinates such as [(x1, y1), ...],"
