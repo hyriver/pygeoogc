@@ -407,9 +407,8 @@ class ArcGISRESTfulBase:
         req_key = "params" if method == "GET" else "data"
         urls, kwds = zip(*((url, {req_key: p}) for p in payloads))
         try:
-            return ar.retrieve(  # type: ignore
+            return ar.retrieve_json(
                 urls,
-                "json",
                 list(kwds),
                 request_method=method,
                 max_workers=self.max_workers,
@@ -443,24 +442,22 @@ class ArcGISRESTfulBase:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.return_geom = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
-                    if self.verbose:
-                        logger.info(f"Found {len(fails)} failed requests. Retrying ...")
+                    logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
                     resp.extend(self.retry_failed_requests())
 
-                    if self.verbose:
-                        logger.warning(
-                            " ".join(
-                                [
-                                    f"Total of {self.n_missing} out of {self.total_n_features}",
-                                    "requested features are not available in the dataset.",
-                                    "Returning the successfully retrieved features."
-                                    "The failed object IDs have been saved in the",
-                                    f"file {self.failed_path}. The service returned the",
-                                    "following error message for the failed requests:\n",
-                                    err,
-                                ]
-                            )
+                    logger.warning(
+                        " ".join(
+                            [
+                                f"Total of {self.n_missing} out of {self.total_n_features}",
+                                "requested features are not available in the dataset.",
+                                "Returning the successfully retrieved features."
+                                "The failed object IDs have been saved in the",
+                                f"file {self.failed_path}. The service returned the",
+                                "following error message for the failed requests:\n",
+                                err,
+                            ]
                         )
+                    )
 
         return resp
 
@@ -600,6 +597,27 @@ class WFSBase(BaseModel):
     expire_after: float = EXPIRE
     disable_caching: bool = False
 
+    @validator("read_method")
+    def _read_method(cls, v: str) -> str:
+        valid_methods = ["json", "binary", "text"]
+        if v not in valid_methods:
+            raise InvalidInputValue("read_method", valid_methods)
+        return v
+
+    @validator("crs")
+    def _valid_crs(cls, v: str) -> pyproj.CRS:
+        try:
+            return pyproj.CRS(v)
+        except pyproj.exceptions.CRSError as ex:
+            raise InvalidInputType("crs", "a valid CRS") from ex
+
+    @validator("version")
+    def _version(cls, v: str) -> str:
+        valid_versions = ["1.0.0", "1.1.0", "2.0.0"]
+        if v not in valid_versions:
+            raise InvalidInputValue("version", valid_versions)
+        return v
+
     def __repr__(self) -> str:
         """Print the services properties."""
         return "\n".join(
@@ -649,7 +667,7 @@ class WFSBase(BaseModel):
             raise InvalidInputValue("outformat", valid_outformats)
 
         valid_crss = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
-        if self.crs.lower() not in valid_crss:
+        if pyproj.CRS(self.crs).to_string().lower() not in valid_crss:
             raise InvalidInputValue("crs", valid_crss)
 
     def get_validnames(self) -> List[str]:
@@ -664,22 +682,21 @@ class WFSBase(BaseModel):
             "typeName": self.layer,
             max_features: 1,
         }
-        rjson = ar.retrieve(
+        rjson = ar.retrieve_json(
             [self.url],
-            "json",
             [{"params": payload}],
             expire_after=self.expire_after,
             disable=self.disable_caching,
         )[0]
         valid_fields = list(
             set(
-                utils.traverse_json(rjson, ["fields", "name"])  # type: ignore
-                + utils.traverse_json(rjson, ["fields", "alias"])  # type: ignore
+                utils.traverse_json(rjson, ["fields", "name"])
+                + utils.traverse_json(rjson, ["fields", "alias"])
                 + ["*"]
             )
         )
 
         if None in valid_fields:
-            valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())  # type: ignore
+            valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
 
         return valid_fields

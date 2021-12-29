@@ -420,15 +420,14 @@ class WMS(WMSBase):
             return f"{lyr}_dd_{counter}", _payload
 
         layers, payloads = zip(*(_get_payloads(i) for i in itertools.product(self.layers, bounds)))
-        rbinary = ar.retrieve(
+        rbinary = ar.retrieve_binary(
             [self.url] * len(payloads),
-            "binary",
             [{"params": p} for p in payloads],
             max_workers=4,
             expire_after=self.expire_after,
             disable=self.disable_caching,
         )
-        return dict(zip(layers, rbinary))  # type: ignore
+        return dict(zip(layers, rbinary))
 
 
 class WFS(WFSBase):
