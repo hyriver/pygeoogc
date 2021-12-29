@@ -103,11 +103,12 @@ class RESTValidator(BaseModel):
         return v if isinstance(v, list) else [v]
 
     @validator("crs")
-    def _valid_crs(cls, v: str) -> pyproj.CRS:
+    def _valid_crs(cls, v: str) -> str:
         try:
-            return pyproj.CRS(v)
+            crs: str = pyproj.CRS(v).to_string()
         except pyproj.exceptions.CRSError as ex:
             raise InvalidInputType("crs", "a valid CRS") from ex
+        return crs
 
     @validator("max_workers")
     def _positive_integer_threads(cls, v: int) -> int:
@@ -173,7 +174,7 @@ class ArcGISRESTfulBase:
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        crs: Union[str, pyproj.CRS] = DEF_CRS,
+        crs: str = DEF_CRS,
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
@@ -343,7 +344,7 @@ class ArcGISRESTfulBase:
             MultiPoint,
             Tuple[float, float, float, float],
         ],
-        geo_crs: str = DEF_CRS,
+        geo_crs: Union[str, pyproj.CRS] = DEF_CRS,
     ) -> Mapping[str, str]:
         """Generate geometry queries based on ESRI template."""
         geom = utils.match_crs(geom, geo_crs, self.crs)
@@ -496,7 +497,7 @@ class WMSBase(BaseModel):
         The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
     crs : str, optional
         The spatial reference system to be used for requesting the data, defaults to
-        epsg:4326.
+        ``epsg:4326``.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
     disable_caching : bool, optional
@@ -510,6 +511,21 @@ class WMSBase(BaseModel):
     crs: str = DEF_CRS
     expire_after: float = EXPIRE
     disable_caching: bool = False
+
+    @validator("crs")
+    def _valid_crs(cls, v: str) -> str:
+        try:
+            crs: str = pyproj.CRS(v).to_string()
+        except pyproj.exceptions.CRSError as ex:
+            raise InvalidInputType("crs", "a valid CRS") from ex
+        return crs
+
+    @validator("version")
+    def _version(cls, v: str) -> str:
+        valid_versions = ["1.1.1", "1.3.0"]
+        if v not in valid_versions:
+            raise InvalidInputValue("version", valid_versions)
+        return v
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -540,7 +556,7 @@ class WMSBase(BaseModel):
             raise InvalidInputValue("outformat", valid_outformats)
 
         valid_crss = {lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in layers}
-        if any(self.crs not in valid_crss[lyr] for lyr in layers):
+        if any(self.crs.lower() not in valid_crss[lyr] for lyr in layers):
             _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
             raise InvalidInputValue("CRS", _valid_crss)
 
@@ -573,7 +589,7 @@ class WFSBase(BaseModel):
         Defaults to 2.0.0.
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
-        epsg:4326.
+        ``epsg:4326``.
     read_method : str, optional
         Method for reading the retrieved data, defaults to ``json``. Valid options are
         ``json``, ``binary``, and ``text``.
@@ -605,11 +621,12 @@ class WFSBase(BaseModel):
         return v
 
     @validator("crs")
-    def _valid_crs(cls, v: str) -> pyproj.CRS:
+    def _valid_crs(cls, v: str) -> str:
         try:
-            return pyproj.CRS(v)
+            crs: str = pyproj.CRS(v).to_string()
         except pyproj.exceptions.CRSError as ex:
             raise InvalidInputType("crs", "a valid CRS") from ex
+        return crs
 
     @validator("version")
     def _version(cls, v: str) -> str:
@@ -667,7 +684,7 @@ class WFSBase(BaseModel):
             raise InvalidInputValue("outformat", valid_outformats)
 
         valid_crss = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
-        if pyproj.CRS(self.crs).to_string().lower() not in valid_crss:
+        if self.crs.lower() not in valid_crss:
             raise InvalidInputValue("crs", valid_crss)
 
     def get_validnames(self) -> List[str]:

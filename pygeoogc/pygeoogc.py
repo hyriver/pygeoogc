@@ -44,7 +44,7 @@ class ArcGISRESTful:
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default behaviour.
     crs : str, optional
-        The spatial reference of the output data, defaults to EPSG:4326
+        The spatial reference of the output data, defaults to ``epsg:4326``.
     max_workers : int, optional
         Number of simultaneous download, default to 1, i.e., no threading. Note
         that some services might face issues when several requests are sent
@@ -70,7 +70,7 @@ class ArcGISRESTful:
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        crs: Union[str, pyproj.CRS] = DEF_CRS,
+        crs: str = DEF_CRS,
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
@@ -101,7 +101,7 @@ class ArcGISRESTful:
             List[Tuple[float, float]],
             Tuple[float, float, float, float],
         ],
-        geo_crs: str = DEF_CRS,
+        geo_crs: Union[str, pyproj.CRS] = DEF_CRS,
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
@@ -114,8 +114,8 @@ class ArcGISRESTful:
             A geometry (LineString, Polygon, Point, MultiPoint), tuple of length two
             (``(x, y)``), a list of tuples of length 2 (``[(x, y), ...]``), or bounding box
             (tuple of length 4 (``(xmin, ymin, xmax, ymax)``)).
-        geo_crs : str
-            The spatial reference of the input geometry, defaults to EPSG:4326.
+        geo_crs : str or pyproj.CRS
+            The spatial reference of the input geometry.
         spatial_relation : str, optional
             The spatial relationship to be applied on the input geometry
             while performing the query. If not correct a list of available options is shown.
@@ -304,7 +304,7 @@ class WMS(WMSBase):
         string to get a list of available output formats.
     crs : str, optional
         The spatial reference system to be used for requesting the data, defaults to
-        epsg:4326.
+        ``epsg:4326``.
     version : str, optional
         The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
     validation : bool, optional
@@ -346,7 +346,7 @@ class WMS(WMSBase):
         self,
         bbox: Tuple[float, float, float, float],
         resolution: float,
-        box_crs: str = DEF_CRS,
+        box_crs: Union[str, pyproj.CRS] = DEF_CRS,
         always_xy: bool = False,
         max_px: int = 8000000,
         kwargs: Optional[Dict[str, Any]] = None,
@@ -360,9 +360,9 @@ class WMS(WMSBase):
         resolution : float
             The output resolution in meters. The width and height of output are computed in pixel
             based on the geometry bounds and the given resolution.
-        box_crs : str, optional
+        box_crs : str, or pyproj.CRS, optional
             The spatial reference system of the input bbox, defaults to
-            epsg:4326.
+            ``epsg:4326``.
         always_xy : bool, optional
             Whether to always use xy axis order, defaults to False. Some services change the axis
             order from xy to yx, following the latest WFS version specifications but some don't.
@@ -402,15 +402,13 @@ class WMS(WMSBase):
         else:
             payload["crs"] = self.crs
 
-        geographic_crs = pyproj.CRS.from_user_input(self.crs).is_geographic
-
         def _get_payloads(
             args: Tuple[str, Tuple[Tuple[float, float, float, float], str, int, int]]
         ) -> Tuple[str, Dict[str, str]]:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
-            if self.version != "1.1.1" and geographic_crs and not always_xy:
+            if self.version != "1.1.1" and pyproj.CRS(self.crs).is_geographic and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
             _payload = payload.copy()
             _payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
@@ -449,7 +447,7 @@ class WFS(WFSBase):
         Defaults to 2.0.0.
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
-        epsg:4326.
+        ``epsg:4326``.
     read_method : str, optional
         Method for reading the retrieved data, defaults to ``json``. Valid options are
         ``json``, ``binary``, and ``text``.
@@ -498,7 +496,7 @@ class WFS(WFSBase):
     def getfeature_bybox(
         self,
         bbox: Tuple[float, float, float, float],
-        box_crs: str = DEF_CRS,
+        box_crs: Union[str, pyproj.CRS] = DEF_CRS,
         always_xy: bool = False,
     ) -> Union[str, bytes, Dict[str, Any]]:
         """Get data from a WFS service within a bounding box.
@@ -507,9 +505,9 @@ class WFS(WFSBase):
         ----------
         bbox : tuple
             A bounding box for getting the data: [west, south, east, north]
-        box_crs : str, optional
+        box_crs : str, or pyproj.CRS, optional
             The spatial reference system of the input bbox, defaults to
-            epsg:4326.
+            ``epsg:4326``.
         always_xy : bool, optional
             Whether to always use xy axis order, defaults to False. Some services change the axis
             order from xy to yx, following the latest WFS version specifications but some don't.
@@ -522,12 +520,9 @@ class WFS(WFSBase):
             WFS query response within a bounding box.
         """
         utils.check_bbox(bbox)
+        box_crs = pyproj.CRS(box_crs)
 
-        if (
-            self.version != "1.0.0"
-            and pyproj.CRS.from_user_input(box_crs).is_geographic
-            and not always_xy
-        ):
+        if self.version != "1.0.0" and box_crs.is_geographic and not always_xy:
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
         payload = {
@@ -536,7 +531,7 @@ class WFS(WFSBase):
             "outputFormat": self.outformat,
             "request": "GetFeature",
             "typeName": self.layer,
-            "bbox": f'{",".join(str(c) for c in bbox)},{box_crs}',
+            "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
             "srsName": self.crs,
         }
 
@@ -551,7 +546,7 @@ class WFS(WFSBase):
     def getfeature_bygeom(
         self,
         geometry: Union[Polygon, MultiPolygon],
-        geo_crs: str = DEF_CRS,
+        geo_crs: Union[str, pyproj.CRS] = DEF_CRS,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
     ) -> Union[str, bytes, Dict[str, Any]]:
@@ -561,8 +556,8 @@ class WFS(WFSBase):
         ----------
         geometry : shapely.geometry
             The input geometry
-        geo_crs : str, optional
-            The CRS of the input geometry, default to epsg:4326.
+        geo_crs : str, or pyproj.CRS, optional
+            The CRS of the input geometry, default to ``epsg:4326``.
         always_xy : bool, optional
             Whether to always use xy axis order, defaults to False. Some services change the axis
             order from xy to yx, following the latest WFS version specifications but some don't.
@@ -590,11 +585,7 @@ class WFS(WFSBase):
         """
         geom = utils.match_crs(geometry, geo_crs, self.crs)
 
-        if (
-            self.version != "1.0.0"
-            and pyproj.CRS.from_user_input(geo_crs).is_geographic
-            and not always_xy
-        ):
+        if self.version != "1.0.0" and pyproj.CRS(geo_crs).is_geographic and not always_xy:
             g_wkt = ops.transform(lambda x, y: (y, x), geom).wkt
         else:
             g_wkt = geom.wkt
