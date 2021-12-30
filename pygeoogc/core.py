@@ -34,6 +34,18 @@ logger.propagate = False
 DEF_CRS = "epsg:4326"
 EXPIRE = -1
 
+def validate_crs(val: str) -> str:
+    try:
+        crs: str = pyproj.CRS(val).to_string()
+    except pyproj.exceptions.CRSError as ex:
+        raise InvalidInputType("crs", "a valid CRS") from ex
+    return crs
+
+
+def validate_version(val: str, valid_versions: List[str]) -> str:
+    if val not in valid_versions:
+        raise InvalidInputValue("version", valid_versions)
+    return val
 
 class RESTValidator(BaseModel):
     """Validate ArcGISRESTful inputs.
@@ -104,11 +116,7 @@ class RESTValidator(BaseModel):
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
-        try:
-            crs: str = pyproj.CRS(v).to_string()
-        except pyproj.exceptions.CRSError as ex:
-            raise InvalidInputType("crs", "a valid CRS") from ex
-        return crs
+        return validate_crs(v)
 
     @validator("max_workers")
     def _positive_integer_threads(cls, v: int) -> int:
@@ -514,18 +522,11 @@ class WMSBase(BaseModel):
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
-        try:
-            crs: str = pyproj.CRS(v).to_string()
-        except pyproj.exceptions.CRSError as ex:
-            raise InvalidInputType("crs", "a valid CRS") from ex
-        return crs
+        return validate_crs(v)
 
     @validator("version")
     def _version(cls, v: str) -> str:
-        valid_versions = ["1.1.1", "1.3.0"]
-        if v not in valid_versions:
-            raise InvalidInputValue("version", valid_versions)
-        return v
+        return validate_version(v, ["1.1.1", "1.3.0"])
 
     def __repr__(self) -> str:
         """Print the services properties."""
@@ -622,18 +623,11 @@ class WFSBase(BaseModel):
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
-        try:
-            crs: str = pyproj.CRS(v).to_string()
-        except pyproj.exceptions.CRSError as ex:
-            raise InvalidInputType("crs", "a valid CRS") from ex
-        return crs
+        return validate_crs(v)
 
     @validator("version")
     def _version(cls, v: str) -> str:
-        valid_versions = ["1.0.0", "1.1.0", "2.0.0"]
-        if v not in valid_versions:
-            raise InvalidInputValue("version", valid_versions)
-        return v
+        return validate_version(v, ["1.0.0", "1.1.0", "2.0.0"])
 
     def __repr__(self) -> str:
         """Print the services properties."""
