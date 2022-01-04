@@ -34,6 +34,7 @@ logger.propagate = False
 DEF_CRS = "epsg:4326"
 EXPIRE = -1
 
+
 def validate_crs(val: str) -> str:
     try:
         crs: str = pyproj.CRS(val).to_string()
@@ -46,6 +47,7 @@ def validate_version(val: str, valid_versions: List[str]) -> str:
     if val not in valid_versions:
         raise InvalidInputValue("version", valid_versions)
     return val
+
 
 class RESTValidator(BaseModel):
     """Validate ArcGISRESTful inputs.
