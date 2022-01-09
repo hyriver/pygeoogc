@@ -13,6 +13,13 @@ from pygeoogc import (
     ZeroMatched,
 )
 
+try:
+    import typeguard  # noqa: F401
+except ImportError:
+    has_typeguard = False
+else:
+    has_typeguard = True
+
 
 class TestRESTException:
     wbd_url: str = ServiceURL().restful.wbd
@@ -58,6 +65,7 @@ class TestRESTException:
             _ = self.rest_wbd.partition_oids([])
         assert "Service returned no features" in str(ex.value)
 
+    @pytest.mark.skipif(has_typeguard, reason="Broken if Typeguard is enabled")
     def test_rest_unsupported_geometry(self):
         with pytest.raises(InvalidInputType) as ex:
             self.rest_wbd.oids_bygeom({1, 2})

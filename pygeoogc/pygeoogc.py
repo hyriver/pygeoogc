@@ -3,14 +3,13 @@ import itertools
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import async_retriever as ar
 import cytoolz as tlz
 import pyproj
 import shapely.ops as ops
 import yaml
-from pydantic import AnyHttpUrl
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from . import utils
@@ -66,7 +65,7 @@ class ArcGISRESTful:
 
     def __init__(
         self,
-        base_url: AnyHttpUrl,
+        base_url: str,
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
@@ -105,7 +104,7 @@ class ArcGISRESTful:
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
-    ) -> List[Tuple[str, ...]]:
+    ) -> Iterator[Tuple[str, ...]]:
         """Get feature IDs within a geometry that can be combined with a SQL where clause.
 
         Parameters
@@ -183,7 +182,7 @@ class ArcGISRESTful:
         except KeyError as ex:
             raise ZeroMatched(resp["error"]["message"]) from ex
 
-    def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> List[Tuple[str, ...]]:
+    def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> Iterator[Tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
 
         Parameters
@@ -209,7 +208,7 @@ class ArcGISRESTful:
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
-    def oids_bysql(self, sql_clause: str) -> List[Tuple[str, ...]]:
+    def oids_bysql(self, sql_clause: str) -> Iterator[Tuple[str, ...]]:
         """Get feature IDs using a valid SQL 92 WHERE clause.
 
         Notes
@@ -244,7 +243,7 @@ class ArcGISRESTful:
         except KeyError as ex:
             raise ZeroMatched(resp["error"]["message"]) from ex
 
-    def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
+    def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``.
 
         Parameters
@@ -261,7 +260,7 @@ class ArcGISRESTful:
 
     def get_features(
         self,
-        featureids: List[Tuple[str, ...]],
+        featureids: Iterator[Tuple[str, ...]],
         return_m: bool = False,
         return_geom: bool = True,
     ) -> List[Dict[str, Any]]:
@@ -319,7 +318,7 @@ class WMS(WMSBase):
 
     def __init__(
         self,
-        url: AnyHttpUrl,
+        url: str,
         layers: Union[str, List[str]],
         outformat: str,
         version: str = "1.3.0",
@@ -467,7 +466,7 @@ class WFS(WFSBase):
 
     def __init__(
         self,
-        url: AnyHttpUrl,
+        url: str,
         layer: Optional[str] = None,
         outformat: Optional[str] = None,
         version: str = "2.0.0",

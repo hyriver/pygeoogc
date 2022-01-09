@@ -5,14 +5,14 @@ import sys
 import urllib.parse as urlparse
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
 
 import async_retriever as ar
 import cytoolz as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from pydantic import AnyHttpUrl, BaseModel, validator
+from pydantic import BaseModel, validator
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
 
 from . import utils
@@ -35,7 +35,19 @@ DEF_CRS = "epsg:4326"
 EXPIRE = -1
 
 
-def validate_crs(val: str) -> str:
+def validate_crs(val: Union[str, int]) -> str:
+    """Validate a CRS.
+
+    Parameters
+    ----------
+    val : str or int
+        Input CRS.
+
+    Returns
+    -------
+    str
+        Validated CRS as a string.
+    """
     try:
         crs: str = pyproj.CRS(val).to_string()
     except pyproj.exceptions.CRSError as ex:
@@ -44,6 +56,20 @@ def validate_crs(val: str) -> str:
 
 
 def validate_version(val: str, valid_versions: List[str]) -> str:
+    """Validate version from a list of valid versions.
+
+    Parameters
+    ----------
+    val : str
+        Input version value.
+    valid_versions : list of str
+        List of valid versions.
+
+    Returns
+    -------
+    str
+        Validated version value.
+    """
     if val not in valid_versions:
         raise InvalidInputValue("version", valid_versions)
     return val
@@ -87,7 +113,7 @@ class RESTValidator(BaseModel):
         If ``True``, disable caching requests, defaults to False.
     """
 
-    base_url: AnyHttpUrl
+    base_url: str
     layer: Optional[int] = None
     outformat: str = "geojson"
     outfields: Union[List[str], str] = "*"
@@ -99,7 +125,7 @@ class RESTValidator(BaseModel):
     disable_caching: bool = False
 
     @validator("base_url")
-    def _layer_from_url(cls, v: AnyHttpUrl) -> Tuple[str, Optional[int]]:
+    def _layer_from_url(cls, v: str) -> Tuple[str, Optional[int]]:
         return cls._split_url(urlparse.unquote(v))
 
     @validator("layer")
@@ -180,7 +206,7 @@ class ArcGISRESTfulBase:
 
     def __init__(
         self,
-        base_url: AnyHttpUrl,
+        base_url: str,
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
@@ -230,7 +256,7 @@ class ArcGISRESTfulBase:
         self.return_geom: bool = True
         self.n_missing: int = 0
         self.total_n_features: int = 0
-        self.failed_path: Optional[Path] = None
+        self.failed_path: Union[str, Path] = ""
         self.request_id: Optional[str] = None
 
         self.initialize_service()
@@ -250,7 +276,7 @@ class ArcGISRESTfulBase:
         if any(f not in self.valid_fields for f in self.outfields):
             raise InvalidInputValue("outfields", self.valid_fields)
 
-    def partition_oids(self, oids: Union[List[int], int]) -> List[Tuple[str, ...]]:
+    def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``."""
         oid_list = [oids] if isinstance(oids, int) else set(oids)
         if len(oid_list) == 0:
@@ -263,7 +289,7 @@ class ArcGISRESTfulBase:
 
     def get_features(
         self,
-        featureids: List[Tuple[str, ...]],
+        featureids: Iterator[Tuple[str, ...]],
         return_m: bool = False,
         return_geom: bool = True,
     ) -> List[Dict[str, Any]]:
@@ -288,7 +314,7 @@ class ArcGISRESTfulBase:
             {
                 "objectIds": ",".join(ids),
                 "returnGeometry": f"{return_geom}".lower(),
-                "outSR": self.out_sr,
+                "outSR": f"{self.out_sr}",
                 "outfields": ",".join(self.outfields),
                 "ReturnM": f"{return_m}".lower(),
                 "f": self.outformat,
@@ -306,21 +332,26 @@ class ArcGISRESTfulBase:
         return resp
 
     def _set_service_properties(self) -> None:
+        rjson = self.get_response(self.base_url, [{"f": "json"}])[0]
         try:
-            rjson = self.get_response(self.base_url, [{"f": "json"}])[0]
             self.valid_layers = {f"{lyr['id']}": lyr["name"] for lyr in rjson["layers"]}
             self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
 
             extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
             bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
-            for f in ["latestWkid", "wkid", "wkt"]:
-                if f in extent["spatialReference"]:
-                    crs = extent["spatialReference"][f]
-                    break
-            self.extent = utils.match_crs(bounds, crs, DEF_CRS)
-
         except (ValueError, KeyError) as ex:
             raise ServiceError(self.base_url) from ex
+
+        crs_iter = iter(["latestWkid", "wkid", "wkt"])
+        while True:
+            try:
+                crs = validate_crs(extent["spatialReference"].get(next(crs_iter)))
+                self.extent = utils.match_crs(bounds, crs, DEF_CRS)
+                break
+            except InvalidInputType:
+                continue
+            except StopIteration as ex:
+                raise ServiceError(self.base_url) from ex
 
         with contextlib.suppress(KeyError):
             self.units = rjson["units"].replace("esri", "").lower()
@@ -380,7 +411,7 @@ class ArcGISRESTfulBase:
         self, return_m: bool, return_geo: bool, partition_fac: float
     ) -> List[Dict[str, Any]]:
         """Retry failed requests."""
-        with open(self.failed_path) as f:  # type: ignore
+        with open(self.failed_path) as f:
             oids = [int(i) for i in f.read().splitlines()]
 
         max_nrecords = self.max_nrecords
@@ -412,15 +443,14 @@ class ArcGISRESTfulBase:
         return list(tlz.concat(features))
 
     def get_response(
-        self, url: str, payloads: List[Dict[str, str]], method: str = "GET"
+        self, url: str, payloads: Sequence[Dict[str, str]], method: str = "GET"
     ) -> List[Dict[str, Any]]:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"
-        urls, kwds = zip(*((url, {req_key: p}) for p in payloads))
         try:
             return ar.retrieve_json(
-                urls,
-                list(kwds),
+                [url] * len(payloads),
+                [{req_key: p} for p in payloads],
                 request_method=method,
                 max_workers=self.max_workers,
                 disable=self.disable_caching,
@@ -430,7 +460,7 @@ class ArcGISRESTfulBase:
             raise ZeroMatched
 
     def _cleanup_resp(
-        self, resp: List[Dict[str, Any]], payloads: List[Dict[str, str]]
+        self, resp: List[Dict[str, Any]], payloads: Sequence[Dict[str, str]]
     ) -> List[Dict[str, Any]]:
         """Remove failed responses."""
         fails = [i for i, r in enumerate(resp) if "error" in r]
@@ -461,7 +491,7 @@ class ArcGISRESTfulBase:
                             [
                                 f"Total of {self.n_missing} out of {self.total_n_features}",
                                 "requested features are not available in the dataset.",
-                                "Returning the successfully retrieved features."
+                                "Returning the successfully retrieved features.",
                                 "The failed object IDs have been saved in the",
                                 f"file {self.failed_path}. The service returned the",
                                 "following error message for the failed requests:\n",
@@ -514,7 +544,7 @@ class WMSBase(BaseModel):
         If ``True``, disable caching requests, defaults to False.
     """
 
-    url: AnyHttpUrl
+    url: str
     layers: Union[str, List[str]]
     outformat: str
     version: str = "1.3.0"
@@ -588,8 +618,8 @@ class WFSBase(BaseModel):
         The data format to request for data from the service, defaults to None which
          throws an error and includes all the available format offered by the service.
     version : str, optional
-        The WFS service version which should be either 1.0.0, 1.1.0, or 2.0.0.
-        Defaults to 2.0.0.
+        The WFS service version which should be either ``1.0.0``, ``1.1.0``, or
+        ``2.0.0``. Defaults to ``2.0.0``.
     crs: str, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
@@ -598,15 +628,15 @@ class WFSBase(BaseModel):
         ``json``, ``binary``, and ``text``.
     max_nrecords : int, optional
         The maximum number of records in a single request to be retrieved from the service,
-        defaults to 1000. If the number of records requested is greater than this value,
-        it will be split into multiple requests.
+        defaults to 1000. If the number of requested records is greater than this value,
+        the query will be split into multiple requests.
     expire_after : int, optional
         Expiration time for response caching in seconds, defaults to -1 (never expire).
     disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
+        If ``True``, disable caching requests, defaults to ``False``.
     """
 
-    url: AnyHttpUrl
+    url: str
     layer: Optional[str] = None
     outformat: Optional[str] = None
     version: str = "2.0.0"
