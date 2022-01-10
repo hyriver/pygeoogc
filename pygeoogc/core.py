@@ -35,26 +35,6 @@ DEF_CRS = "epsg:4326"
 EXPIRE = -1
 
 
-def validate_crs(val: Union[str, int]) -> str:
-    """Validate a CRS.
-
-    Parameters
-    ----------
-    val : str or int
-        Input CRS.
-
-    Returns
-    -------
-    str
-        Validated CRS as a string.
-    """
-    try:
-        crs: str = pyproj.CRS(val).to_string()
-    except pyproj.exceptions.CRSError as ex:
-        raise InvalidInputType("crs", "a valid CRS") from ex
-    return crs
-
-
 def validate_version(val: str, valid_versions: List[str]) -> str:
     """Validate version from a list of valid versions.
 
@@ -144,7 +124,7 @@ class RESTValidator(BaseModel):
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
-        return validate_crs(v)
+        return utils.validate_crs(v)
 
     @validator("max_workers")
     def _positive_integer_threads(cls, v: int) -> int:
@@ -345,7 +325,7 @@ class ArcGISRESTfulBase:
         crs_iter = iter(["latestWkid", "wkid", "wkt"])
         while True:
             try:
-                crs = validate_crs(extent["spatialReference"].get(next(crs_iter)))
+                crs = utils.validate_crs(extent["spatialReference"].get(next(crs_iter)))
                 self.extent = utils.match_crs(bounds, crs, DEF_CRS)
                 break
             except InvalidInputType:
@@ -554,7 +534,7 @@ class WMSBase(BaseModel):
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
-        return validate_crs(v)
+        return utils.validate_crs(v)
 
     @validator("version")
     def _version(cls, v: str) -> str:
@@ -655,7 +635,7 @@ class WFSBase(BaseModel):
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
-        return validate_crs(v)
+        return utils.validate_crs(v)
 
     @validator("version")
     def _version(cls, v: str) -> str:

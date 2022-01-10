@@ -493,3 +493,23 @@ def check_response(resp: str) -> str:
             return str(root[-1][0].text).strip()
         except IndexError:
             return str(root[-1].text).strip()
+
+
+def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
+    """Validate a CRS.
+
+    Parameters
+    ----------
+    val : str or int
+        Input CRS.
+
+    Returns
+    -------
+    str
+        Validated CRS as a string.
+    """
+    try:
+        crs: str = pyproj.CRS(val).to_string()
+    except pyproj.exceptions.CRSError as ex:
+        raise InvalidInputType("crs", "a valid CRS") from ex
+    return crs
