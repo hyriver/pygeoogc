@@ -2,6 +2,24 @@
 History
 =======
 
+0.12.2 (unreleased)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Make ``validate_crs`` public that can be accessed from the ``utils`` module.
+  This is useful for checking validity of user input CRS values and getting
+  its string representation.
+- Add 3DEP's index WFS service for querying availability of 3DEP data within a
+  bounding box.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Add type checking with ``typeguard`` and fixed typing issues raised by
+  ``typeguard``.
+- Refactor ``show_versions`` to ensure getting correct versions of all
+  dependencies.
+
 0.12.1 (2021-12-31)
 -------------------
 
