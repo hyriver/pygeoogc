@@ -19,11 +19,11 @@ restful:
   airmap: https://api.airmap.com/elevation/v1/ele
   nm_pqs: https://nationalmap.gov/epqs/pqs.php
   pygeoapi: https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes
+  nm_3dep_index: https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer
 
 wfs:
   fema: https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer
   waterdata: https://labs.waterdata.usgs.gov/geoserver/wmadata/ows
-  nm_3dep_index: https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer
 
 wms:
   fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer
