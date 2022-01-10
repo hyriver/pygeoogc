@@ -30,3 +30,4 @@ wms:
   mrlc: https://www.mrlc.gov/geoserver/mrlc_display/wms
   nm_3dep: https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer
   gebco: https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv
+  nm_3dep_index: https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer
