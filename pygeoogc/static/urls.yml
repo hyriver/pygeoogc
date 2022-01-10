@@ -23,6 +23,7 @@ restful:
 wfs:
   fema: https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer
   waterdata: https://labs.waterdata.usgs.gov/geoserver/wmadata/ows
+  nm_3dep_index: https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer
 
 wms:
   fema: https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer
@@ -30,4 +31,3 @@ wms:
   mrlc: https://www.mrlc.gov/geoserver/mrlc_display/wms
   nm_3dep: https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer
   gebco: https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv
-  nm_3dep_index: https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer
