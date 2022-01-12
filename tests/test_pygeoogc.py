@@ -1,7 +1,6 @@
 """Tests for PyGeoOGC package."""
 import io
 import sys
-from pathlib import Path
 
 import pandas as pd
 import pytest

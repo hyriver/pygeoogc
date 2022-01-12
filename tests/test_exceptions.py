@@ -6,7 +6,6 @@ from pygeoogc import (
     ArcGISRESTful,
     InvalidInputType,
     InvalidInputValue,
-    MissingInputs,
     RetrySession,
     ServiceError,
     ServiceURL,
