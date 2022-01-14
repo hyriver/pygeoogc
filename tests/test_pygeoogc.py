@@ -152,6 +152,11 @@ class TestWMS:
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6))
         assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11495526
 
+    def test_valid_crs(self):
+        """Get WMS valid CRSs"""
+        crs = utils.valid_wms_crs(self.wms_url)
+        assert sorted(crs) == ['epsg:3395', 'epsg:3857', 'epsg:4326']
+
 
 class TestWFS:
     wfs: WFS = WFS(
