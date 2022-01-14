@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 
+import async_retriever as ar
 import defusedxml.ElementTree as etree
 import pyproj
 import shapely.geometry as sgeom
@@ -513,3 +514,16 @@ def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
     except pyproj.exceptions.CRSError as ex:
         raise InvalidInputType("crs", "a valid CRS") from ex
     return crs
+
+
+def valid_wms_crs(url: str) -> List[str]:
+    """Get valid CRSs from a WMS service version 1.3.0."""
+    kwds = [{"params": {"service": "wms", "request": "GetCapabilities"}}]
+
+    ns = "http://www.opengis.net/wms"
+
+    def get_path(tag_list: List[str]) -> str:
+        return f"/{{{ns}}}".join([""] + tag_list)[1:]
+
+    root = etree.fromstring(ar.retrieve_text([url], kwds)[0])
+    return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
