@@ -10,6 +10,8 @@ New Features
 - Make ``validate_crs`` public that can be accessed from the ``utils`` module.
   This is useful for checking validity of user input CRS values and getting
   its string representation.
+- Add ``pygeoogc.utils.valid_wms_crs`` function for getting a list of valid
+  CRS values from a WMS service.
 - Add 3DEP's index WFS service for querying availability of 3DEP data within a
   bounding box.
 
