@@ -513,7 +513,7 @@ def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
         crs: str = pyproj.CRS(val).to_string()
     except pyproj.exceptions.CRSError as ex:
         raise InvalidInputType("crs", "a valid CRS") from ex
-    return crs.lower()
+    return crs
 
 
 def valid_wms_crs(url: str) -> List[str]:
