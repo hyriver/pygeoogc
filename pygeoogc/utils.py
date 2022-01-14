@@ -510,7 +510,7 @@ def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
         Validated CRS as a string.
     """
     try:
-        crs: str = pyproj.CRS(val).to_string()
+        crs: str = pyproj.CRS(val).to_string().lower()
     except pyproj.exceptions.CRSError as ex:
         raise InvalidInputType("crs", "a valid CRS") from ex
     return crs
