@@ -155,7 +155,7 @@ class TestWMS:
     def test_valid_crs(self):
         """Get WMS valid CRSs"""
         crs = utils.valid_wms_crs(self.wms_url)
-        assert sorted(crs) == ['epsg:3395', 'epsg:3857', 'epsg:4326']
+        assert sorted(crs) == ["epsg:3395", "epsg:3857", "epsg:4326"]
 
 
 class TestWFS:
