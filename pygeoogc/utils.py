@@ -70,16 +70,16 @@ class RetrySession:
         backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
         self.session = CachedSession(expire_after=EXPIRE, backend=backend)
 
-        retry_args = {
-            "total": retries,
-            "read": retries,
-            "connect": retries,
-            "backoff_factor": backoff_factor,
-            "status_forcelist": status_to_retry,
-            "allowed_methods": False,
-        }
-
-        adapter = HTTPAdapter(max_retries=Retry(**retry_args))
+        adapter = HTTPAdapter(
+            max_retries=Retry(
+                total=retries,
+                read=retries,
+                connect=retries,
+                backoff_factor=backoff_factor,
+                status_forcelist=status_to_retry,
+                allowed_methods=False,
+            )
+        )
         for prefix in prefixes:
             self.session.mount(prefix, adapter)
 
