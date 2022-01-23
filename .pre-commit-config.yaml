@@ -1,5 +1,5 @@
 repos:
-  - repo: git://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.1.0
     hooks:
     - id: trailing-whitespace
@@ -19,6 +19,13 @@ repos:
     - id: setup-cfg-fmt
       name: Autoformat setup.cfg
       args: [--min-py3-version, "3.7"]
+
+  - repo: https://github.com/hadialqattan/pycln
+    rev: v1.1.0
+    hooks:
+      - id: pycln
+        name: Find and remove unused import statements
+        args: [--config=pyproject.toml]
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.10.1
