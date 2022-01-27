@@ -231,7 +231,7 @@ class ArcGISRESTfulBase:
         self.max_nrecords: int = 1000
         self.valid_fields: List[str] = []
         self.field_types: Dict[str, str] = {}
-        self.feature_types: Optional[Dict[str, str]] = None
+        self.feature_types: Optional[Dict[int, str]] = None
         self.return_m: bool = False
         self.return_geom: bool = True
         self.n_missing: int = 0
