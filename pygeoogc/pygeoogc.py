@@ -3,7 +3,7 @@ import itertools
 import uuid
 from collections import namedtuple
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -199,6 +199,9 @@ class ArcGISRESTful:
         """
         if field not in self.client.valid_fields:
             raise InvalidInputValue("field", self.client.valid_fields)
+
+        if not isinstance(ids, Sequence):
+            raise InvalidInputType("ids", "str or list")
 
         ids_ls = [ids] if isinstance(ids, str) else ids
 
