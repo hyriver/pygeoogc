@@ -1,8 +1,8 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import itertools
 import uuid
+from collections import namedtuple
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import async_retriever as ar
@@ -200,11 +200,13 @@ class ArcGISRESTful:
         if field not in self.client.valid_fields:
             raise InvalidInputValue("field", self.client.valid_fields)
 
+        ids_ls = [ids] if isinstance(ids, str) else ids
+
         ftype = self.client.field_types[field]
         if "string" in ftype:
-            fids = ", ".join(f"'{i}'" for i in ids)
+            fids = ", ".join(f"'{i}'" for i in ids_ls)
         else:
-            fids = ", ".join(f"{i}" for i in ids)
+            fids = ", ".join(f"{i}" for i in ids_ls)
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
@@ -714,26 +716,30 @@ class ServiceURL:
         fpath = Path(__file__).parent.joinpath("static/urls.yml")
         with open(fpath) as fp:
             self.urls = yaml.safe_load(fp)
+        self._restful = self._make_nt("restful")
+        self._wms = self._make_nt("wms")
+        self._wfs = self._make_nt("wfs")
+        self._http = self._make_nt("http")
 
-    def _make_nt(self, service: str) -> SimpleNamespace:
-        return SimpleNamespace(**self.urls[service])
+    def _make_nt(self, service: str) -> Tuple[str, ...]:
+        return namedtuple(service, self.urls[service].keys())(*self.urls[service].values())
 
     @property
-    def restful(self) -> SimpleNamespace:
+    def restful(self) -> Tuple[str, ...]:
         """Read RESTful URLs from the source yml file."""
-        return self._make_nt("restful")
+        return self._restful
 
     @property
-    def wms(self) -> SimpleNamespace:
+    def wms(self) -> Tuple[str, ...]:
         """Read WMS URLs from the source yml file."""
-        return self._make_nt("wms")
+        return self._wms
 
     @property
-    def wfs(self) -> SimpleNamespace:
+    def wfs(self) -> Tuple[str, ...]:
         """Read WFS URLs from the source yml file."""
-        return self._make_nt("wfs")
+        return self._wfs
 
     @property
-    def http(self) -> SimpleNamespace:
+    def http(self) -> Tuple[str, ...]:
         """Read HTTP URLs from the source yml file."""
-        return self._make_nt("http")
+        return self._http
