@@ -2,6 +2,19 @@
 History
 =======
 
+0.12.3 (unreleased)
+-------------------
+
+Bug Fixes
+~~~~~~~~~
+- In ``ArcGISRESTful.oids_byfield`` convert the input ``ids`` to a
+  ``list`` if a user passes a single ``id``.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Return URLs in ``ServicURL`` as a ``NamedTuple`` since it has a
+  nicer ``__repr__``.
+
 0.12.2 (2022-01-15)
 -------------------
 
