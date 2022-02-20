@@ -3,6 +3,7 @@ import itertools
 import uuid
 from collections import namedtuple
 from pathlib import Path
+from ssl import SSLContext
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import async_retriever as ar
@@ -293,7 +294,7 @@ class ArcGISRESTful:
         return self.client.__repr__()
 
 
-class WMS(WMSBase):
+class WMS:
     """Get data from a WMS service within a geometry or bounding box.
 
     Parameters
@@ -319,6 +320,9 @@ class WMS(WMSBase):
         Expiration time for response caching in seconds, defaults to -1 (never expire).
     disable_caching : bool, optional
         If ``True``, disable caching requests, defaults to False.
+    ssl : bool or SSLContext, optional
+        SSLContext to use for the connection, defaults to None. Set to False to disable
+        SSL certification verification.
     """
 
     def __init__(
@@ -331,8 +335,9 @@ class WMS(WMSBase):
         validation: bool = True,
         expire_after: float = EXPIRE,
         disable_caching: bool = False,
+        ssl: Union[SSLContext, bool, None] = None,
     ) -> None:
-        super().__init__(
+        self.client = WMSBase(
             url=url,
             layers=layers,
             outformat=outformat,
@@ -341,10 +346,24 @@ class WMS(WMSBase):
             expire_after=expire_after,
             disable_caching=disable_caching,
         )
-
-        self.layers = [self.layers] if isinstance(self.layers, str) else self.layers
+        self.url = self.client.url
+        self.outformat = self.client.outformat
+        self.version = self.client.version
+        self.crs = self.client.crs
+        self.expire_after = self.client.expire_after
+        self.disable_caching = self.client.disable_caching
+        self.ssl = ssl
+        self.layers = [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
         if validation:
-            self.validate_wms()
+            self.client.validate_wms()
+
+    def get_validlayers(self) -> Dict[str, str]:
+        """Get the layers supported by the WMS service."""
+        return self.client.get_validlayers()
+
+    def __repr__(self) -> str:
+        """Print the services properties."""
+        return self.client.__repr__()
 
     def getmap_bybox(
         self,
@@ -428,6 +447,7 @@ class WMS(WMSBase):
             max_workers=4,
             expire_after=self.expire_after,
             disable=self.disable_caching,
+            ssl=self.ssl,
         )
         return dict(zip(layers, rbinary))
 
