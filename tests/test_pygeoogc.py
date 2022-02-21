@@ -254,7 +254,7 @@ def test_esriquery():
 
 def test_urls():
     """Service URLs"""
-    assert len(ServiceURL().__dict__["urls"]) == 4
+    assert len(ServiceURL()) == 4
 
 
 def test_show_versions():
