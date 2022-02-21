@@ -1,16 +1,13 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import itertools
 import uuid
-from collections import namedtuple
-from pathlib import Path
 from ssl import SSLContext
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple, Union
 
 import async_retriever as ar
 import cytoolz as tlz
 import pyproj
 import shapely.ops as ops
-import yaml
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from . import utils
@@ -353,7 +350,9 @@ class WMS:
         self.expire_after = self.client.expire_after
         self.disable_caching = self.client.disable_caching
         self.ssl = ssl
-        self.layers = [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
+        self.layers = (
+            [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
+        )
         if validation:
             self.client.validate_wms()
 
@@ -732,37 +731,68 @@ class WFS(WFSBase):
         )[0]
 
 
-class ServiceURL:
-    """Base URLs of the supported services."""
+class HttpURLs(NamedTuple):
+    """URLs of the supported HTTP services."""
 
-    def __init__(self) -> None:
-        fpath = Path(__file__).parent.joinpath("static/urls.yml")
-        with open(fpath) as fp:
-            self.urls = yaml.safe_load(fp)
-        self._restful = self._make_nt("restful")
-        self._wms = self._make_nt("wms")
-        self._wfs = self._make_nt("wfs")
-        self._http = self._make_nt("http")
+    ssebopeta: str = "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads"
 
-    def _make_nt(self, service: str) -> Tuple[str, ...]:
-        return namedtuple(service, self.urls[service].keys())(*self.urls[service].values())
 
-    @property
-    def restful(self) -> Tuple[str, ...]:
-        """Read RESTful URLs from the source yml file."""
-        return self._restful
+class RESTfulURLs(NamedTuple):
+    """URLs of the supported RESTful services."""
 
-    @property
-    def wms(self) -> Tuple[str, ...]:
-        """Read WMS URLs from the source yml file."""
-        return self._wms
+    daymet: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac"
+    daymet_point: str = "https://daymet.ornl.gov/single-pixel/api/data"
+    fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer"
+    fws: str = "https://www.fws.gov/wetlandsmapservice/rest/services"
+    nldi: str = "https://labs.waterdata.usgs.gov/api/nldi"
+    nwis: str = "https://waterservices.usgs.gov/nwis"
+    wbd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
+    nhd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer"
+    nhdplushr: str = "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer"
+    nhdhr_edits: str = "https://edits.nationalmap.gov/arcgis/rest/services/HEM/NHDHigh/MapServer"
+    nhdplushr_edits: str = (
+        "https://edits.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/NHDPlus_HR/MapServer"
+    )
+    nhdplus_epa: str = "https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus/NHDPlus/MapServer"
+    nhd_fabric: str = (
+        "https://watersgeo.epa.gov/arcgis/rest/services/Support/CatchmentFabric/MapServer"
+    )
+    nid: str = "https://nid.sec.usace.army.mil/api"
+    airmap: str = "https://api.airmap.com/elevation/v1/ele"
+    nm_pqs: str = "https://nationalmap.gov/epqs/pqs.php"
+    pygeoapi: str = "https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes"
+    nm_3dep_index: str = (
+        "https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer"
+    )
 
-    @property
-    def wfs(self) -> Tuple[str, ...]:
-        """Read WFS URLs from the source yml file."""
-        return self._wfs
 
-    @property
-    def http(self) -> Tuple[str, ...]:
-        """Read HTTP URLs from the source yml file."""
-        return self._http
+class WFSURLs(NamedTuple):
+    """URLs of the supported WFS services."""
+
+    fema: str = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
+    waterdata: str = "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows"
+
+
+class WMSURLs(NamedTuple):
+    """URLs of the supported WMS services."""
+
+    fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer"
+    fws: str = (
+        "https://www.fws.gov/wetlandsmapservice/services/Wetlands_Raster/ImageServer/WMSServer"
+    )
+    mrlc: str = "https://www.mrlc.gov/geoserver/mrlc_display/wms"
+    nm_3dep: str = (
+        "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
+    )
+    gebco: str = (
+        "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv"
+    )
+
+
+class ServiceURL(NamedTuple):
+    """URLs of the supported services."""
+
+    http: HttpURLs = HttpURLs()
+    restful: RESTfulURLs = RESTfulURLs()
+    wfs: WFSURLs = WFSURLs()
+    wms: WMSURLs = WMSURLs()
