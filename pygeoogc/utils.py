@@ -525,5 +525,5 @@ def valid_wms_crs(url: str) -> List[str]:
     def get_path(tag_list: List[str]) -> str:
         return f"/{{{ns}}}".join([""] + tag_list)[1:]
 
-    root = etree.fromstring(ar.retrieve_text([url], kwds)[0])
+    root = etree.fromstring(ar.retrieve_text([url], kwds, ssl=False)[0])
     return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
