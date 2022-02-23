@@ -780,7 +780,7 @@ class WMSURLs(NamedTuple):
     fws: str = (
         "https://www.fws.gov/wetlandsmapservice/services/Wetlands_Raster/ImageServer/WMSServer"
     )
-    mrlc: str = "https://www.mrlc.gov/geoserver/mrlc_display/wms"
+    mrlc: str = "https://www.mrlc.gov/geoserver/mrlc_download/wms"
     nm_3dep: str = (
         "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
     )
