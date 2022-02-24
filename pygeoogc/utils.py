@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 
+import async_retriever as ar
 import defusedxml.ElementTree as etree
 import pyproj
 import shapely.geometry as sgeom
@@ -522,7 +523,6 @@ def valid_wms_crs(url: str) -> List[str]:
     def get_path(tag_list: List[str]) -> str:
         return f"/{{{ns}}}".join([""] + tag_list)[1:]
 
-    session = RetrySession()
-    kwds = {"service": "wms", "request": "GetCapabilities"}
-    root = etree.fromstring(session.get(url, kwds).text)
+    kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
+    root = etree.fromstring(ar.retrieve_text([url], [kwds])[0])
     return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
