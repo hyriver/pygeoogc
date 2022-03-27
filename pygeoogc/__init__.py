@@ -12,14 +12,13 @@ from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
 from .utils import RetrySession
 
 try:
-    import importlib.metadata as metadata
+    import importlib.metadata
 except ImportError:
-    import importlib_metadata as metadata  # type: ignore[no-redef]
+    import importlib_metadata
 
-try:
-    __version__ = metadata.version("pygeoogc")
-except Exception:
-    __version__ = "999"
+    __version__ = importlib_metadata.version("pygeoogc")
+else:
+    __version__ = importlib.metadata.version("pygeoogc")
 
 __all__ = [
     "ArcGISRESTful",
