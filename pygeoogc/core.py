@@ -1,6 +1,7 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import contextlib
 import logging
+import os
 import sys
 import urllib.parse as urlparse
 import uuid
@@ -87,10 +88,6 @@ class RESTValidator(BaseModel):
         If ``True`` in case there are any failed queries, no retrying attempts
         is done and object IDs of the failed requests is saved to a text file
         which its path can be accessed via ``self.failed_path``.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
     """
 
     base_url: str
@@ -101,8 +98,17 @@ class RESTValidator(BaseModel):
     max_workers: int = 1
     verbose: bool = False
     disable_retry: bool = False
-    expire_after: float = EXPIRE
-    disable_caching: bool = False
+
+    @staticmethod
+    def _split_url(url: str) -> Tuple[str, Optional[int]]:
+        """Check if layer is included in url, if so separate and return them."""
+        url_split = urlparse.urlsplit(url.rstrip("/"))
+        url_path, lyr = url_split.path.rsplit("/", 1)
+        url_split = url_split._replace(path=url_path)
+        try:
+            return urlparse.urlunsplit(url_split), int(lyr)
+        except ValueError:
+            return url, None
 
     @validator("base_url")
     def _layer_from_url(cls, v: str) -> Tuple[str, Optional[int]]:
@@ -131,17 +137,6 @@ class RESTValidator(BaseModel):
         if v <= 0:
             raise InvalidInputType("max_workers", "positive integer")
         return v
-
-    @staticmethod
-    def _split_url(url: str) -> Tuple[str, Optional[int]]:
-        """Check if layer is included in url, if so separate and return them."""
-        url_split = urlparse.urlsplit(url.rstrip("/"))
-        url_path, lyr = url_split.path.rsplit("/", 1)
-        url_split = url_split._replace(path=url_path)
-        try:
-            return urlparse.urlunsplit(url_split), int(lyr)
-        except ValueError:
-            return url, None
 
 
 class ArcGISRESTfulBase:
@@ -178,10 +173,6 @@ class ArcGISRESTfulBase:
         If ``True`` in case there are any failed queries, no retrying attempts
         is done and object IDs of the failed requests is saved to a text file
         which its path can be accessed via ``self.failed_path``.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -194,8 +185,6 @@ class ArcGISRESTfulBase:
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
-        expire_after: float = EXPIRE,
-        disable_caching: bool = False,
     ) -> None:
         validated = RESTValidator(
             base_url=base_url,
@@ -206,8 +195,6 @@ class ArcGISRESTfulBase:
             max_workers=max_workers,
             verbose=verbose,
             disable_retry=disable_retry,
-            expire_after=expire_after,
-            disable_caching=disable_caching,
         )
         self.base_url = validated.base_url[0]
         self.layer = validated.layer
@@ -217,8 +204,6 @@ class ArcGISRESTfulBase:
         self.max_workers = validated.max_workers
         self.verbose = validated.verbose
         self.disable_retry = validated.disable_retry
-        self.expire_after = validated.expire_after
-        self.disable_caching = validated.disable_caching
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -240,76 +225,6 @@ class ArcGISRESTfulBase:
         self.request_id: Optional[str] = None
 
         self.initialize_service()
-
-    def initialize_service(self) -> None:
-        """Initialize the RESTFul service."""
-        self._set_service_properties()
-        if f"{self.layer}" not in self.valid_layers:
-            valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
-            raise InvalidInputValue("layer", valids)
-
-        self._set_layer_properties()
-
-        if self.outformat.lower() not in self.query_formats:
-            raise InvalidInputValue("outformat", self.query_formats)
-
-        if any(f not in self.valid_fields for f in self.outfields):
-            raise InvalidInputValue("outfields", self.valid_fields)
-
-    def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
-        """Partition feature IDs based on ``self.max_nrecords``."""
-        oid_list = [oids] if isinstance(oids, int) else set(oids)
-        if len(oid_list) == 0:
-            raise ZeroMatched
-
-        self.n_features = len(oid_list)
-        if not self.disable_retry and self.verbose:
-            logger.info(f"Found {self.n_features:,} features in the requested region.")
-        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
-
-    def get_features(
-        self,
-        featureids: Iterator[Tuple[str, ...]],
-        return_m: bool = False,
-        return_geom: bool = True,
-    ) -> List[Dict[str, Any]]:
-        """Get features based on the feature IDs.
-
-        Parameters
-        ----------
-        featureids : list
-            List of feature IDs.
-        return_m : bool, optional
-            Whether to activate the Return M (measure) in the request,
-            defaults to ``False``.
-        return_geom : bool, optional
-            Whether to return the geometry of the feature, defaults to ``True``.
-
-        Returns
-        -------
-        dict
-            (Geo)json response from the web service.
-        """
-        payloads = [
-            {
-                "objectIds": ",".join(ids),
-                "returnGeometry": f"{return_geom}".lower(),
-                "outSR": f"{self.out_sr}",
-                "outfields": ",".join(self.outfields),
-                "ReturnM": f"{return_m}".lower(),
-                "f": self.outformat,
-            }
-            for ids in featureids
-        ]
-        if self.request_id is None:
-            self.request_id = uuid.uuid4().hex
-
-        resp = self.get_response(self.query_url, payloads, "POST")
-
-        resp = self._cleanup_resp(resp, payloads)
-        if len(resp) == 0:
-            raise ZeroMatched
-        return resp
 
     def _set_service_properties(self) -> None:
         rjson = self.get_response(self.base_url, [{"f": "json"}])[0]
@@ -355,6 +270,119 @@ class ArcGISRESTfulBase:
             self.feature_types = dict(
                 zip((tlz.pluck("id", rjson["types"])), tlz.pluck("name", rjson["types"]))
             )
+
+    def initialize_service(self) -> None:
+        """Initialize the RESTFul service."""
+        self._set_service_properties()
+        if f"{self.layer}" not in self.valid_layers:
+            valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
+            raise InvalidInputValue("layer", valids)
+
+        self._set_layer_properties()
+
+        if self.outformat.lower() not in self.query_formats:
+            raise InvalidInputValue("outformat", self.query_formats)
+
+        if any(f not in self.valid_fields for f in self.outfields):
+            raise InvalidInputValue("outfields", self.valid_fields)
+
+    def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
+        """Partition feature IDs based on ``self.max_nrecords``."""
+        oid_list = [oids] if isinstance(oids, int) else set(oids)
+        if len(oid_list) == 0:
+            raise ZeroMatched
+
+        self.n_features = len(oid_list)
+        if not self.disable_retry and self.verbose:
+            logger.info(f"Found {self.n_features:,} features in the requested region.")
+        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
+
+    def _cleanup_resp(
+        self, resp: List[Dict[str, Any]], payloads: Sequence[Dict[str, str]]
+    ) -> List[Dict[str, Any]]:
+        """Remove failed responses."""
+        fails = [i for i, r in enumerate(resp) if "error" in r]
+
+        if len(fails) > 0:
+            err = resp[fails[0]]["error"]["message"]
+            resp = [r for i, r in enumerate(resp) if i not in fails]
+            if len(resp) == 0 and self.disable_retry:
+                raise ServiceError(err)
+
+            if "objectIds" in payloads[fails[0]]:
+                oids = list(tlz.concat(payloads[i]["objectIds"].split(",") for i in fails))
+                self.n_missing = len(oids)
+
+                self.failed_path = Path("cache", f"failed_ids_{self.request_id}.txt")
+                with open(self.failed_path, "w") as f:
+                    f.write("\n".join(oids))
+
+                if not self.disable_retry:
+                    self.return_m = bool(payloads[0]["ReturnM"])
+                    self.return_geom = bool(payloads[0]["returnGeometry"])
+                    self.total_n_features = self.n_features
+                    logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
+                    resp.extend(self.retry_failed_requests())
+
+                    logger.warning(
+                        " ".join(
+                            [
+                                f"Total of {self.n_missing} out of {self.total_n_features}",
+                                "requested features are not available in the dataset.",
+                                "Returning the successfully retrieved features.",
+                                "The failed object IDs have been saved in the",
+                                f"file {self.failed_path}. The service returned the",
+                                "following error message for the failed requests:\n",
+                                err,
+                            ]
+                        )
+                    )
+
+        return resp
+
+    def get_features(
+        self,
+        featureids: Iterator[Tuple[str, ...]],
+        return_m: bool = False,
+        return_geom: bool = True,
+    ) -> List[Dict[str, Any]]:
+        """Get features based on the feature IDs.
+
+        Parameters
+        ----------
+        featureids : list
+            List of feature IDs.
+        return_m : bool, optional
+            Whether to activate the Return M (measure) in the request,
+            defaults to ``False``.
+        return_geom : bool, optional
+            Whether to return the geometry of the feature, defaults to ``True``.
+
+        Returns
+        -------
+        dict
+            (Geo)json response from the web service.
+        """
+        payloads = [
+            {
+                "objectIds": ",".join(ids),
+                "returnGeometry": f"{return_geom}".lower(),
+                "outSR": f"{self.out_sr}",
+                "outfields": ",".join(self.outfields),
+                "ReturnM": f"{return_m}".lower(),
+                "f": self.outformat,
+            }
+            for ids in featureids
+        ]
+        if self.request_id is None:
+            self.request_id = uuid.uuid4().hex
+
+        resp = self.get_response(self.query_url, payloads, "POST")
+
+        resp = self._cleanup_resp(resp, payloads)
+        if len(resp) == 0:
+            raise ZeroMatched
+        return resp
 
     def esri_query(
         self,
@@ -405,8 +433,8 @@ class ArcGISRESTfulBase:
         """Retry failed requests."""
         retry = self.disable_retry
         self.disable_retry = True
-        caching = self.disable_caching
-        self.disable_caching = True
+        caching = os.getenv("HYRIVER_CACHE_DISABLE", "false").lower() == "true"
+        os.environ["HYRIVER_CACHE_DISABLE"] = "true"
 
         fac_min = 1.0 / self.max_nrecords
         n_retry = 4
@@ -419,7 +447,7 @@ class ArcGISRESTfulBase:
                 continue
 
         self.disable_retry = retry
-        self.disable_caching = caching
+        os.environ["HYRIVER_CACHE_DISABLE"] = f"{caching}".lower()
         return list(tlz.concat(features))
 
     def get_response(
@@ -433,54 +461,9 @@ class ArcGISRESTfulBase:
                 [{req_key: p} for p in payloads],
                 request_method=method,
                 max_workers=self.max_workers,
-                disable=self.disable_caching,
-                expire_after=self.expire_after,
             )
         except ValueError:
             raise ZeroMatched
-
-    def _cleanup_resp(
-        self, resp: List[Dict[str, Any]], payloads: Sequence[Dict[str, str]]
-    ) -> List[Dict[str, Any]]:
-        """Remove failed responses."""
-        fails = [i for i, r in enumerate(resp) if "error" in r]
-
-        if len(fails) > 0:
-            err = resp[fails[0]]["error"]["message"]
-            resp = [r for i, r in enumerate(resp) if i not in fails]
-            if len(resp) == 0 and self.disable_retry:
-                raise ServiceError(err)
-
-            if "objectIds" in payloads[fails[0]]:
-                oids = list(tlz.concat(payloads[i]["objectIds"].split(",") for i in fails))
-                self.n_missing = len(oids)
-
-                self.failed_path = Path("cache", f"failed_ids_{self.request_id}.txt")
-                with open(self.failed_path, "w") as f:
-                    f.write("\n".join(oids))
-
-                if not self.disable_retry:
-                    self.return_m = bool(payloads[0]["ReturnM"])
-                    self.return_geom = bool(payloads[0]["returnGeometry"])
-                    self.total_n_features = self.n_features
-                    logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
-                    resp.extend(self.retry_failed_requests())
-
-                    logger.warning(
-                        " ".join(
-                            [
-                                f"Total of {self.n_missing} out of {self.total_n_features}",
-                                "requested features are not available in the dataset.",
-                                "Returning the successfully retrieved features.",
-                                "The failed object IDs have been saved in the",
-                                f"file {self.failed_path}. The service returned the",
-                                "following error message for the failed requests:\n",
-                                err,
-                            ]
-                        )
-                    )
-
-        return resp
 
     def __repr__(self) -> str:
         """Print the service configuration."""
@@ -518,10 +501,6 @@ class WMSBase(BaseModel):
     crs : str, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
     """
 
     url: str
@@ -529,8 +508,6 @@ class WMSBase(BaseModel):
     outformat: str
     version: str = "1.3.0"
     crs: str = DEF_CRS
-    expire_after: float = EXPIRE
-    disable_caching: bool = False
 
     @validator("crs")
     def _valid_crs(cls, v: str) -> str:
@@ -539,18 +516,6 @@ class WMSBase(BaseModel):
     @validator("version")
     def _version(cls, v: str) -> str:
         return validate_version(v, ["1.1.1", "1.3.0"])
-
-    def __repr__(self) -> str:
-        """Print the services properties."""
-        layers = self.layers if isinstance(self.layers, list) else [self.layers]
-        return (
-            "Connected to the WMS service with the following properties:\n"
-            + f"URL: {self.url}\n"
-            + f"Version: {self.version}\n"
-            + f"Layers: {', '.join(lyr for lyr in layers)}\n"
-            + f"Output Format: {self.outformat}\n"
-            + f"Output CRS: {self.crs}"
-        )
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
@@ -582,6 +547,18 @@ class WMSBase(BaseModel):
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
+    def __repr__(self) -> str:
+        """Print the services properties."""
+        layers = self.layers if isinstance(self.layers, list) else [self.layers]
+        return (
+            "Connected to the WMS service with the following properties:\n"
+            + f"URL: {self.url}\n"
+            + f"Version: {self.version}\n"
+            + f"Layers: {', '.join(lyr for lyr in layers)}\n"
+            + f"Output Format: {self.outformat}\n"
+            + f"Output CRS: {self.crs}"
+        )
+
 
 class WFSBase(BaseModel):
     """Base class for WFS service.
@@ -610,10 +587,6 @@ class WFSBase(BaseModel):
         The maximum number of records in a single request to be retrieved from the service,
         defaults to 1000. If the number of requested records is greater than this value,
         the query will be split into multiple requests.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to ``False``.
     """
 
     url: str
@@ -623,8 +596,6 @@ class WFSBase(BaseModel):
     crs: str = DEF_CRS
     read_method: str = "json"
     max_nrecords: int = 1000
-    expire_after: float = EXPIRE
-    disable_caching: bool = False
 
     @validator("read_method")
     def _read_method(cls, v: str) -> str:
@@ -640,20 +611,6 @@ class WFSBase(BaseModel):
     @validator("version")
     def _version(cls, v: str) -> str:
         return validate_version(v, ["1.0.0", "1.1.0", "2.0.0"])
-
-    def __repr__(self) -> str:
-        """Print the services properties."""
-        return "\n".join(
-            [
-                "Connected to the WFS service with the following properties:",
-                f"URL: {self.url}",
-                f"Version: {self.version}",
-                f"Layer: {self.layer}",
-                f"Output Format: {self.outformat}",
-                f"Output CRS: {self.crs}",
-                f"Read Method: {self.read_method}",
-            ]
-        )
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
@@ -705,12 +662,7 @@ class WFSBase(BaseModel):
             "typeName": self.layer,
             max_features: 1,
         }
-        rjson = ar.retrieve_json(
-            [self.url],
-            [{"params": payload}],
-            expire_after=self.expire_after,
-            disable=self.disable_caching,
-        )[0]
+        rjson = ar.retrieve_json([self.url], [{"params": payload}])[0]
         valid_fields = list(
             set(
                 utils.traverse_json(rjson, ["fields", "name"])
@@ -723,3 +675,17 @@ class WFSBase(BaseModel):
             valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
 
         return valid_fields
+
+    def __repr__(self) -> str:
+        """Print the services properties."""
+        return "\n".join(
+            [
+                "Connected to the WFS service with the following properties:",
+                f"URL: {self.url}",
+                f"Version: {self.version}",
+                f"Layer: {self.layer}",
+                f"Output Format: {self.outformat}",
+                f"Output CRS: {self.crs}",
+                f"Read Method: {self.read_method}",
+            ]
+        )

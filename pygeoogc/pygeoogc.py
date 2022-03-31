@@ -11,7 +11,7 @@ import shapely.ops as ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from . import utils
-from .core import DEF_CRS, EXPIRE, ArcGISRESTfulBase, WFSBase, WMSBase
+from .core import DEF_CRS, ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
 
 
@@ -55,10 +55,6 @@ class ArcGISRESTful:
         If ``True`` in case there are any failed queries, no retrying attempts
         is done and object IDs of the failed requests is saved to a text file
         which its path can be accessed via ``self.client.failed_path``.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -71,8 +67,6 @@ class ArcGISRESTful:
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
-        expire_after: float = EXPIRE,
-        disable_caching: bool = False,
     ) -> None:
         self.client = ArcGISRESTfulBase(
             base_url=base_url,
@@ -83,8 +77,6 @@ class ArcGISRESTful:
             max_workers=max_workers,
             verbose=verbose,
             disable_retry=disable_retry,
-            expire_after=expire_after,
-            disable_caching=disable_caching,
         )
 
     def oids_bygeom(
@@ -313,10 +305,6 @@ class WMS:
         Validate the input arguments from the WMS service, defaults to True. Set this
         to False if you are sure all the WMS settings such as layer and crs are correct
         to avoid sending extra requests.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
     ssl : bool or SSLContext, optional
         SSLContext to use for the connection, defaults to None. Set to False to disable
         SSL certification verification.
@@ -330,8 +318,6 @@ class WMS:
         version: str = "1.3.0",
         crs: str = DEF_CRS,
         validation: bool = True,
-        expire_after: float = EXPIRE,
-        disable_caching: bool = False,
         ssl: Union[SSLContext, bool, None] = None,
     ) -> None:
         self.client = WMSBase(
@@ -340,15 +326,11 @@ class WMS:
             outformat=outformat,
             version=version,
             crs=crs,
-            expire_after=expire_after,
-            disable_caching=disable_caching,
         )
         self.url = self.client.url
         self.outformat = self.client.outformat
         self.version = self.client.version
         self.crs = self.client.crs
-        self.expire_after = self.client.expire_after
-        self.disable_caching = self.client.disable_caching
         self.ssl = ssl
         self.layers = (
             [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
@@ -359,10 +341,6 @@ class WMS:
     def get_validlayers(self) -> Dict[str, str]:
         """Get the layers supported by the WMS service."""
         return self.client.get_validlayers()
-
-    def __repr__(self) -> str:
-        """Print the services properties."""
-        return self.client.__repr__()
 
     def getmap_bybox(
         self,
@@ -444,11 +422,13 @@ class WMS:
             [self.url] * len(payloads),
             [{"params": p} for p in payloads],
             max_workers=4,
-            expire_after=self.expire_after,
-            disable=self.disable_caching,
             ssl=self.ssl,
         )
         return dict(zip(layers, rbinary))
+
+    def __repr__(self) -> str:
+        """Print the services properties."""
+        return self.client.__repr__()
 
 
 class WFS(WFSBase):
@@ -482,10 +462,6 @@ class WFS(WFSBase):
         Validate the input arguments from the WFS service, defaults to True. Set this
         to False if you are sure all the WFS settings such as layer and crs are correct
         to avoid sending extra requests.
-    expire_after : int, optional
-        Expiration time for response caching in seconds, defaults to -1 (never expire).
-    disable_caching : bool, optional
-        If ``True``, disable caching requests, defaults to False.
     """
 
     def __init__(
@@ -498,8 +474,6 @@ class WFS(WFSBase):
         read_method: str = "json",
         max_nrecords: int = 1000,
         validation: bool = True,
-        expire_after: float = EXPIRE,
-        disable_caching: bool = False,
     ) -> None:
         super().__init__(
             url=url,
@@ -509,8 +483,6 @@ class WFS(WFSBase):
             crs=crs,
             read_method=read_method,
             max_nrecords=max_nrecords,
-            expire_after=expire_after,
-            disable_caching=disable_caching,
         )
 
         if validation:
@@ -558,13 +530,7 @@ class WFS(WFSBase):
             "srsName": self.crs,
         }
 
-        return ar.retrieve(
-            [self.url],
-            self.read_method,
-            [{"params": payload}],
-            expire_after=self.expire_after,
-            disable=self.disable_caching,
-        )[0]
+        return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
 
     def getfeature_bygeom(
         self,
@@ -712,22 +678,11 @@ class WFS(WFSBase):
         }
 
         if method == "GET":
-            return ar.retrieve(
-                [self.url],
-                self.read_method,
-                [{"params": payload}],
-                expire_after=self.expire_after,
-                disable=self.disable_caching,
-            )[0]
+            return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
         return ar.retrieve(
-            [self.url],
-            self.read_method,
-            [{"data": payload, "headers": headers}],
-            "POST",
-            expire_after=self.expire_after,
-            disable=self.disable_caching,
+            [self.url], self.read_method, [{"data": payload, "headers": headers}], "POST"
         )[0]
 
 

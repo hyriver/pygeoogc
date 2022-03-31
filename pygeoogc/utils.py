@@ -1,5 +1,6 @@
 """Some utilities for PyGeoOGC."""
 import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
@@ -34,6 +35,19 @@ G = TypeVar(
 )
 
 
+def check_response(resp: str) -> str:
+    """Extract error message from a response, if any."""
+    try:
+        root = etree.fromstring(resp)
+    except etree.ParseError:
+        return resp
+    else:
+        try:
+            return str(root[-1][0].text).strip()
+        except IndexError:
+            return str(root[-1].text).strip()
+
+
 class RetrySession:
     """Configures the passed-in session to retry on failed requests.
 
@@ -54,6 +68,8 @@ class RetrySession:
     cache_name : str, optional
         Path to a folder for caching the session, default to None which uses
         system's temp directory.
+    expire_after : int, optional
+        Expiration time for the cache in seconds, defaults to -1 (never expire).
     """
 
     def __init__(
@@ -63,12 +79,15 @@ class RetrySession:
         status_to_retry: Tuple[int, ...] = (500, 502, 504),
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
+        expire_after: int = EXPIRE,
     ) -> None:
         self.cache_name = (
             Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
         )
         backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
-        self.session = CachedSession(expire_after=EXPIRE, backend=backend)
+        self.session = CachedSession(
+            expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
+        )
 
         adapter = HTTPAdapter(
             max_retries=Retry(
@@ -183,12 +202,10 @@ def traverse_json(
     if isinstance(obj, dict):
         return extract(obj, path, 0, [])
 
-    if isinstance(obj, list):
-        outer_arr = []
-        for item in obj:
-            outer_arr.append(extract(item, path, 0, []))
-        return outer_arr
-    return []
+    outer_arr = []
+    for item in obj:
+        outer_arr.append(extract(item, path, 0, []))
+    return outer_arr
 
 
 @dataclass
@@ -214,6 +231,28 @@ class ESRIGeomQuery:
         sgeom.Polygon,
     ]
     wkid: int
+
+    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Mapping[str, str]:
+        """Generate a request payload based on ESRI template.
+
+        Parameters
+        ----------
+        geo_type : str
+            Type of the input geometry
+        geo_json : dict
+            Geometry in GeoJson format.
+
+        Returns
+        -------
+        dict
+            An ESRI geometry payload.
+        """
+        esri_json = json.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
+        return {
+            "geometryType": geo_type,
+            "geometry": esri_json,
+            "inSR": str(self.wkid),
+        }
 
     def point(self) -> Mapping[str, str]:
         """Query for a point."""
@@ -259,28 +298,6 @@ class ESRIGeomQuery:
         geo_type = "esriGeometryPolyline"
         geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
         return self._get_payload(geo_type, geo_json)
-
-    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Mapping[str, str]:
-        """Generate a request payload based on ESRI template.
-
-        Parameters
-        ----------
-        geo_type : str
-            Type of the input geometry
-        geo_json : dict
-            Geometry in GeoJson format.
-
-        Returns
-        -------
-        dict
-            An ESRI geometry payload.
-        """
-        esri_json = json.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
-        return {
-            "geometryType": geo_type,
-            "geometry": esri_json,
-            "inSR": str(self.wkid),
-        }
 
 
 def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
@@ -483,19 +500,6 @@ def bbox_decompose(
     return bboxs
 
 
-def check_response(resp: str) -> str:
-    """Extract error message from a response, if any."""
-    try:
-        root = etree.fromstring(resp)
-    except etree.ParseError:
-        return resp
-    else:
-        try:
-            return str(root[-1][0].text).strip()
-        except IndexError:
-            return str(root[-1].text).strip()
-
-
 def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
     """Validate a CRS.
 
@@ -524,5 +528,5 @@ def valid_wms_crs(url: str) -> List[str]:
         return f"/{{{ns}}}".join([""] + tag_list)[1:]
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
-    root = etree.fromstring(ar.retrieve_text([url], [kwds])[0])
+    root = etree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
     return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
