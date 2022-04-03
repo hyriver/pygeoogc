@@ -2,8 +2,27 @@
 History
 =======
 
-0.12.3 (unreleased)
+0.12.3 (2022-04-03)
 -------------------
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+- Remove caching-related arguments from all functions since now they
+  can be set globally via three environmental variables:
+
+  * ``HYRIVER_CACHE_NAME``: Path to the caching SQLite database.
+  * ``HYRIVER_CACHE_EXPIRE``: Expiration time for cached requests in seconds.
+  * ``HYRIVER_CACHE_DISABLE``: Disable reading/writing from/to the cache file.
+
+  You can do this like so:
+
+.. code-block:: python
+
+    import os
+
+    os.environ["HYRIVER_CACHE_NAME"] = "path/to/file.sqlite"
+    os.environ["HYRIVER_CACHE_EXPIRE"] = "3600"
+    os.environ["HYRIVER_CACHE_DISABLE"] = "true"
 
 Bug Fixes
 ~~~~~~~~~
@@ -12,7 +31,8 @@ Bug Fixes
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
-- Return URLs in ``ServicURL`` as a ``NamedTuple`` since it has a
+- Refactor ``ServicURL`` to hard code the supported links instead of reading
+  them from a file. Also, the class now is based on ``NamedTuple`` that has a
   nicer ``__repr__``.
 
 0.12.2 (2022-01-15)
