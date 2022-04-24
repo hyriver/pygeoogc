@@ -719,7 +719,7 @@ class RESTfulURLs(NamedTuple):
     nm_3dep_index: str = (
         "https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer"
     )
-    geoconnex: str = "https://reference.geoconnex.us/"
+    geoconnex: str = "https://reference.geoconnex.us"
 
 
 class WFSURLs(NamedTuple):
