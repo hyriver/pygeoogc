@@ -169,8 +169,9 @@ class ArcGISRESTful:
         resp = self.client.get_response(self.client.query_url, [payload], method="POST")[0]
         try:
             return self.partition_oids(resp["objectIds"])
-        except KeyError as ex:
-            raise ZeroMatched(resp["error"]["message"]) from ex
+        except (KeyError, TypeError) as ex:
+            msg = resp["error"]["message"] if "error" in resp else "No matched records"
+            raise ZeroMatched(msg) from ex
 
     def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> Iterator[Tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
@@ -232,11 +233,12 @@ class ArcGISRESTful:
         }
         self.client.request_id = uuid.uuid4().hex
 
-        resp = self.client.get_response(self.client.query_url, [payload])[0]
+        resp = self.client.get_response(self.client.query_url, [payload], method="POST")[0]
         try:
             return self.partition_oids(resp["objectIds"])
-        except KeyError as ex:
-            raise ZeroMatched(resp["error"]["message"]) from ex
+        except (KeyError, TypeError) as ex:
+            msg = resp["error"]["message"] if "error" in resp else "No matched records"
+            raise ZeroMatched(msg) from ex
 
     def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``.
