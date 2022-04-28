@@ -2,6 +2,15 @@
 History
 =======
 
+0.13.1 (unreleased)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- More robust handling of errors in ``ArcGISRESTful`` by catching ``None``
+  responses. Also, use the ``POST`` method for ``ArcGISRESTful.bysql`` since
+  the SQL Clause could be a long string.
+
 0.13.0 (2022-04-03)
 -------------------
 
