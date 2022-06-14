@@ -11,7 +11,6 @@ dependencies:
   - brotli
   - cchardet
   - cytoolz
-  - importlib_metadata
   - ujson
 
   # pygeoogc deps
@@ -21,7 +20,7 @@ dependencies:
   - pyyaml
   - pyproj>=1.2
   - requests
-  - requests-cache>=0.8
+  - requests-cache>=0.9.1
   - shapely
   - urllib3
 
