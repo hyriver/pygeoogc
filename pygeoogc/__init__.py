@@ -1,4 +1,6 @@
 """Top-level package for PyGeoOGC."""
+import importlib.metadata
+
 from .exceptions import (
     InvalidInputType,
     InvalidInputValue,
@@ -11,14 +13,7 @@ from .print_versions import show_versions
 from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
 from .utils import RetrySession
 
-try:
-    import importlib.metadata
-except ImportError:
-    import importlib_metadata
-
-    __version__ = importlib_metadata.version("pygeoogc")
-else:
-    __version__ = importlib.metadata.version("pygeoogc")
+__version__ = importlib.metadata.version("pygeoogc")
 
 __all__ = [
     "ArcGISRESTful",
