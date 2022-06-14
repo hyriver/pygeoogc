@@ -10,8 +10,8 @@ Breaking Changes
 - Set the minimum supported version of Python to 3.8 since many of the
   dependencies such as ``xarray``, ``pandas``, ``rioxarray`` have dropped support
   for Python 3.7.
-- Pin `owslib` to version <0.26 since version 0.26 has pinned `pyproj` to
-  version <3.3 which is not compatible with `rasterio` on macOS.
+- Pin ``owslib`` to version <0.26 since version 0.26 has pinned ``pyproj`` to
+  version <3.3 which is not compatible with ``rasterio`` on macOS.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
