@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 import async_retriever as ar
 import defusedxml.ElementTree as etree
 import pyproj
+import requests
 import shapely.geometry as sgeom
 import ujson as json
 from requests.adapters import HTTPAdapter
@@ -70,6 +71,9 @@ class RetrySession:
         system's temp directory.
     expire_after : int, optional
         Expiration time for the cache in seconds, defaults to -1 (never expire).
+    disable : bool, optional
+        If ``True`` temporarily disable caching requests and get new responses
+        from the server, defaults to ``False``.
     """
 
     def __init__(
@@ -80,14 +84,19 @@ class RetrySession:
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
         expire_after: int = EXPIRE,
+        disable: bool = False,
     ) -> None:
-        self.cache_name = (
-            Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
-        )
-        backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
-        self.session = CachedSession(
-            expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
-        )
+        disable = os.getenv("HYRIVER_CACHE_DISABLE", f"{disable}").lower() == "true"
+        if disable:
+            self.session = requests.Session()
+        else:
+            self.cache_name = (
+                Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
+            )
+            backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
+            self.session = CachedSession(
+                expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
+            )
 
         adapter = HTTPAdapter(
             max_retries=Retry(
