@@ -2,6 +2,14 @@
 History
 =======
 
+0.13.3 (2022-07-20)
+------------------
+
+New Features
+~~~~~~~~~~~~
+- Add support for disabling persistent caching in ``RetrySession``
+  via an argument and also ``HYRIVER_CACHE_DISABLE`` environmental variable.
+
 0.13.2 (2022-06-14)
 -------------------
 
