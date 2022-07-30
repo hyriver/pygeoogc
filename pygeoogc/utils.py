@@ -377,40 +377,6 @@ def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
         raise InvalidInputType("bbox", "tuple", BOX_ORD)
 
 
-def bbox_resolution(
-    bbox: Tuple[float, float, float, float], resolution: float, bbox_crs: str = DEF_CRS
-) -> Tuple[int, int]:
-    """Image size of a bounding box WGS84 for a given resolution in meters.
-
-    Parameters
-    ----------
-    bbox : tuple
-        A bounding box in WGS84 (west, south, east, north)
-    resolution : float
-        The resolution in meters
-    bbox_crs : str, optional
-        The spatial reference of the input bbox, default to EPSG:4326.
-
-    Returns
-    -------
-    tuple
-        The width and height of the image
-    """
-    check_bbox(bbox)
-
-    bbox = match_crs(bbox, bbox_crs, DEF_CRS)
-    west, south, east, north = bbox
-    geod = pyproj.Geod(ellps="WGS84")
-
-    linex = sgeom.LineString([sgeom.Point(west, south), sgeom.Point(east, south)])
-    delx = geod.geometry_length(linex)
-
-    liney = sgeom.LineString([sgeom.Point(west, south), sgeom.Point(west, north)])
-    dely = geod.geometry_length(liney)
-
-    return int(delx / resolution), int(dely / resolution)
-
-
 def bbox_decompose(
     bbox: Tuple[float, float, float, float],
     resolution: float,
@@ -455,15 +421,20 @@ def bbox_decompose(
 
     """
     check_bbox(bbox)
-    _bbox = match_crs(bbox, box_crs, DEF_CRS)
-    width, height = bbox_resolution(_bbox, resolution, DEF_CRS)
+    west, south, east, north = match_crs(bbox, box_crs, DEF_CRS)
+
+    geod = pyproj.Geod(ellps="WGS84")
+
+    def get_pixels(x1: float, y1: float, x2: float, y2: float) -> int:
+        _, _, dist = geod.inv(x1, y1, x2, y2)
+        return int(dist / resolution)
+
+    width = get_pixels(west, south, east, south)
+    height = get_pixels(west, south, west, north)
 
     n_px = width * height
     if n_px < max_px:
         return [(bbox, "0_0", width, height)]
-
-    geod = pyproj.Geod(ellps="WGS84")
-    west, south, east, north = _bbox
 
     def directional_split(
         az: float, origin: float, dest: float, lvl: float, xy: bool, px: int
@@ -495,10 +466,10 @@ def bbox_decompose(
             mul -= 0.1
         return coords, divs
 
-    az_x = geod.inv(west, south, east, south)[0]
+    az_x, _, _ = geod.inv(west, south, east, south)
     lons, widths = directional_split(az_x, west, east, south, True, width)
 
-    az_y = geod.inv(west, south, west, north)[0]
+    az_y, _, _ = geod.inv(west, south, west, north)
     lats, heights = directional_split(az_y, south, north, west, False, height)
 
     bboxs = []
