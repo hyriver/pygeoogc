@@ -11,6 +11,8 @@ Breaking Changes
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
+- Bump minimum version of ``owslib`` to 0.27.2 since the ``pyproj`` incompatibility issue
+  has been addressed in this issue.
 - Bump minimum version of ``requests-cache`` to 0.9.6 since the ``attrs`` version issue
   has been addressed.
 
