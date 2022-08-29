@@ -2,7 +2,7 @@
 History
 =======
 
-0.13.5 (unreleased)
+0.13.5 (2022-08-29)
 -------------------
 
 Breaking Changes
