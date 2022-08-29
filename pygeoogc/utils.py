@@ -52,8 +52,10 @@ def check_response(resp: str) -> str:
 class RetrySession:
     """Configures the passed-in session to retry on failed requests.
 
+    Notes
+    -----
     The fails can be due to connection errors, specific HTTP response
-    codes and 30X redirections. The code is was originally based on:
+    codes and 30X redirections. The code was originally based on:
     https://github.com/bustawin/retry-requests
 
     Parameters
