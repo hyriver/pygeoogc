@@ -1,19 +1,22 @@
 """Top-level package for PyGeoOGC."""
-import importlib.metadata
+from importlib.metadata import version, PackageNotFoundError
 
 from .exceptions import (
-    InvalidInputType,
-    InvalidInputValue,
-    MissingInputs,
+    InputTypeError,
+    InputValueError,
+    MissingInputError,
     ServiceError,
-    ServiceUnavailable,
-    ZeroMatched,
+    ServiceUnavailableError,
+    ZeroMatchedError,
 )
 from .print_versions import show_versions
 from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
 from .utils import RetrySession
 
-__version__ = importlib.metadata.version("pygeoogc")
+try:
+    __version__ = version("pygeoogc")
+except PackageNotFoundError:
+    __version__ = "999"
 
 __all__ = [
     "ArcGISRESTful",
@@ -21,11 +24,11 @@ __all__ = [
     "WMS",
     "ServiceURL",
     "RetrySession",
-    "InvalidInputType",
-    "InvalidInputValue",
-    "MissingInputs",
+    "InputTypeError",
+    "InputValueError",
+    "MissingInputError",
     "ServiceError",
-    "ServiceUnavailable",
-    "ZeroMatched",
+    "ServiceUnavailableError",
+    "ZeroMatchedError",
     "show_versions",
 ]
