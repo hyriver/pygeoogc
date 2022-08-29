@@ -1,5 +1,5 @@
 """Top-level package for PyGeoOGC."""
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 from .exceptions import (
     InputTypeError,

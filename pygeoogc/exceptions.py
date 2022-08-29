@@ -14,7 +14,7 @@ class ServiceError(ar.ServiceError):
     """
 
 
-class InvalidInputValue(ar.InvalidInputValue):
+class InputValueError(ar.InputValueError):
     """Exception raised for invalid input.
 
     Parameters
@@ -26,7 +26,7 @@ class InvalidInputValue(ar.InvalidInputValue):
     """
 
 
-class InvalidInputType(ar.InvalidInputType):
+class InputTypeError(ar.InputTypeError):
     """Exception raised when a function argument type is invalid.
 
     Parameters
@@ -40,11 +40,11 @@ class InvalidInputType(ar.InvalidInputType):
     """
 
 
-class MissingInputs(ValueError):
+class MissingInputError(ValueError):
     """Exception raised when there are missing function arguments."""
 
 
-class ServiceUnavailable(Exception):
+class ServiceUnavailableError(Exception):
     """Exception raised when the service is not available.
 
     Parameters
@@ -61,7 +61,7 @@ class ServiceUnavailable(Exception):
         return self.message
 
 
-class ZeroMatched(ValueError):
+class ZeroMatchedError(ValueError):
     """Exception raised when a function argument is missing.
 
     Parameters

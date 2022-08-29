@@ -4,12 +4,12 @@ from pydantic import ValidationError
 
 from pygeoogc import (
     ArcGISRESTful,
-    InvalidInputType,
-    InvalidInputValue,
+    InputTypeError,
+    InputValueError,
     RetrySession,
     ServiceError,
     ServiceURL,
-    ZeroMatched,
+    ZeroMatchedError,
 )
 
 try:
@@ -25,7 +25,7 @@ class TestRESTException:
     rest_wbd: ArcGISRESTful = ArcGISRESTful(ServiceURL().restful.wbd, 1)
 
     def test_rest_invalid_crs(self):
-        with pytest.raises(InvalidInputType) as ex:
+        with pytest.raises(InputTypeError) as ex:
             _ = ArcGISRESTful(f"{self.wbd_url}/1/", crs="x")
         assert "The crs argument" in str(ex.value)
 
@@ -35,22 +35,22 @@ class TestRESTException:
         assert "Either layer must be passed" in str(ex.value)
 
     def test_rest_invalid_layer(self):
-        with pytest.raises(InvalidInputValue) as ex:
+        with pytest.raises(InputValueError) as ex:
             _ = ArcGISRESTful(self.wbd_url, 9999)
         assert "Given layer is invalid" in str(ex.value)
 
     def test_rest_invalid_max_workers(self):
-        with pytest.raises(InvalidInputType) as ex:
+        with pytest.raises(InputTypeError) as ex:
             _ = ArcGISRESTful(f"{self.wbd_url}/1/", max_workers=-1)
         assert "positive integer" in str(ex.value)
 
     def test_rest_invalid_outformat(self):
-        with pytest.raises(InvalidInputValue) as ex:
+        with pytest.raises(InputValueError) as ex:
             _ = ArcGISRESTful(self.wbd_url, 1, outformat="png")
         assert "geojson" in str(ex.value)
 
     def test_rest_invalid_outfields(self):
-        with pytest.raises(InvalidInputValue) as ex:
+        with pytest.raises(InputValueError) as ex:
             _ = ArcGISRESTful(self.wbd_url, 1, outfields="dem")
         assert "areaacres" in str(ex.value)
 
@@ -60,23 +60,23 @@ class TestRESTException:
         assert "_extra_bit" in str(ex.value)
 
     def test_rest_zero_oid(self):
-        with pytest.raises(ZeroMatched) as ex:
+        with pytest.raises(ZeroMatchedError) as ex:
             _ = self.rest_wbd.partition_oids([])
         assert "Service returned no features" in str(ex.value)
 
     @pytest.mark.skipif(has_typeguard, reason="Broken if Typeguard is enabled")
     def test_rest_unsupported_geometry(self):
-        with pytest.raises(InvalidInputType) as ex:
+        with pytest.raises(InputTypeError) as ex:
             self.rest_wbd.oids_bygeom({1, 2})
         assert "The geom argument should be" in str(ex.value)
 
     def test_rest_unsupported_spatial_rel(self):
-        with pytest.raises(InvalidInputValue) as ex:
+        with pytest.raises(InputValueError) as ex:
             self.rest_wbd.oids_bygeom((-1, 1), spatial_relation="intersects")
         assert "esriSpatialRelIntersects" in str(ex.value)
 
     def test_rest_wrong_sql(self):
-        with pytest.raises(ZeroMatched) as ex:
+        with pytest.raises(ZeroMatchedError) as ex:
             self.rest_wbd.oids_bysql("NHDFlowline.PERMANENT_IDENTIFIER")
         assert "no features" in str(ex.value)
 

@@ -18,12 +18,12 @@ from shapely.geometry import LineString, MultiPoint, Point, Polygon
 
 from . import utils
 from .exceptions import (
-    InvalidInputType,
-    InvalidInputValue,
-    MissingInputs,
+    InputTypeError,
+    InputValueError,
+    MissingInputError,
     ServiceError,
-    ServiceUnavailable,
-    ZeroMatched,
+    ServiceUnavailableError,
+    ZeroMatchedError,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ def validate_version(val: str, valid_versions: List[str]) -> str:
         Validated version value.
     """
     if val not in valid_versions:
-        raise InvalidInputValue("version", valid_versions)
+        raise InputValueError("version", valid_versions)
     return val
 
 
@@ -111,31 +111,36 @@ class RESTValidator(BaseModel):
             return url, None
 
     @validator("base_url")
+    @classmethod
     def _layer_from_url(cls, v: str) -> Tuple[str, Optional[int]]:
         return cls._split_url(urlparse.unquote(v))
 
     @validator("layer")
+    @classmethod
     def _integer_layer(cls, v: Optional[int], values: Dict[str, Any]) -> int:
         if v is None:
             try:
                 return int(values["base_url"][1])
             except TypeError as ex:
                 msg = "Either layer must be passed as an argument or be included in ``base_url``"
-                raise MissingInputs(msg) from ex
+                raise MissingInputError(msg) from ex
         return v
 
     @validator("outfields")
+    @classmethod
     def _outfields_to_list(cls, v: Union[List[str], str]) -> List[str]:
         return v if isinstance(v, list) else [v]
 
     @validator("crs")
+    @classmethod
     def _valid_crs(cls, v: str) -> str:
         return utils.validate_crs(v)
 
     @validator("max_workers")
+    @classmethod
     def _positive_integer_threads(cls, v: int) -> int:
         if v <= 0:
-            raise InvalidInputType("max_workers", "positive integer")
+            raise InputTypeError("max_workers", "positive integer")
         return v
 
 
@@ -243,7 +248,7 @@ class ArcGISRESTfulBase:
                 crs = utils.validate_crs(extent["spatialReference"].get(next(crs_iter)))
                 self.extent = utils.match_crs(bounds, crs, DEF_CRS)
                 break
-            except InvalidInputType:
+            except InputTypeError:
                 continue
             except StopIteration as ex:
                 raise ServiceError(self.base_url) from ex
@@ -276,21 +281,21 @@ class ArcGISRESTfulBase:
         self._set_service_properties()
         if f"{self.layer}" not in self.valid_layers:
             valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
-            raise InvalidInputValue("layer", valids)
+            raise InputValueError("layer", valids)
 
         self._set_layer_properties()
 
         if self.outformat.lower() not in self.query_formats:
-            raise InvalidInputValue("outformat", self.query_formats)
+            raise InputValueError("outformat", self.query_formats)
 
         if any(f not in self.valid_fields for f in self.outfields):
-            raise InvalidInputValue("outfields", self.valid_fields)
+            raise InputValueError("outfields", self.valid_fields)
 
     def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``."""
         oid_list = [oids] if isinstance(oids, int) else set(oids)
         if len(oid_list) == 0:
-            raise ZeroMatched
+            raise ZeroMatchedError
 
         self.n_features = len(oid_list)
         if not self.disable_retry and self.verbose:
@@ -381,7 +386,7 @@ class ArcGISRESTfulBase:
 
         resp = self._cleanup_resp(resp, payloads)
         if len(resp) == 0:
-            raise ZeroMatched
+            raise ZeroMatchedError
         return resp
 
     def esri_query(
@@ -413,7 +418,7 @@ class ArcGISRESTfulBase:
         if isinstance(geom, LineString):
             return utils.ESRIGeomQuery(geom, self.out_sr).polyline()
 
-        raise InvalidInputType("geom", "LineString, Polygon, Point, MultiPoint, tuple")
+        raise InputTypeError("geom", "LineString, Polygon, Point, MultiPoint, tuple")
 
     def _retry(
         self, return_m: bool, return_geo: bool, partition_fac: float
@@ -463,7 +468,7 @@ class ArcGISRESTfulBase:
                 max_workers=self.max_workers,
             )
         except ValueError:
-            raise ZeroMatched
+            raise ZeroMatchedError
 
     def __repr__(self) -> str:
         """Print the service configuration."""
@@ -510,10 +515,12 @@ class WMSBase(BaseModel):
     crs: str = DEF_CRS
 
     @validator("crs")
+    @classmethod
     def _valid_crs(cls, v: str) -> str:
         return utils.validate_crs(v)
 
     @validator("version")
+    @classmethod
     def _version(cls, v: str) -> str:
         return validate_version(v, ["1.1.1", "1.3.0"])
 
@@ -522,28 +529,28 @@ class WMSBase(BaseModel):
         try:
             wms = WebMapService(self.url, version=self.version)
         except AttributeError as ex:
-            raise ServiceUnavailable(self.url) from ex
+            raise ServiceUnavailableError(self.url) from ex
 
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
         valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
         if any(lyr not in valid_layers.keys() for lyr in layers):
-            raise InvalidInputValue("layers", (f"{n} for {t}" for n, t in valid_layers.items()))
+            raise InputValueError("layers", (f"{n} for {t}" for n, t in valid_layers.items()))
 
         valid_outformats = wms.getOperationByName("GetMap").formatOptions
         if self.outformat not in valid_outformats:
-            raise InvalidInputValue("outformat", valid_outformats)
+            raise InputValueError("outformat", valid_outformats)
 
         valid_crss = {lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in layers}
         if any(self.crs.lower() not in valid_crss[lyr] for lyr in layers):
             _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
-            raise InvalidInputValue("CRS", _valid_crss)
+            raise InputValueError("CRS", _valid_crss)
 
     def get_validlayers(self) -> Dict[str, str]:
         """Get the layers supported by the WMS service."""
         try:
             wms = WebMapService(self.url, version=self.version)
         except AttributeError as ex:
-            raise ServiceUnavailable(self.url) from ex
+            raise ServiceUnavailableError(self.url) from ex
 
         return {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
 
@@ -598,17 +605,20 @@ class WFSBase(BaseModel):
     max_nrecords: int = 1000
 
     @validator("read_method")
+    @classmethod
     def _read_method(cls, v: str) -> str:
         valid_methods = ["json", "binary", "text"]
         if v not in valid_methods:
-            raise InvalidInputValue("read_method", valid_methods)
+            raise InputValueError("read_method", valid_methods)
         return v
 
     @validator("crs")
+    @classmethod
     def _valid_crs(cls, v: str) -> str:
         return utils.validate_crs(v)
 
     @validator("version")
+    @classmethod
     def _version(cls, v: str) -> str:
         return validate_version(v, ["1.0.0", "1.1.0", "2.0.0"])
 
@@ -617,17 +627,17 @@ class WFSBase(BaseModel):
         try:
             wfs = WebFeatureService(self.url, version=self.version)
         except AttributeError as ex:
-            raise ServiceUnavailable(self.url) from ex
+            raise ServiceUnavailableError(self.url) from ex
 
         valid_layers = list(wfs.contents)
         if self.layer is None:
-            raise MissingInputs(
+            raise MissingInputError(
                 "The layer argument is missing."
                 + " The following layers are available:\n"
                 + ", ".join(valid_layers)
             )
         if self.layer not in valid_layers:
-            raise InvalidInputValue("layers", valid_layers)
+            raise InputValueError("layers", valid_layers)
 
         wfs_features = wfs.getOperationByName("GetFeature")
         if self.version == "1.0.0":
@@ -637,18 +647,18 @@ class WFSBase(BaseModel):
 
         valid_outformats = [v.lower() for v in valid_outformats]
         if self.outformat is None:
-            raise MissingInputs(
+            raise MissingInputError(
                 "The outformat argument is missing."
                 + " The following output formats are available:\n"
                 + ", ".join(valid_outformats)
             )
 
         if self.outformat not in valid_outformats:
-            raise InvalidInputValue("outformat", valid_outformats)
+            raise InputValueError("outformat", valid_outformats)
 
         valid_crss = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
         if self.crs.lower() not in valid_crss:
-            raise InvalidInputValue("crs", valid_crss)
+            raise InputValueError("crs", valid_crss)
 
     def get_validnames(self) -> List[str]:
         """Get valid column names for a layer."""

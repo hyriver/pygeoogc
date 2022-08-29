@@ -12,7 +12,7 @@ from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygo
 
 from . import utils
 from .core import DEF_CRS, ArcGISRESTfulBase, WFSBase, WMSBase
-from .exceptions import InvalidInputType, InvalidInputValue, ZeroMatched
+from .exceptions import InputTypeError, InputValueError, ZeroMatchedError
 
 
 class ArcGISRESTful:
@@ -142,7 +142,7 @@ class ArcGISRESTful:
             "esriSpatialRelRelation",
         ]
         if spatial_relation not in valid_spatialrels:
-            raise InvalidInputValue("spatial_relation", valid_spatialrels)
+            raise InputValueError("spatial_relation", valid_spatialrels)
 
         if isinstance(geom, tuple) and len(geom) == 2:
             geom = Point(geom)
@@ -171,7 +171,7 @@ class ArcGISRESTful:
             return self.partition_oids(resp["objectIds"])
         except (KeyError, TypeError) as ex:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
-            raise ZeroMatched(msg) from ex
+            raise ZeroMatchedError(msg) from ex
 
     def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> Iterator[Tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
@@ -189,10 +189,10 @@ class ArcGISRESTful:
             A list of feature IDs partitioned by ``self.max_nrecords``.
         """
         if field not in self.client.valid_fields:
-            raise InvalidInputValue("field", self.client.valid_fields)
+            raise InputValueError("field", self.client.valid_fields)
 
         if not isinstance(ids, Sequence):
-            raise InvalidInputType("ids", "str or list")
+            raise InputTypeError("ids", "str or list")
 
         ids_ls = [ids] if isinstance(ids, str) else ids
 
@@ -223,7 +223,7 @@ class ArcGISRESTful:
             A list of feature IDs partitioned by ``self.max_nrecords``.
         """
         if not isinstance(sql_clause, str):
-            raise InvalidInputType("sql_clause", "str")
+            raise InputTypeError("sql_clause", "str")
 
         payload = {
             "where": sql_clause,
@@ -238,7 +238,7 @@ class ArcGISRESTful:
             return self.partition_oids(resp["objectIds"])
         except (KeyError, TypeError) as ex:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
-            raise ZeroMatched(msg) from ex
+            raise ZeroMatchedError(msg) from ex
 
     def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``.
@@ -394,7 +394,7 @@ class WMS:
         }
 
         if not isinstance(kwargs, (dict, type(None))):
-            raise InvalidInputType("kwargs", "dict or None")
+            raise InputTypeError("kwargs", "dict or None")
 
         if isinstance(kwargs, dict):
             payload.update(kwargs)
@@ -594,7 +594,7 @@ class WFS(WFSBase):
             "BEYOND",
         ]
         if predicate not in valid_predicates:
-            raise InvalidInputValue("predicate", valid_predicates)
+            raise InputValueError("predicate", valid_predicates)
 
         return self.getfeature_byfilter(f"{predicate.upper()}(the_geom, {g_wkt})", method="POST")
 
@@ -619,15 +619,15 @@ class WFS(WFSBase):
         """
         valid_features = self.get_validnames()
         if featurename not in valid_features:
-            raise InvalidInputValue("featurename", valid_features)
+            raise InputValueError("featurename", valid_features)
 
         if not isinstance(featureids, (str, int, list)):
-            raise InvalidInputType("featureids", "str or list of str")
+            raise InputTypeError("featureids", "str or list of str")
 
         featureids = [featureids] if isinstance(featureids, (str, int)) else featureids
 
         if len(featureids) == 0:
-            raise InvalidInputType("featureids", "int or str or list")
+            raise InputTypeError("featureids", "int or str or list")
 
         fid_list = (
             ", ".join(f"'{fid}'" for fid in fids)
@@ -663,11 +663,11 @@ class WFS(WFSBase):
             WFS query response
         """
         if not isinstance(cql_filter, str):
-            raise InvalidInputType("cql_filter", "str")
+            raise InputTypeError("cql_filter", "str")
 
         valid_methods = ["GET", "POST"]
         if method not in valid_methods:
-            raise InvalidInputValue("method", valid_methods)
+            raise InputValueError("method", valid_methods)
 
         payload = {
             "service": "wfs",

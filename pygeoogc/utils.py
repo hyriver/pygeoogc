@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
 
 import async_retriever as ar
-import defusedxml.ElementTree as etree
+import defusedxml.ElementTree as ETree
 import pyproj
 import requests
 import shapely.geometry as sgeom
@@ -18,7 +18,7 @@ from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
 from urllib3 import Retry
 
-from .exceptions import InvalidInputType, ServiceError
+from .exceptions import InputTypeError, ServiceError
 
 DEF_CRS = "epsg:4326"
 BOX_ORD = "(west, south, east, north)"
@@ -39,8 +39,8 @@ G = TypeVar(
 def check_response(resp: str) -> str:
     """Extract error message from a response, if any."""
     try:
-        root = etree.fromstring(resp)
-    except etree.ParseError:
+        root = ETree.fromstring(resp)
+    except ETree.ParseError:
         return resp
     else:
         try:
@@ -266,7 +266,7 @@ class ESRIGeomQuery:
     def point(self) -> Mapping[str, str]:
         """Query for a point."""
         if not (isinstance(self.geometry, tuple) and len(self.geometry) == 2):
-            raise InvalidInputType("geometry", "tuple", "(x, y)")
+            raise InputTypeError("geometry", "tuple", "(x, y)")
 
         geo_type = "esriGeometryPoint"
         geo_json = dict(zip(("x", "y"), self.geometry))
@@ -275,7 +275,7 @@ class ESRIGeomQuery:
     def multipoint(self) -> Mapping[str, str]:
         """Query for a multi-point."""
         if not (isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry)):
-            raise InvalidInputType("geometry", "list of tuples", "[(x, y), ...]")
+            raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]")
 
         geo_type = "esriGeometryMultipoint"
         geo_json = {"points": [[x, y] for x, y in self.geometry]}
@@ -284,7 +284,7 @@ class ESRIGeomQuery:
     def bbox(self) -> Mapping[str, str]:
         """Query for a bbox."""
         if not (isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4):
-            raise InvalidInputType("geometry", "tuple", BOX_ORD)
+            raise InputTypeError("geometry", "tuple", BOX_ORD)
 
         geo_type = "esriGeometryEnvelope"
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
@@ -293,7 +293,7 @@ class ESRIGeomQuery:
     def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
         if not isinstance(self.geometry, sgeom.Polygon):
-            raise InvalidInputType("geometry", "Polygon")
+            raise InputTypeError("geometry", "Polygon")
 
         geo_type = "esriGeometryPolygon"
         geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
@@ -302,7 +302,7 @@ class ESRIGeomQuery:
     def polyline(self) -> Mapping[str, str]:
         """Query for a polyline."""
         if not isinstance(self.geometry, sgeom.LineString):
-            raise InvalidInputType("geometry", "LineString")
+            raise InputTypeError("geometry", "LineString")
 
         geo_type = "esriGeometryPolyline"
         geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
@@ -368,13 +368,13 @@ def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
         "a list of coordinates such as [(x1, y1), ...],"
         + "a bounding box like so (xmin, ymin, xmax, ymax), or any valid shapely's geometry."
     )
-    raise InvalidInputType("geom", gtypes)
+    raise InputTypeError("geom", gtypes)
 
 
 def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
     if not (isinstance(bbox, tuple) and len(bbox) == 4):
-        raise InvalidInputType("bbox", "tuple", BOX_ORD)
+        raise InputTypeError("bbox", "tuple", BOX_ORD)
 
 
 def bbox_decompose(
@@ -496,7 +496,7 @@ def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
     try:
         crs: str = pyproj.CRS(val).to_string()
     except pyproj.exceptions.CRSError as ex:
-        raise InvalidInputType("crs", "a valid CRS") from ex
+        raise InputTypeError("crs", "a valid CRS") from ex
     return crs
 
 
@@ -508,5 +508,5 @@ def valid_wms_crs(url: str) -> List[str]:
         return f"/{{{ns}}}".join([""] + tag_list)[1:]
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
-    root = etree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
+    root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
     return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
