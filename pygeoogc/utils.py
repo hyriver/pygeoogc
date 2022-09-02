@@ -1,4 +1,5 @@
 """Some utilities for PyGeoOGC."""
+import itertools
 import math
 import os
 from dataclasses import dataclass
@@ -20,9 +21,8 @@ from urllib3 import Retry
 
 from .exceptions import InputTypeError, ServiceError
 
-DEF_CRS = "epsg:4326"
+CRSTYPE = Union[int, str, pyproj.CRS]
 BOX_ORD = "(west, south, east, north)"
-EXPIRE = -1
 G = TypeVar(
     "G",
     sgeom.Point,
@@ -85,7 +85,7 @@ class RetrySession:
         status_to_retry: Tuple[int, ...] = (500, 502, 504),
         prefixes: Tuple[str, ...] = ("https://",),
         cache_name: Optional[Union[str, Path]] = None,
-        expire_after: int = EXPIRE,
+        expire_after: int = -1,
         disable: bool = False,
     ) -> None:
         disable = os.getenv("HYRIVER_CACHE_DISABLE", f"{disable}").lower() == "true"
@@ -311,7 +311,7 @@ class ESRIGeomQuery:
         return self._get_payload(geo_type, geo_json)
 
 
-def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
+def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
     """Reproject a geometry to another CRS.
 
     Parameters
@@ -344,6 +344,9 @@ def match_crs(geom: G, in_crs: str, out_crs: str) -> G:
     >>> match_crs(coords, "epsg:3857", "epsg:4326")
     [(-69.7636111130079, 45.44549114818127)]
     """
+    if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
+        return geom
+
     project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
 
     if isinstance(
@@ -382,7 +385,7 @@ def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
 def bbox_decompose(
     bbox: Tuple[float, float, float, float],
     resolution: float,
-    box_crs: str = DEF_CRS,
+    box_crs: CRSTYPE = 4326,
     max_px: int = 8000000,
 ) -> List[Tuple[Tuple[float, float, float, float], str, int, int]]:
     r"""Split the bounding box vertically for WMS requests.
@@ -423,71 +426,49 @@ def bbox_decompose(
 
     """
     check_bbox(bbox)
-    west, south, east, north = match_crs(bbox, box_crs, DEF_CRS)
 
-    geod = pyproj.Geod(ellps="WGS84")
+    geod = pyproj.Geod(ellps="GRS80")
 
-    def get_pixels(x1: float, y1: float, x2: float, y2: float) -> int:
-        _, _, dist = geod.inv(x1, y1, x2, y2)
-        return int(dist / resolution)
+    west, south, east, north = bbox
 
-    width = get_pixels(west, south, east, south)
-    height = get_pixels(west, south, west, north)
+    xmin, ymin, xmax, ymax = match_crs(bbox, box_crs, 4326)
 
-    n_px = width * height
-    if n_px < max_px:
-        return [(bbox, "0_0", width, height)]
+    x_dist = geod.geometry_length(sgeom.LineString([(xmin, ymin), (xmax, ymin)]))
+    y_dist = geod.geometry_length(sgeom.LineString([(xmin, ymin), (xmin, ymax)]))
+    width = int(math.ceil(x_dist / resolution))
+    height = int(math.ceil(y_dist / resolution))
 
-    def directional_split(
-        az: float, origin: float, dest: float, lvl: float, xy: bool, px: int
-    ) -> Tuple[List[Tuple[float, Any]], List[int]]:
-        divs = [0]
-        mul = 1.0
-        coords = []
+    if width * height <= max_px:
+        bboxs = [(bbox, "0_0", width, height)]
 
-        def get_args(dst: float, dx: float) -> Tuple[float, float, float, float, int]:
-            return (dst, lvl, az, dx, 0) if xy else (lvl, dst, az, dx, 1)
+    n_px = int(math.sqrt(max_px))
 
-        while divs[-1] < 1:
-            dim = int(math.sqrt(max_px) * mul)
-            step = (dim - 1) * resolution
+    nw = [n_px for _ in range(width // n_px)] + [width % n_px]
+    xd = abs(east - west)
+    dx = [xd * n / sum(nw) for n in nw]
+    xs = [west + d for d in itertools.accumulate(dx)]
+    xs.insert(0, west)
 
-            _dest = origin
-            while _dest < dest:
-                args = get_args(_dest, step)
-                coords.append((_dest, geod.fwd(*args[:-1])[args[-1]]))
-
-                args = get_args(coords[-1][-1], resolution)
-                _dest = geod.fwd(*args[:-1])[args[-1]]
-
-            coords[-1] = (coords[-1][0], dest)
-
-            n_dim = len(coords)
-            divs = [dim for _ in range(n_dim)]
-            divs[-1] = px - (n_dim - 1) * dim
-            mul -= 0.1
-        return coords, divs
-
-    az_x, _, _ = geod.inv(west, south, east, south)
-    lons, widths = directional_split(az_x, west, east, south, True, width)
-
-    az_y, _, _ = geod.inv(west, south, west, north)
-    lats, heights = directional_split(az_y, south, north, west, False, height)
+    nh = [n_px for _ in range(height // n_px)] + [height % n_px]
+    yd = abs(north - south)
+    dy = [yd * n / sum(nh) for n in nh]
+    ys = [south + d for d in itertools.accumulate(dy)]
+    ys.insert(0, south)
 
     bboxs = []
-    for i, ((bottom, top), h) in enumerate(zip(lats, heights)):
-        for j, ((left, right), w) in enumerate(zip(lons, widths)):
-            bx_crs = match_crs((left, bottom, right, top), DEF_CRS, box_crs)
-            bboxs.append((bx_crs, f"{i}_{j}", w, h))
+    for j in range(len(nh)):
+        for i in range(len(nw)):
+            bx_crs = (xs[i], ys[j], xs[i + 1], ys[j + 1])
+            bboxs.append((bx_crs, f"{i}_{j}", nw[i], nh[j]))
     return bboxs
 
 
-def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
+def validate_crs(crs: CRSTYPE) -> str:
     """Validate a CRS.
 
     Parameters
     ----------
-    val : str or int
+    crs : str or int
         Input CRS.
 
     Returns
@@ -496,10 +477,9 @@ def validate_crs(val: Union[str, int, pyproj.CRS]) -> str:
         Validated CRS as a string.
     """
     try:
-        crs: str = pyproj.CRS(val).to_string()
+        return pyproj.CRS(crs).to_string()  # type: ignore
     except pyproj.exceptions.CRSError as ex:
         raise InputTypeError("crs", "a valid CRS") from ex
-    return crs
 
 
 def valid_wms_crs(url: str) -> List[str]:
