@@ -2,6 +2,25 @@
 History
 =======
 
+0.13.7 (unreleased)
+-------------------
+
+Bug Fixes
+~~~~~~~~~
+- Fix an issue in the decompose function, ``utils.bbox_decompose``, where the generated
+  bounding boxes might overlap in some cases. A new approach has been implemented based
+  on finding the number of required bounding boxes from max allowable no. of pixels and
+  total requested pixels without changing the input bounding box projection. This ensures
+  that the decomposed bounding boxes are not overlapping so ``xarray.open_mfdataset``
+  can be used without any issues.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- In the ``utils.match_crs`` function, don't perform any projection if the source
+  target CRS are the same.
+- Improve type hints for CRS-related arguments of all functions by including string,
+  integer, and ``pyproj.CRS`` types.
+
 0.13.6 (2022-08-30)
 -------------------
 
