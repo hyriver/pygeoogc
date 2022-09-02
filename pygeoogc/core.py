@@ -5,6 +5,7 @@ import os
 import sys
 import urllib.parse as urlparse
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -13,7 +14,6 @@ import cytoolz as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from pydantic import BaseModel, validator
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
 
 from . import utils
@@ -32,8 +32,7 @@ handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(logging.Formatter(""))
 logger.handlers = [handler]
 logger.propagate = False
-DEF_CRS = "epsg:4326"
-EXPIRE = -1
+CRSTYPE = Union[int, str, pyproj.CRS]
 
 
 def validate_version(val: str, valid_versions: List[str]) -> str:
@@ -56,92 +55,19 @@ def validate_version(val: str, valid_versions: List[str]) -> str:
     return val
 
 
-class RESTValidator(BaseModel):
-    """Validate ArcGISRESTful inputs.
-
-    Parameters
-    ----------
-    base_url : str, optional
-        The ArcGIS RESTful service url. The URL must either include a layer number
-        after the last ``/`` in the url or the target layer must be passed as an argument.
-    layer : int, optional
-        Target layer number, defaults to None. If None layer number must be included as after
-        the last ``/`` in ``base_url``.
-    outformat : str, optional
-        One of the output formats offered by the selected layer. If not correct
-        a list of available formats is shown, defaults to ``geojson``.
-    outfields : str or list
-        The output fields to be requested. Setting ``*`` as outfields requests
-        all the available fields which is the default setting.
-    crs : str, optional
-        The spatial reference of the output data, defaults to EPSG:4326
-    max_workers : int, optional
-        Max number of simultaneous requests, default to 2. Note
-        that some services might face issues when several requests are sent
-        simultaneously and will return the requests partially. It's recommended
-        to avoid using too many workers unless you are certain the web service
-        can handle it.
-    verbose : bool, optional
-        If True, prints information about the requests and responses,
-        defaults to False.
-    disable_retry : bool, optional
-        If ``True`` in case there are any failed queries, no retrying attempts
-        is done and object IDs of the failed requests is saved to a text file
-        which its path can be accessed via ``self.failed_path``.
-    """
-
-    base_url: str
-    layer: Optional[int] = None
-    outformat: str = "geojson"
-    outfields: Union[List[str], str] = "*"
-    crs: str = DEF_CRS
-    max_workers: int = 1
-    verbose: bool = False
-    disable_retry: bool = False
-
-    @staticmethod
-    def _split_url(url: str) -> Tuple[str, Optional[int]]:
-        """Check if layer is included in url, if so separate and return them."""
+def split_url(url: str, layer: Optional[int]) -> Tuple[str, int]:
+    """Check if layer is included in url, if so separate and return them."""
+    url = urlparse.unquote(url)
+    if layer is None:
         url_split = urlparse.urlsplit(url.rstrip("/"))
         url_path, lyr = url_split.path.rsplit("/", 1)
         url_split = url_split._replace(path=url_path)
         try:
             return urlparse.urlunsplit(url_split), int(lyr)
-        except ValueError:
-            return url, None
-
-    @validator("base_url")
-    @classmethod
-    def _layer_from_url(cls, v: str) -> Tuple[str, Optional[int]]:
-        return cls._split_url(urlparse.unquote(v))
-
-    @validator("layer")
-    @classmethod
-    def _integer_layer(cls, v: Optional[int], values: Dict[str, Any]) -> int:
-        if v is None:
-            try:
-                return int(values["base_url"][1])
-            except TypeError as ex:
-                msg = "Either layer must be passed as an argument or be included in ``base_url``"
-                raise MissingInputError(msg) from ex
-        return v
-
-    @validator("outfields")
-    @classmethod
-    def _outfields_to_list(cls, v: Union[List[str], str]) -> List[str]:
-        return v if isinstance(v, list) else [v]
-
-    @validator("crs")
-    @classmethod
-    def _valid_crs(cls, v: str) -> str:
-        return utils.validate_crs(v)
-
-    @validator("max_workers")
-    @classmethod
-    def _positive_integer_threads(cls, v: int) -> int:
-        if v <= 0:
-            raise InputTypeError("max_workers", "positive integer")
-        return v
+        except ValueError as ex:
+            msg = "Either layer must be passed as an argument or be included in ``base_url``"
+            raise MissingInputError(msg) from ex
+    return url, layer
 
 
 class ArcGISRESTfulBase:
@@ -186,29 +112,18 @@ class ArcGISRESTfulBase:
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        crs: str = DEF_CRS,
+        crs: CRSTYPE = 4326,
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
     ) -> None:
-        validated = RESTValidator(
-            base_url=base_url,
-            layer=layer,
-            outformat=outformat,
-            outfields=outfields,
-            crs=crs,
-            max_workers=max_workers,
-            verbose=verbose,
-            disable_retry=disable_retry,
-        )
-        self.base_url = validated.base_url[0]
-        self.layer = validated.layer
-        self.outformat = validated.outformat
-        self.outfields = validated.outfields
-        self.crs = validated.crs
-        self.max_workers = validated.max_workers
-        self.verbose = validated.verbose
-        self.disable_retry = validated.disable_retry
+        self.base_url, self.layer = split_url(base_url, layer)
+        self.outformat = outformat
+        self.outfields = outfields if isinstance(outfields, (list, tuple)) else [outfields]
+        self.crs = utils.validate_crs(crs)
+        self.max_workers = max_workers
+        self.verbose = verbose
+        self.disable_retry = disable_retry
 
         self.out_sr = pyproj.CRS(self.crs).to_epsg()
         self.n_features = 0
@@ -246,7 +161,7 @@ class ArcGISRESTfulBase:
         while True:
             try:
                 crs = utils.validate_crs(extent["spatialReference"].get(next(crs_iter)))
-                self.extent = utils.match_crs(bounds, crs, DEF_CRS)
+                self.extent = utils.match_crs(bounds, crs, 4326)
                 break
             except InputTypeError:
                 continue
@@ -398,7 +313,7 @@ class ArcGISRESTfulBase:
             MultiPoint,
             Tuple[float, float, float, float],
         ],
-        geo_crs: Union[str, pyproj.CRS] = DEF_CRS,
+        geo_crs: Union[str, pyproj.CRS] = 4326,
     ) -> Mapping[str, str]:
         """Generate geometry queries based on ESRI template."""
         geom = utils.match_crs(geom, geo_crs, self.crs)
@@ -488,7 +403,8 @@ class ArcGISRESTfulBase:
         )
 
 
-class WMSBase(BaseModel):
+@dataclass
+class WMSBase:
     """Base class for accessing a WMS service.
 
     Parameters
@@ -512,17 +428,12 @@ class WMSBase(BaseModel):
     layers: Union[str, List[str]]
     outformat: str
     version: str = "1.3.0"
-    crs: str = DEF_CRS
+    crs: CRSTYPE = 4326
 
-    @validator("crs")
-    @classmethod
-    def _valid_crs(cls, v: str) -> str:
-        return utils.validate_crs(v)
-
-    @validator("version")
-    @classmethod
-    def _version(cls, v: str) -> str:
-        return validate_version(v, ["1.1.1", "1.3.0"])
+    def __post_init__(self) -> None:
+        """Validate crs."""
+        self.crs_str = utils.validate_crs(self.crs)
+        self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
@@ -541,7 +452,7 @@ class WMSBase(BaseModel):
             raise InputValueError("outformat", valid_outformats)
 
         valid_crss = {lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in layers}
-        if any(self.crs.lower() not in valid_crss[lyr] for lyr in layers):
+        if any(self.crs_str.lower() not in valid_crss[lyr] for lyr in layers):
             _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
             raise InputValueError("CRS", _valid_crss)
 
@@ -563,11 +474,12 @@ class WMSBase(BaseModel):
             + f"Version: {self.version}\n"
             + f"Layers: {', '.join(lyr for lyr in layers)}\n"
             + f"Output Format: {self.outformat}\n"
-            + f"Output CRS: {self.crs}"
+            + f"Output CRS: {self.crs_str}"
         )
 
 
-class WFSBase(BaseModel):
+@dataclass
+class WFSBase:
     """Base class for WFS service.
 
     Parameters
@@ -584,7 +496,7 @@ class WFSBase(BaseModel):
     version : str, optional
         The WFS service version which should be either ``1.0.0``, ``1.1.0``, or
         ``2.0.0``. Defaults to ``2.0.0``.
-    crs: str, optional
+    crs: CRSTYPE, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
     read_method : str, optional
@@ -600,27 +512,17 @@ class WFSBase(BaseModel):
     layer: Optional[str] = None
     outformat: Optional[str] = None
     version: str = "2.0.0"
-    crs: str = DEF_CRS
+    crs: CRSTYPE = 4326
     read_method: str = "json"
     max_nrecords: int = 1000
 
-    @validator("read_method")
-    @classmethod
-    def _read_method(cls, v: str) -> str:
+    def __post_init__(self) -> None:
+        """Validate crs."""
+        self.crs_str = utils.validate_crs(self.crs)
+        self.version = validate_version(self.version, ["1.0.0", "1.1.0", "2.0.0"])
         valid_methods = ["json", "binary", "text"]
-        if v not in valid_methods:
+        if self.read_method not in valid_methods:
             raise InputValueError("read_method", valid_methods)
-        return v
-
-    @validator("crs")
-    @classmethod
-    def _valid_crs(cls, v: str) -> str:
-        return utils.validate_crs(v)
-
-    @validator("version")
-    @classmethod
-    def _version(cls, v: str) -> str:
-        return validate_version(v, ["1.0.0", "1.1.0", "2.0.0"])
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
@@ -657,7 +559,7 @@ class WFSBase(BaseModel):
             raise InputValueError("outformat", valid_outformats)
 
         valid_crss = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
-        if self.crs.lower() not in valid_crss:
+        if self.crs_str.lower() not in valid_crss:
             raise InputValueError("crs", valid_crss)
 
     def get_validnames(self) -> List[str]:
@@ -695,7 +597,7 @@ class WFSBase(BaseModel):
                 f"Version: {self.version}",
                 f"Layer: {self.layer}",
                 f"Output Format: {self.outformat}",
-                f"Output CRS: {self.crs}",
+                f"Output CRS: {self.crs_str}",
                 f"Read Method: {self.read_method}",
             ]
         )
