@@ -42,7 +42,7 @@ class ArcGISRESTful:
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default behaviour.
-    crs : str, optional
+    crs : str, int, or pyproj.CRS, optional
         The spatial reference of the output data, defaults to ``epsg:4326``.
     max_workers : int, optional
         Number of simultaneous download, default to 1, i.e., no threading. Note
@@ -92,7 +92,7 @@ class ArcGISRESTful:
             List[Tuple[float, float]],
             Tuple[float, float, float, float],
         ],
-        geo_crs: Union[str, pyproj.CRS] = 4326,
+        geo_crs: CRSTYPE = 4326,
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
@@ -105,8 +105,8 @@ class ArcGISRESTful:
             A geometry (LineString, Polygon, Point, MultiPoint), tuple of length two
             (``(x, y)``), a list of tuples of length 2 (``[(x, y), ...]``), or bounding box
             (tuple of length 4 (``(xmin, ymin, xmax, ymax)``)).
-        geo_crs : str or pyproj.CRS
-            The spatial reference of the input geometry.
+        geo_crs : str, int, or pyproj.CRS, optional
+            The spatial reference of the input geometry, defaults to ``epsg:4326``.
         spatial_relation : str, optional
             The spatial relationship to be applied on the input geometry
             while performing the query. If not correct a list of available options is shown.
@@ -300,7 +300,7 @@ class WMS:
     outformat : str
         The data format to request for data from the service. You can pass an empty
         string to get a list of available output formats.
-    crs : str, optional
+    crs : str, int, or pyproj.CRS, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
     version : str, optional
@@ -351,7 +351,7 @@ class WMS:
         self,
         bbox: Tuple[float, float, float, float],
         resolution: float,
-        box_crs: Union[str, pyproj.CRS] = 4326,
+        box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         max_px: int = 8000000,
         kwargs: Optional[Dict[str, Any]] = None,
@@ -365,7 +365,7 @@ class WMS:
         resolution : float
             The output resolution in meters. The width and height of output are computed in pixel
             based on the geometry bounds and the given resolution.
-        box_crs : str, or pyproj.CRS, optional
+        box_crs : str, int, or pyproj.CRS, optional
             The spatial reference system of the input bbox, defaults to
             ``epsg:4326``.
         always_xy : bool, optional
@@ -453,7 +453,7 @@ class WFS(WFSBase):
     version : str, optional
         The WFS service version which should be either 1.0.0, 1.1.0, or 2.0.0.
         Defaults to 2.0.0.
-    crs: CRSTYPE, optional
+    crs : str, int, or pyproj.CRS, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
     read_method : str, optional
@@ -496,7 +496,7 @@ class WFS(WFSBase):
     def getfeature_bybox(
         self,
         bbox: Tuple[float, float, float, float],
-        box_crs: Union[str, pyproj.CRS] = 4326,
+        box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
     ) -> Union[str, bytes, Dict[str, Any]]:
         """Get data from a WFS service within a bounding box.
@@ -540,7 +540,7 @@ class WFS(WFSBase):
     def getfeature_bygeom(
         self,
         geometry: Union[Polygon, MultiPolygon],
-        geo_crs: Union[str, pyproj.CRS] = 4326,
+        geo_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
     ) -> Union[str, bytes, Dict[str, Any]]:

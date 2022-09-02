@@ -89,8 +89,8 @@ class ArcGISRESTfulBase:
     outfields : str or list
         The output fields to be requested. Setting ``*`` as outfields requests
         all the available fields which is the default setting.
-    crs : str, optional
-        The spatial reference of the output data, defaults to EPSG:4326
+    crs : str, int, or pyproj.CRS, optional
+        The spatial reference of the output data, defaults to ``epsg:4326``
     max_workers : int, optional
         Max number of simultaneous requests, default to 2. Note
         that some services might face issues when several requests are sent
@@ -122,6 +122,8 @@ class ArcGISRESTfulBase:
         self.outfields = outfields if isinstance(outfields, (list, tuple)) else [outfields]
         self.crs = utils.validate_crs(crs)
         self.max_workers = max_workers
+        if self.max_workers < 1 or not isinstance(self.max_workers, int):
+            raise InputTypeError("max_workers", "positive integer > 1")
         self.verbose = verbose
         self.disable_retry = disable_retry
 
@@ -313,7 +315,7 @@ class ArcGISRESTfulBase:
             MultiPoint,
             Tuple[float, float, float, float],
         ],
-        geo_crs: Union[str, pyproj.CRS] = 4326,
+        geo_crs: CRSTYPE = 4326,
     ) -> Mapping[str, str]:
         """Generate geometry queries based on ESRI template."""
         geom = utils.match_crs(geom, geo_crs, self.crs)
@@ -419,7 +421,7 @@ class WMSBase:
         string to get a list of available output formats.
     version : str, optional
         The WMS service version which should be either 1.1.1 or 1.3.0, defaults to 1.3.0.
-    crs : str, optional
+    crs : str, int, or pyproj.CRS, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
     """
@@ -496,7 +498,7 @@ class WFSBase:
     version : str, optional
         The WFS service version which should be either ``1.0.0``, ``1.1.0``, or
         ``2.0.0``. Defaults to ``2.0.0``.
-    crs: CRSTYPE, optional
+    crs : str, int, or pyproj.CRS, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
     read_method : str, optional

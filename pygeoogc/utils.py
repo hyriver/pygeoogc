@@ -320,9 +320,9 @@ def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
         Input geometry which could be a list of coordinates such as ``[(x1, y1), ...]``,
         a bounding box like so ``(xmin, ymin, xmax, ymax)``, or any valid ``shapely``'s
         geometry such as ``Polygon``, ``MultiPolygon``, etc..
-    in_crs : str
+    in_crs : str, int, or pyproj.CRS
         Spatial reference of the input geometry
-    out_crs : str
+    out_crs : str, int, or pyproj.CRS
         Target spatial reference
 
     Returns
@@ -396,8 +396,8 @@ def bbox_decompose(
         A bounding box; (west, south, east, north)
     resolution : float
         The target resolution for a WMS request in meters.
-    box_crs : str, optional
-        The spatial reference of the input bbox, default to EPSG:4326.
+    box_crs : str, int, or pyproj.CRS, optional
+        The spatial reference of the input bbox, default to ``epsg:4326``.
     max_px : int, opitonal
         The maximum allowable number of pixels (width x height) for a WMS requests,
         defaults to 8 million based on some trial-and-error.
@@ -468,7 +468,7 @@ def validate_crs(crs: CRSTYPE) -> str:
 
     Parameters
     ----------
-    crs : str or int
+    crs : str, int, or pyproj.CRS
         Input CRS.
 
     Returns
