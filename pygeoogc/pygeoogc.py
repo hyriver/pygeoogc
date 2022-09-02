@@ -11,8 +11,10 @@ import shapely.ops as ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from . import utils
-from .core import DEF_CRS, ArcGISRESTfulBase, WFSBase, WMSBase
+from .core import ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InputTypeError, InputValueError, ZeroMatchedError
+
+CRSTYPE = Union[int, str, pyproj.CRS]
 
 
 class ArcGISRESTful:
@@ -63,7 +65,7 @@ class ArcGISRESTful:
         layer: Optional[int] = None,
         outformat: str = "geojson",
         outfields: Union[List[str], str] = "*",
-        crs: str = DEF_CRS,
+        crs: CRSTYPE = 4326,
         max_workers: int = 1,
         verbose: bool = False,
         disable_retry: bool = False,
@@ -90,7 +92,7 @@ class ArcGISRESTful:
             List[Tuple[float, float]],
             Tuple[float, float, float, float],
         ],
-        geo_crs: Union[str, pyproj.CRS] = DEF_CRS,
+        geo_crs: Union[str, pyproj.CRS] = 4326,
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: Optional[str] = None,
         distance: Optional[int] = None,
@@ -318,7 +320,7 @@ class WMS:
         layers: Union[str, List[str]],
         outformat: str,
         version: str = "1.3.0",
-        crs: str = DEF_CRS,
+        crs: CRSTYPE = 4326,
         validation: bool = True,
         ssl: Union[SSLContext, bool, None] = None,
     ) -> None:
@@ -333,6 +335,7 @@ class WMS:
         self.outformat = self.client.outformat
         self.version = self.client.version
         self.crs = self.client.crs
+        self.crs_str = self.client.crs_str
         self.ssl = ssl
         self.layers = (
             [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
@@ -348,7 +351,7 @@ class WMS:
         self,
         bbox: Tuple[float, float, float, float],
         resolution: float,
-        box_crs: Union[str, pyproj.CRS] = DEF_CRS,
+        box_crs: Union[str, pyproj.CRS] = 4326,
         always_xy: bool = False,
         max_px: int = 8000000,
         kwargs: Optional[Dict[str, Any]] = None,
@@ -384,8 +387,8 @@ class WMS:
             from the WMS service as bytes.
         """
         utils.check_bbox(bbox)
-        _bbox = utils.match_crs(bbox, box_crs, self.crs)
-        bounds = utils.bbox_decompose(_bbox, resolution, self.crs, max_px)
+        _bbox = utils.match_crs(bbox, box_crs, self.crs_str)
+        bounds = utils.bbox_decompose(_bbox, resolution, self.crs_str, max_px)
 
         payload = {
             "version": self.version,
@@ -400,9 +403,9 @@ class WMS:
             payload.update(kwargs)
 
         if self.version == "1.1.1":
-            payload["srs"] = self.crs
+            payload["srs"] = self.crs_str
         else:
-            payload["crs"] = self.crs
+            payload["crs"] = self.crs_str
 
         def _get_payloads(
             args: Tuple[str, Tuple[Tuple[float, float, float, float], str, int, int]]
@@ -410,7 +413,7 @@ class WMS:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
-            if self.version != "1.1.1" and pyproj.CRS(self.crs).is_geographic and not always_xy:
+            if self.version != "1.1.1" and pyproj.CRS(self.crs_str).is_geographic and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
             _payload = payload.copy()
             _payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
@@ -450,7 +453,7 @@ class WFS(WFSBase):
     version : str, optional
         The WFS service version which should be either 1.0.0, 1.1.0, or 2.0.0.
         Defaults to 2.0.0.
-    crs: str, optional
+    crs: CRSTYPE, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
     read_method : str, optional
@@ -472,7 +475,7 @@ class WFS(WFSBase):
         layer: Optional[str] = None,
         outformat: Optional[str] = None,
         version: str = "2.0.0",
-        crs: str = DEF_CRS,
+        crs: CRSTYPE = 4326,
         read_method: str = "json",
         max_nrecords: int = 1000,
         validation: bool = True,
@@ -493,7 +496,7 @@ class WFS(WFSBase):
     def getfeature_bybox(
         self,
         bbox: Tuple[float, float, float, float],
-        box_crs: Union[str, pyproj.CRS] = DEF_CRS,
+        box_crs: Union[str, pyproj.CRS] = 4326,
         always_xy: bool = False,
     ) -> Union[str, bytes, Dict[str, Any]]:
         """Get data from a WFS service within a bounding box.
@@ -529,7 +532,7 @@ class WFS(WFSBase):
             "request": "GetFeature",
             "typeName": self.layer,
             "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
-            "srsName": self.crs,
+            "srsName": self.crs_str,
         }
 
         return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
@@ -537,7 +540,7 @@ class WFS(WFSBase):
     def getfeature_bygeom(
         self,
         geometry: Union[Polygon, MultiPolygon],
-        geo_crs: Union[str, pyproj.CRS] = DEF_CRS,
+        geo_crs: Union[str, pyproj.CRS] = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
     ) -> Union[str, bytes, Dict[str, Any]]:
@@ -574,7 +577,7 @@ class WFS(WFSBase):
         str or bytes or dict
             WFS query response based on the given geometry.
         """
-        geom = utils.match_crs(geometry, geo_crs, self.crs)
+        geom = utils.match_crs(geometry, geo_crs, self.crs_str)
 
         if self.version != "1.0.0" and pyproj.CRS(geo_crs).is_geographic and not always_xy:
             g_wkt = ops.transform(lambda x, y: (y, x), geom).wkt
@@ -675,7 +678,7 @@ class WFS(WFSBase):
             "outputFormat": self.outformat,
             "request": "GetFeature",
             "typeName": self.layer,
-            "srsName": self.crs,
+            "srsName": self.crs_str,
             "cql_filter": cql_filter,
         }
 
