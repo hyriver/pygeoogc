@@ -1,11 +1,11 @@
 """Tests for exceptions and requests"""
 import pytest
-from pydantic import ValidationError
 
 from pygeoogc import (
     ArcGISRESTful,
     InputTypeError,
     InputValueError,
+    MissingInputError,
     RetrySession,
     ServiceError,
     ServiceURL,
@@ -30,7 +30,7 @@ class TestRESTException:
         assert "The crs argument" in str(ex.value)
 
     def test_rest_none_layer(self):
-        with pytest.raises(ValidationError) as ex:
+        with pytest.raises(MissingInputError) as ex:
             _ = ArcGISRESTful(self.wbd_url)
         assert "Either layer must be passed" in str(ex.value)
 
