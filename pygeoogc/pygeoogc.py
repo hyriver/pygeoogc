@@ -604,7 +604,7 @@ class WFS(WFSBase):
     def getfeature_byid(
         self,
         featurename: str,
-        featureids: Union[List[str], str],
+        featureids: Union[List[Union[int, str]], Union[int, str]],
     ) -> List[Union[str, bytes, Dict[str, Any]]]:
         """Get features based on feature IDs.
 
@@ -624,10 +624,10 @@ class WFS(WFSBase):
         if featurename not in valid_features:
             raise InputValueError("featurename", valid_features)
 
-        if not isinstance(featureids, (str, int, list)):
+        if not isinstance(featureids, (str, int, list, tuple)):
             raise InputTypeError("featureids", "str or list of str")
 
-        featureids = [featureids] if isinstance(featureids, (str, int)) else featureids
+        featureids = [featureids] if isinstance(featureids, (str, int)) else list(featureids)
 
         if len(featureids) == 0:
             raise InputTypeError("featureids", "int or str or list")
