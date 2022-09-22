@@ -330,6 +330,7 @@ class WMS:
             outformat=outformat,
             version=version,
             crs=crs,
+            validation=validation,
         )
         self.url = self.client.url
         self.outformat = self.client.outformat
@@ -340,8 +341,6 @@ class WMS:
         self.layers = (
             [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
         )
-        if validation:
-            self.client.validate_wms()
 
     def get_validlayers(self) -> Dict[str, str]:
         """Get the layers supported by the WMS service."""
@@ -488,10 +487,8 @@ class WFS(WFSBase):
             crs=crs,
             read_method=read_method,
             max_nrecords=max_nrecords,
+            validation=validation,
         )
-
-        if validation:
-            self.validate_wfs()
 
     def getfeature_bybox(
         self,
