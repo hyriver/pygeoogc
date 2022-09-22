@@ -413,10 +413,10 @@ class WMSBase:
     ----------
     url : str
         The base url for the WMS service e.g., https://www.mrlc.gov/geoserver/mrlc_download/wms
-    layers : str or list
+    layers : str or list, optional
         A layer or a list of layers from the service to be downloaded. You can pass an empty
         string to get a list of available layers.
-    outformat : str
+    outformat : str, optional
         The data format to request for data from the service. You can pass an empty
         string to get a list of available output formats.
     version : str, optional
@@ -424,38 +424,56 @@ class WMSBase:
     crs : str, int, or pyproj.CRS, optional
         The spatial reference system to be used for requesting the data, defaults to
         ``epsg:4326``.
+    validation : bool, optional
+        Validate the input arguments from the WMS service, defaults to True. Set this
+        to False if you are sure all the WMS settings such as layer and crs are correct
+        to avoid sending extra requests.
     """
 
     url: str
-    layers: Union[str, List[str]]
-    outformat: str
+    layers: Union[str, List[str]] = ""
+    outformat: str = ""
     version: str = "1.3.0"
     crs: CRSTYPE = 4326
+    validation: bool = True
 
     def __post_init__(self) -> None:
         """Validate crs."""
         self.crs_str = utils.validate_crs(self.crs)
         self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
+        self.available_layer: Dict[str, str] = {}
+        self.available_outformat: List[str] = []
+        self.available_crs: Dict[str, List[str]] = {}
+        if self.validation:
+            self.validate_wms()
 
-    def validate_wms(self) -> None:
+    def get_service_options(self) -> None:
         """Validate input arguments with the WMS service."""
         try:
             wms = WebMapService(self.url, version=self.version)
         except AttributeError as ex:
             raise ServiceUnavailableError(self.url) from ex
 
+        self.available_layer = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
+        self.available_outformat = wms.getOperationByName("GetMap").formatOptions
+        self.available_crs = {
+            lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in self.available_layer
+        }
+
+    def validate_wms(self) -> None:
+        """Validate input arguments with the WMS service."""
+        self.get_service_options()
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
-        valid_layers = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
-        if any(lyr not in valid_layers.keys() for lyr in layers):
-            raise InputValueError("layers", (f"{n} for {t}" for n, t in valid_layers.items()))
+        if any(lyr not in self.available_layer.keys() for lyr in layers):
+            raise InputValueError(
+                "layers", (f"{n} for {t}" for n, t in self.available_layer.items())
+            )
 
-        valid_outformats = wms.getOperationByName("GetMap").formatOptions
-        if self.outformat not in valid_outformats:
-            raise InputValueError("outformat", valid_outformats)
+        if self.outformat not in self.available_outformat:
+            raise InputValueError("outformat", self.available_outformat)
 
-        valid_crss = {lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in layers}
-        if any(self.crs_str.lower() not in valid_crss[lyr] for lyr in layers):
-            _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in valid_crss.items())
+        if any(self.crs_str.lower() not in self.available_crs[lyr] for lyr in layers):
+            _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in self.available_crs.items())
             raise InputValueError("CRS", _valid_crss)
 
     def get_validlayers(self) -> Dict[str, str]:
@@ -508,6 +526,10 @@ class WFSBase:
         The maximum number of records in a single request to be retrieved from the service,
         defaults to 1000. If the number of requested records is greater than this value,
         the query will be split into multiple requests.
+    validation : bool, optional
+        Validate the input arguments from the WFS service, defaults to True. Set this
+        to False if you are sure all the WFS settings such as layer and crs are correct
+        to avoid sending extra requests.
     """
 
     url: str
@@ -517,6 +539,7 @@ class WFSBase:
     crs: CRSTYPE = 4326
     read_method: str = "json"
     max_nrecords: int = 1000
+    validation: bool = True
 
     def __post_init__(self) -> None:
         """Validate crs."""
@@ -525,44 +548,46 @@ class WFSBase:
         valid_methods = ["json", "binary", "text"]
         if self.read_method not in valid_methods:
             raise InputValueError("read_method", valid_methods)
+        self.available_layer: List[str] = []
+        self.available_outformat: List[str] = []
+        self.available_crs: List[str] = []
+        if self.validation:
+            self.validate_wfs()
 
-    def validate_wfs(self) -> None:
+    def get_service_options(self) -> None:
         """Validate input arguments with the WFS service."""
         try:
             wfs = WebFeatureService(self.url, version=self.version)
         except AttributeError as ex:
             raise ServiceUnavailableError(self.url) from ex
 
-        valid_layers = list(wfs.contents)
+        self.available_layer = list(wfs.contents)
+
+        wfs_features = wfs.getOperationByName("GetFeature")
+        if self.version == "1.0.0":
+            self.available_outformat = [f.rsplit("}", 1)[-1] for f in wfs_features.formatOptions]
+        else:
+            self.available_outformat = wfs_features.parameters["outputFormat"]["values"]
+
+        self.available_crs = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
+
+    def validate_wfs(self) -> None:
+        """Validate input arguments with the WFS service."""
+        self.get_service_options()
         if self.layer is None:
             raise MissingInputError(
                 "The layer argument is missing."
                 + " The following layers are available:\n"
-                + ", ".join(valid_layers)
+                + ", ".join(self.available_layer)
             )
-        if self.layer not in valid_layers:
-            raise InputValueError("layers", valid_layers)
+        if self.layer not in self.available_layer:
+            raise InputValueError("layers", self.available_layer)
 
-        wfs_features = wfs.getOperationByName("GetFeature")
-        if self.version == "1.0.0":
-            valid_outformats = [f.rsplit("}", 1)[-1] for f in wfs_features.formatOptions]
-        else:
-            valid_outformats = wfs_features.parameters["outputFormat"]["values"]
+        if self.outformat not in self.available_outformat:
+            raise InputValueError("outformat", self.available_outformat)
 
-        valid_outformats = [v.lower() for v in valid_outformats]
-        if self.outformat is None:
-            raise MissingInputError(
-                "The outformat argument is missing."
-                + " The following output formats are available:\n"
-                + ", ".join(valid_outformats)
-            )
-
-        if self.outformat not in valid_outformats:
-            raise InputValueError("outformat", valid_outformats)
-
-        valid_crss = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
-        if self.crs_str.lower() not in valid_crss:
-            raise InputValueError("crs", valid_crss)
+        if self.crs_str.lower() not in self.available_crs:
+            raise InputValueError("crs", self.available_crs)
 
     def get_validnames(self) -> List[str]:
         """Get valid column names for a layer."""
