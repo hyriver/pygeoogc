@@ -20,6 +20,18 @@ Internal Changes
   target CRS are the same.
 - Improve type hints for CRS-related arguments of all functions by including string,
   integer, and ``pyproj.CRS`` types.
+- Add a new class method to ``WMSBase`` and ``WFSBase`` classes called
+  ``get_service_options`` for retrieving the available layers, output formats, and
+  CRSs for a given service. Here's an example:
+
+.. code:: python
+
+    from pygeoogc.core import WMSBase
+
+    url ="https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
+    wms = WMSBase(url, validation=False)
+    wms.get_service_options()
+    print(wms.available_layer)
 
 0.13.6 (2022-08-30)
 -------------------
