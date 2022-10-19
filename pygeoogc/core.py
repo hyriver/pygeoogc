@@ -1,6 +1,5 @@
 """Base classes and function for REST, WMS, and WMF services."""
 import contextlib
-import logging
 import os
 import sys
 import urllib.parse as urlparse
@@ -12,6 +11,7 @@ from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple
 import async_retriever as ar
 import cytoolz as tlz
 import pyproj
+from loguru import logger
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
@@ -26,12 +26,25 @@ from .exceptions import (
     ZeroMatchedError,
 )
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(logging.Formatter(""))
-logger.handlers = [handler]
-logger.propagate = False
+logger.configure(
+    handlers=[
+        {
+            "sink": sys.stdout,
+            "colorize": True,
+            "format": " | ".join(
+                [
+                    "{time:YYYY-MM-DD at HH:mm:ss}",  # noqa: FS003
+                    "{name: ^15}.{function: ^15}:{line: >3}",  # noqa: FS003
+                    "{message}",  # noqa: FS003
+                ]
+            ),
+        }
+    ]
+)
+if os.environ.get("HYRIVER_VERBOSE", "false").lower() == "true":
+    logger.enable("pygeoogc")
+else:
+    logger.disable("pygeoogc")
 CRSTYPE = Union[int, str, pyproj.CRS]
 
 
@@ -441,9 +454,7 @@ class WMSBase:
         """Validate crs."""
         self.crs_str = utils.validate_crs(self.crs)
         self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
-        self.available_layer: Dict[str, str] = {}
-        self.available_outformat: List[str] = []
-        self.available_crs: Dict[str, List[str]] = {}
+        self.get_service_options()
         if self.validation:
             self.validate_wms()
 
@@ -462,7 +473,6 @@ class WMSBase:
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
-        self.get_service_options()
         layers = [self.layers] if isinstance(self.layers, str) else self.layers
         if any(lyr not in self.available_layer.keys() for lyr in layers):
             raise InputValueError(
@@ -548,9 +558,7 @@ class WFSBase:
         valid_methods = ["json", "binary", "text"]
         if self.read_method not in valid_methods:
             raise InputValueError("read_method", valid_methods)
-        self.available_layer: List[str] = []
-        self.available_outformat: List[str] = []
-        self.available_crs: List[str] = []
+        self.get_service_options()
         if self.validation:
             self.validate_wfs()
 
@@ -573,7 +581,6 @@ class WFSBase:
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
-        self.get_service_options()
         if self.layer is None:
             raise MissingInputError(
                 "The layer argument is missing."
