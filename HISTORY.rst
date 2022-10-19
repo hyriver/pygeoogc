@@ -28,7 +28,7 @@ Internal Changes
 
     from pygeoogc.core import WMSBase
 
-    url ="https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
+    url = "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
     wms = WMSBase(url, validation=False)
     wms.get_service_options()
     print(wms.available_layer)
@@ -318,7 +318,7 @@ Internal Changes
 - Remove dependency on ``dataclasses`` since its benefits and usage in the code was minimal.
 - Speed up CI testing by using ``mamba`` and caching.
 - ``ArcGISRESTFull`` now prints number of found features before attempting to retrieve them.
-- User ``logging`` module for printing information.
+- Use ``logging`` module for printing information.
 
 
 0.9.0 (2021-02-14)
