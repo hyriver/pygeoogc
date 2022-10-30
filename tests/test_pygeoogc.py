@@ -203,7 +203,7 @@ class TestWFS:
         r = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
         assert self.to_df(r).shape[0] == 2
 
-    def test_wfs111(self):
+    def test_wfs100(self):
         """WFS 1.0.0 by geom"""
         wfs = WFS(
             ServiceURL().wfs.waterdata,
