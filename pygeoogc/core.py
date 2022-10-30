@@ -1,4 +1,6 @@
 """Base classes and function for REST, WMS, and WMF services."""
+from __future__ import annotations
+
 import contextlib
 import os
 import sys
@@ -6,7 +8,7 @@ import urllib.parse as urlparse
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Iterator, Mapping, Sequence, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -48,7 +50,7 @@ else:
 CRSTYPE = Union[int, str, pyproj.CRS]
 
 
-def validate_version(val: str, valid_versions: List[str]) -> str:
+def validate_version(val: str, valid_versions: list[str]) -> str:
     """Validate version from a list of valid versions.
 
     Parameters
@@ -68,7 +70,7 @@ def validate_version(val: str, valid_versions: List[str]) -> str:
     return val
 
 
-def split_url(url: str, layer: Optional[int]) -> Tuple[str, int]:
+def split_url(url: str, layer: int | None) -> tuple[str, int]:
     """Check if layer is included in url, if so separate and return them."""
     url = urlparse.unquote(url)
     if layer is None:
@@ -116,15 +118,15 @@ class ArcGISRESTfulBase:
     disable_retry : bool, optional
         If ``True`` in case there are any failed queries, no retrying attempts
         is done and object IDs of the failed requests is saved to a text file
-        which its path can be accessed via ``self.failed_path``.
+        which its ipath can be accessed via ``self.failed_path``.
     """
 
     def __init__(
         self,
         base_url: str,
-        layer: Optional[int] = None,
+        layer: int | None = None,
         outformat: str = "geojson",
-        outfields: Union[List[str], str] = "*",
+        outfields: list[str] | str = "*",
         crs: CRSTYPE = 4326,
         max_workers: int = 1,
         verbose: bool = False,
@@ -144,20 +146,20 @@ class ArcGISRESTfulBase:
         self.n_features = 0
         self.url = f"{self.base_url}/{self.layer}"
         self.query_url = f"{self.url}/query"
-        self.valid_layers: Dict[str, str] = {}
-        self.query_formats: List[str] = []
-        self.extent: Optional[Tuple[float, float, float, float]] = None
-        self.units: Optional[str] = None
+        self.valid_layers: dict[str, str] = {}
+        self.query_formats: list[str] = []
+        self.extent: tuple[float, float, float, float] | None = None
+        self.units: str | None = None
         self.max_nrecords: int = 1000
-        self.valid_fields: List[str] = []
-        self.field_types: Dict[str, str] = {}
-        self.feature_types: Optional[Dict[int, str]] = None
+        self.valid_fields: list[str] = []
+        self.field_types: dict[str, str] = {}
+        self.feature_types: dict[int, str] | None = None
         self.return_m: bool = False
         self.return_geom: bool = True
         self.n_missing: int = 0
         self.total_n_features: int = 0
-        self.failed_path: Union[str, Path] = ""
-        self.request_id: Optional[str] = None
+        self.failed_path: str | Path = ""
+        self.request_id: str | None = None
 
         self.initialize_service()
 
@@ -221,7 +223,7 @@ class ArcGISRESTfulBase:
         if any(f not in self.valid_fields for f in self.outfields):
             raise InputValueError("outfields", self.valid_fields)
 
-    def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
+    def partition_oids(self, oids: list[int] | int) -> Iterator[tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``."""
         oid_list = [oids] if isinstance(oids, int) else set(oids)
         if len(oid_list) == 0:
@@ -233,8 +235,8 @@ class ArcGISRESTfulBase:
         return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
 
     def _cleanup_resp(
-        self, resp: List[Dict[str, Any]], payloads: Sequence[Dict[str, str]]
-    ) -> List[Dict[str, Any]]:
+        self, resp: list[dict[str, Any]], payloads: Sequence[dict[str, str]]
+    ) -> list[dict[str, Any]]:
         """Remove failed responses."""
         fails = [i for i, r in enumerate(resp) if "error" in r]
 
@@ -277,10 +279,10 @@ class ArcGISRESTfulBase:
 
     def get_features(
         self,
-        featureids: Iterator[Tuple[str, ...]],
+        featureids: Iterator[tuple[str, ...]],
         return_m: bool = False,
         return_geom: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get features based on the feature IDs.
 
         Parameters
@@ -321,13 +323,7 @@ class ArcGISRESTfulBase:
 
     def esri_query(
         self,
-        geom: Union[
-            LineString,
-            Polygon,
-            Point,
-            MultiPoint,
-            Tuple[float, float, float, float],
-        ],
+        geom: (LineString | Polygon | Point | MultiPoint | tuple[float, float, float, float]),
         geo_crs: CRSTYPE = 4326,
     ) -> Mapping[str, str]:
         """Generate geometry queries based on ESRI template."""
@@ -352,7 +348,7 @@ class ArcGISRESTfulBase:
 
     def _retry(
         self, return_m: bool, return_geo: bool, partition_fac: float
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Retry failed requests."""
         with open(self.failed_path) as f:
             oids = [int(i) for i in f.read().splitlines()]
@@ -364,7 +360,7 @@ class ArcGISRESTfulBase:
 
         return features
 
-    def retry_failed_requests(self) -> List[Dict[str, Any]]:
+    def retry_failed_requests(self) -> list[dict[str, Any]]:
         """Retry failed requests."""
         retry = self.disable_retry
         self.disable_retry = True
@@ -386,8 +382,8 @@ class ArcGISRESTfulBase:
         return list(tlz.concat(features))
 
     def get_response(
-        self, url: str, payloads: Sequence[Dict[str, str]], method: str = "GET"
-    ) -> List[Dict[str, Any]]:
+        self, url: str, payloads: Sequence[dict[str, str]], method: str = "GET"
+    ) -> list[dict[str, Any]]:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"
         try:
@@ -444,7 +440,7 @@ class WMSBase:
     """
 
     url: str
-    layers: Union[str, List[str]] = ""
+    layers: str | list[str] = ""
     outformat: str = ""
     version: str = "1.3.0"
     crs: CRSTYPE = 4326
@@ -467,6 +463,7 @@ class WMSBase:
 
         self.available_layer = {wms[lyr].name: wms[lyr].title for lyr in list(wms.contents)}
         self.available_outformat = wms.getOperationByName("GetMap").formatOptions
+        self.available_outformat = [f.lower() for f in self.available_outformat]
         self.available_crs = {
             lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in self.available_layer
         }
@@ -486,7 +483,7 @@ class WMSBase:
             _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in self.available_crs.items())
             raise InputValueError("CRS", _valid_crss)
 
-    def get_validlayers(self) -> Dict[str, str]:
+    def get_validlayers(self) -> dict[str, str]:
         """Get the layers supported by the WMS service."""
         try:
             wms = WebMapService(self.url, version=self.version)
@@ -543,8 +540,8 @@ class WFSBase:
     """
 
     url: str
-    layer: Optional[str] = None
-    outformat: Optional[str] = None
+    layer: str | None = None
+    outformat: str | None = None
     version: str = "2.0.0"
     crs: CRSTYPE = 4326
     read_method: str = "json"
@@ -576,6 +573,7 @@ class WFSBase:
             self.available_outformat = [f.rsplit("}", 1)[-1] for f in wfs_features.formatOptions]
         else:
             self.available_outformat = wfs_features.parameters["outputFormat"]["values"]
+        self.available_outformat = [f.lower() for f in self.available_outformat]
 
         self.available_crs = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
 
@@ -596,7 +594,7 @@ class WFSBase:
         if self.crs_str.lower() not in self.available_crs:
             raise InputValueError("crs", self.available_crs)
 
-    def get_validnames(self) -> List[str]:
+    def get_validnames(self) -> list[str]:
         """Get valid column names for a layer."""
         max_features = "count" if self.version == "2.0.0" else "maxFeatures"
 

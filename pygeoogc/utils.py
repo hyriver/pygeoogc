@@ -1,10 +1,12 @@
 """Some utilities for PyGeoOGC."""
+from __future__ import annotations
+
 import itertools
 import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Tuple, TypeVar, Union
+from typing import Any, List, Mapping, Tuple, TypeVar, Union
 
 import async_retriever as ar
 import defusedxml.ElementTree as ETree
@@ -82,9 +84,9 @@ class RetrySession:
         self,
         retries: int = 3,
         backoff_factor: float = 0.3,
-        status_to_retry: Tuple[int, ...] = (500, 502, 504),
-        prefixes: Tuple[str, ...] = ("https://",),
-        cache_name: Optional[Union[str, Path]] = None,
+        status_to_retry: tuple[int, ...] = (500, 502, 504),
+        prefixes: tuple[str, ...] = ("https://",),
+        cache_name: str | Path | None = None,
         expire_after: int = -1,
         disable: bool = False,
     ) -> None:
@@ -116,8 +118,8 @@ class RetrySession:
     def get(
         self,
         url: str,
-        payload: Optional[Mapping[str, Any]] = None,
-        headers: Optional[Mapping[str, Any]] = None,
+        payload: Mapping[str, Any] | None = None,
+        headers: Mapping[str, Any] | None = None,
     ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
         resp = self.session.get(url, params=payload, headers=headers)
@@ -131,8 +133,8 @@ class RetrySession:
     def post(
         self,
         url: str,
-        payload: Optional[Mapping[str, Any]] = None,
-        headers: Optional[Mapping[str, Any]] = None,
+        payload: Mapping[str, Any] | None = None,
+        headers: Mapping[str, Any] | None = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
         resp = self.session.post(url, data=payload, headers=headers)
@@ -145,23 +147,23 @@ class RetrySession:
 
 
 def traverse_json(
-    obj: Union[Dict[str, Any], List[Dict[str, Any]]], path: Union[str, List[str]]
-) -> List[Any]:
-    """Extract an element from a JSON file along a specified path.
+    items: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
+) -> list[Any]:
+    """Extract an element from a JSON file along a specified ipath.
 
     This function is based on `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__.
 
     Parameters
     ----------
-    obj : dict
+    items : dict
         The input json dictionary
-    path : list
-        The path to the requested element
+    ipath : list
+        The ipath to the requested element
 
     Returns
     -------
     list
-        The items founds in the JSON
+        The sub_items founds in the JSON
 
     Examples
     --------
@@ -177,45 +179,45 @@ def traverse_json(
     """
 
     def extract(
-        obj: Optional[Union[List[Any], Dict[str, Any]]],
-        path: Union[str, List[str]],
+        sub_items: list[Any] | dict[str, Any] | None,
+        path: str | list[str],
         ind: int,
-        arr: List[Any],
-    ) -> List[Any]:
+        arr: list[Any],
+    ) -> list[Any]:
         key = path[ind]
         if ind + 1 < len(path):
-            if isinstance(obj, dict):
-                if key in obj:
-                    extract(obj.get(key), path, ind + 1, arr)
+            if isinstance(sub_items, dict):
+                if key in sub_items:
+                    extract(sub_items.get(key), path, ind + 1, arr)
                 else:
                     arr.append(None)
-            elif isinstance(obj, list):
-                if not obj:
+            elif isinstance(sub_items, list):
+                if not sub_items:
                     arr.append(None)
                 else:
-                    for item in obj:
-                        extract(item, path, ind, arr)
+                    for i in sub_items:
+                        extract(i, path, ind, arr)
             else:
                 arr.append(None)
         if ind + 1 == len(path):
-            if isinstance(obj, list):
-                if not obj:
+            if isinstance(sub_items, list):
+                if not sub_items:
                     arr.append(None)
                 else:
-                    for item in obj:
-                        arr.append(item.get(key))
-            elif isinstance(obj, dict):
-                arr.append(obj.get(key))
+                    for i in sub_items:
+                        arr.append(i.get(key))
+            elif isinstance(sub_items, dict):
+                arr.append(sub_items.get(key))
             else:
                 arr.append(None)
         return arr
 
-    if isinstance(obj, dict):
-        return extract(obj, path, 0, [])
+    if isinstance(items, dict):
+        return extract(items, ipath, 0, [])
 
     outer_arr = []
-    for item in obj:
-        outer_arr.append(extract(item, path, 0, []))
+    for item in items:
+        outer_arr.append(extract(item, ipath, 0, []))
     return outer_arr
 
 
@@ -235,15 +237,16 @@ class ESRIGeomQuery:
         for reference.
     """
 
-    geometry: Union[
-        Tuple[float, float],
-        List[Tuple[float, float]],
-        Tuple[float, float, float, float],
-        sgeom.Polygon,
-    ]
+    geometry: (
+        tuple[float, float]
+        | list[tuple[float, float]]
+        | tuple[float, float, float, float]
+        | sgeom.Polygon
+        | sgeom.LineString
+    )
     wkid: int
 
-    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Mapping[str, str]:
+    def _get_payload(self, geo_type: str, geo_json: dict[str, Any]) -> Mapping[str, str]:
         """Generate a request payload based on ESRI template.
 
         Parameters
@@ -376,18 +379,18 @@ def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
     raise InputTypeError("geom", gtypes)
 
 
-def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
+def check_bbox(bbox: tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
     if not (isinstance(bbox, tuple) and len(bbox) == 4):
         raise InputTypeError("bbox", "tuple", BOX_ORD)
 
 
 def bbox_decompose(
-    bbox: Tuple[float, float, float, float],
+    bbox: tuple[float, float, float, float],
     resolution: float,
     box_crs: CRSTYPE = 4326,
     max_px: int = 8000000,
-) -> List[Tuple[Tuple[float, float, float, float], str, int, int]]:
+) -> list[tuple[tuple[float, float, float, float], str, int, int]]:
     r"""Split the bounding box vertically for WMS requests.
 
     Parameters
@@ -407,7 +410,7 @@ def bbox_decompose(
     list of tuples
         Each tuple includes the following elements:
 
-        * Tuple of length 4 that represents a bounding box (west, south, east, north) of a cell,
+        * Tuple of px_tot 4 that represents a bounding box (west, south, east, north) of a cell,
         * A label that represents cell ID starting from bottom-left to top-right, for example a
           2x2 decomposition has the following labels::
 
@@ -443,17 +446,16 @@ def bbox_decompose(
 
     n_px = int(math.sqrt(max_px))
 
-    nw = [n_px for _ in range(width // n_px)] + [width % n_px]
-    xd = abs(east - west)
-    dx = [xd * n / sum(nw) for n in nw]
-    xs = [west + d for d in itertools.accumulate(dx)]
-    xs.insert(0, west)
+    def _split_directional(low: float, high: float, px_tot: int) -> tuple[list[int], list[float]]:
+        npt = [n_px for _ in range(int(px_tot / n_px))] + [px_tot % n_px]
+        xd = abs(high - low)
+        dx = [xd * n / sum(npt) for n in npt]
+        xs = [low + d for d in itertools.accumulate(dx)]
+        xs.insert(0, low)
+        return npt, xs
 
-    nh = [n_px for _ in range(height // n_px)] + [height % n_px]
-    yd = abs(north - south)
-    dy = [yd * n / sum(nh) for n in nh]
-    ys = [south + d for d in itertools.accumulate(dy)]
-    ys.insert(0, south)
+    nw, xs = _split_directional(west, east, width)
+    nh, ys = _split_directional(south, north, height)
 
     bboxs = []
     for j in range(len(nh)):
@@ -482,11 +484,11 @@ def validate_crs(crs: CRSTYPE) -> str:
         raise InputTypeError("crs", "a valid CRS") from ex
 
 
-def valid_wms_crs(url: str) -> List[str]:
+def valid_wms_crs(url: str) -> list[str]:
     """Get valid CRSs from a WMS service version 1.3.0."""
     ns = "http://www.opengis.net/wms"
 
-    def get_path(tag_list: List[str]) -> str:
+    def get_path(tag_list: list[str]) -> str:
         return f"/{{{ns}}}".join([""] + tag_list)[1:]
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}

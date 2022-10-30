@@ -1,8 +1,9 @@
 """Base classes and function for REST, WMS, and WMF services."""
+from __future__ import annotations
+
 import itertools
 import uuid
-from ssl import SSLContext
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -13,6 +14,9 @@ from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygo
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
 from .exceptions import InputTypeError, InputValueError, ZeroMatchedError
+
+if TYPE_CHECKING:
+    from ssl import SSLContext
 
 CRSTYPE = Union[int, str, pyproj.CRS]
 
@@ -25,7 +29,7 @@ class ArcGISRESTful:
     By default, all retrieval methods retry to get the missing feature IDs,
     if there are any. You can disable this behavior by setting ``disable_retry``
     to ``True``. If there are any missing feature IDs after the retry,
-    they are saved to a text file, path of which can be accessed by
+    they are saved to a text file, ipath of which can be accessed by
     ``self.client.failed_path``.
 
     Parameters
@@ -56,15 +60,15 @@ class ArcGISRESTful:
     disable_retry : bool, optional
         If ``True`` in case there are any failed queries, no retrying attempts
         is done and object IDs of the failed requests is saved to a text file
-        which its path can be accessed via ``self.client.failed_path``.
+        which its ipath can be accessed via ``self.client.failed_path``.
     """
 
     def __init__(
         self,
         base_url: str,
-        layer: Optional[int] = None,
+        layer: int | None = None,
         outformat: str = "geojson",
-        outfields: Union[List[str], str] = "*",
+        outfields: list[str] | str = "*",
         crs: CRSTYPE = 4326,
         max_workers: int = 1,
         verbose: bool = False,
@@ -83,20 +87,20 @@ class ArcGISRESTful:
 
     def oids_bygeom(
         self,
-        geom: Union[
-            LineString,
-            Polygon,
-            Point,
-            MultiPoint,
-            Tuple[float, float],
-            List[Tuple[float, float]],
-            Tuple[float, float, float, float],
-        ],
+        geom: (
+            LineString
+            | Polygon
+            | Point
+            | MultiPoint
+            | tuple[float, float]
+            | list[tuple[float, float]]
+            | tuple[float, float, float, float]
+        ),
         geo_crs: CRSTYPE = 4326,
         spatial_relation: str = "esriSpatialRelIntersects",
-        sql_clause: Optional[str] = None,
-        distance: Optional[int] = None,
-    ) -> Iterator[Tuple[str, ...]]:
+        sql_clause: str | None = None,
+        distance: int | None = None,
+    ) -> Iterator[tuple[str, ...]]:
         """Get feature IDs within a geometry that can be combined with a SQL where clause.
 
         Parameters
@@ -175,7 +179,7 @@ class ArcGISRESTful:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
             raise ZeroMatchedError(msg) from ex
 
-    def oids_byfield(self, field: str, ids: Union[str, List[str]]) -> Iterator[Tuple[str, ...]]:
+    def oids_byfield(self, field: str, ids: str | list[str]) -> Iterator[tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
 
         Parameters
@@ -206,7 +210,7 @@ class ArcGISRESTful:
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
-    def oids_bysql(self, sql_clause: str) -> Iterator[Tuple[str, ...]]:
+    def oids_bysql(self, sql_clause: str) -> Iterator[tuple[str, ...]]:
         """Get feature IDs using a valid SQL 92 WHERE clause.
 
         Notes
@@ -242,7 +246,7 @@ class ArcGISRESTful:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
             raise ZeroMatchedError(msg) from ex
 
-    def partition_oids(self, oids: Union[List[int], int]) -> Iterator[Tuple[str, ...]]:
+    def partition_oids(self, oids: list[int] | int) -> Iterator[tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``.
 
         Parameters
@@ -259,10 +263,10 @@ class ArcGISRESTful:
 
     def get_features(
         self,
-        featureids: Iterator[Tuple[str, ...]],
+        featureids: Iterator[tuple[str, ...]],
         return_m: bool = False,
         return_geom: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get features based on the feature IDs.
 
         Parameters
@@ -317,12 +321,12 @@ class WMS:
     def __init__(
         self,
         url: str,
-        layers: Union[str, List[str]],
+        layers: str | list[str],
         outformat: str,
         version: str = "1.3.0",
         crs: CRSTYPE = 4326,
         validation: bool = True,
-        ssl: Union[SSLContext, bool, None] = None,
+        ssl: SSLContext | bool | None = None,
     ) -> None:
         self.client = WMSBase(
             url=url,
@@ -342,19 +346,19 @@ class WMS:
             [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
         )
 
-    def get_validlayers(self) -> Dict[str, str]:
+    def get_validlayers(self) -> dict[str, str]:
         """Get the layers supported by the WMS service."""
         return self.client.get_validlayers()
 
     def getmap_bybox(
         self,
-        bbox: Tuple[float, float, float, float],
+        bbox: tuple[float, float, float, float],
         resolution: float,
         box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         max_px: int = 8000000,
-        kwargs: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, bytes]:
+        kwargs: dict[str, Any] | None = None,
+    ) -> dict[str, bytes]:
         """Get data from a WMS service within a geometry or bounding box.
 
         Parameters
@@ -407,8 +411,8 @@ class WMS:
             payload["crs"] = self.crs_str
 
         def _get_payloads(
-            args: Tuple[str, Tuple[Tuple[float, float, float, float], str, int, int]]
-        ) -> Tuple[str, Dict[str, str]]:
+            args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]]
+        ) -> tuple[str, dict[str, str]]:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
@@ -471,8 +475,8 @@ class WFS(WFSBase):
     def __init__(
         self,
         url: str,
-        layer: Optional[str] = None,
-        outformat: Optional[str] = None,
+        layer: str | None = None,
+        outformat: str | None = None,
         version: str = "2.0.0",
         crs: CRSTYPE = 4326,
         read_method: str = "json",
@@ -492,10 +496,10 @@ class WFS(WFSBase):
 
     def getfeature_bybox(
         self,
-        bbox: Tuple[float, float, float, float],
+        bbox: tuple[float, float, float, float],
         box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
-    ) -> Union[str, bytes, Dict[str, Any]]:
+    ) -> str | bytes | dict[str, Any]:
         """Get data from a WFS service within a bounding box.
 
         Parameters
@@ -536,11 +540,11 @@ class WFS(WFSBase):
 
     def getfeature_bygeom(
         self,
-        geometry: Union[Polygon, MultiPolygon],
+        geometry: Polygon | MultiPolygon,
         geo_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
-    ) -> Union[str, bytes, Dict[str, Any]]:
+    ) -> str | bytes | dict[str, Any]:
         """Get features based on a geometry.
 
         Parameters
@@ -601,8 +605,8 @@ class WFS(WFSBase):
     def getfeature_byid(
         self,
         featurename: str,
-        featureids: Union[List[Union[int, str]], Union[int, str]],
-    ) -> List[Union[str, bytes, Dict[str, Any]]]:
+        featureids: list[int | str] | int | str,
+    ) -> list[str | bytes | dict[str, Any]]:
         """Get features based on feature IDs.
 
         Parameters
@@ -641,7 +645,7 @@ class WFS(WFSBase):
 
     def getfeature_byfilter(
         self, cql_filter: str, method: str = "GET"
-    ) -> Union[str, bytes, Dict[str, Any]]:
+    ) -> str | bytes | dict[str, Any]:
         """Get features based on a valid CQL filter.
 
         Notes

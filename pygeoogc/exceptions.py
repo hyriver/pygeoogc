@@ -1,5 +1,5 @@
 """Customized PyGeoOGC exceptions."""
-from typing import Optional
+from __future__ import annotations
 
 import async_retriever as ar
 
@@ -70,7 +70,7 @@ class ZeroMatchedError(ValueError):
         The exception error message
     """
 
-    def __init__(self, msg: Optional[str] = None) -> None:
+    def __init__(self, msg: str | None = None) -> None:
         if msg is None:
             self.message = "Service returned no features."
         else:
