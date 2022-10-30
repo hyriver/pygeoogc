@@ -23,6 +23,8 @@ Internal Changes
 - Add a new class method to ``WMSBase`` and ``WFSBase`` classes called
   ``get_service_options`` for retrieving the available layers, output formats, and
   CRSs for a given service. Here's an example:
+- Use ``pyupgrade`` package to update the type hinting annotations
+  to Python 3.10 style.
 
 .. code:: python
 
