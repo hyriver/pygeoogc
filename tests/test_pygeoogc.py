@@ -124,6 +124,13 @@ class TestREST:
         assert len(resp[0]["features"]) == 3
 
 
+def test_retrysession_head():
+    url = "https://httpbin.org/image/jpeg"
+    session = utils.RetrySession()
+    resp = session.head(url)
+    assert resp.headers["Content-length"] == "35588"
+
+
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
 class TestWMS:
     wms_url: str = ServiceURL().wms.gebco
