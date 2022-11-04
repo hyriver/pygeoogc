@@ -145,6 +145,22 @@ class RetrySession:
         else:
             return resp
 
+    def head(
+        self,
+        url: str,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
+        headers: Mapping[str, Any] | None = None,
+    ) -> Response:
+        """Retrieve data from a url by POST and return the Response."""
+        resp = self.session.head(url, data=data, params=params, headers=headers)
+        try:
+            resp.raise_for_status()
+        except RequestException as ex:
+            raise ServiceError(check_response(resp.text)) from ex
+        else:
+            return resp
+
 
 def traverse_json(
     items: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
