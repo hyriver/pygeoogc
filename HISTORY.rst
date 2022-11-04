@@ -2,8 +2,15 @@
 History
 =======
 
-0.13.7 (unreleased)
+0.13.7 (2022-11-04)
 -------------------
+
+New Features
+~~~~~~~~~~~~
+- Add a new method to ``RetrySession`` for getting the request head called
+  ``RetrySession.head``. This is useful for getting the headers of a request
+  without having to make a full request which is useful for getting the
+  ``Content-Length`` header for example, i.e., download size.
 
 Bug Fixes
 ~~~~~~~~~
