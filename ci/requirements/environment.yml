@@ -3,25 +3,28 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  # async_retriever
+  # async_retriever deps
   - aiodns
-  - aiohttp>=3.8.1
-  - aiohttp-client-cache>=0.5.1
   - aiosqlite
+  - aiohttp >=3.8.1
   - brotli
   - cchardet
   - cytoolz
-  - loguru
+  - nest-asyncio
+  - aiohttp-client-cache >=0.7.3
   - ujson
 
   # pygeoogc deps
+  # - async-retriever >=0.3.5
+  - cytoolz
   - defusedxml
-  - owslib>=0.27.2
+  - loguru
+  - owslib >=0.27.2
+  - pyproj >=2.2
   - pyyaml
-  - pyproj>=1.2
   - requests
-  - requests-cache>=0.9.1
-  - shapely
+  - requests-cache >=0.9.6
+  - shapely >=1.8
   - urllib3
 
   # test deps
@@ -32,4 +35,4 @@ dependencies:
 
   - pip
   - pip:
-    - git+https://github.com/cheginit/async_retriever.git
+    - git+https://github.com/hyriver/async_retriever.git
