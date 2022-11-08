@@ -231,7 +231,7 @@ class ArcGISRESTfulBase:
 
         self.n_features = len(oid_list)
         if not self.disable_retry and self.verbose:
-            logger.info(f"Found {self.n_features:,} features in the requested region.")
+            logger.info(f"Found {self.n_features:,} feature(s) in the requested region.")
         return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
 
     def _cleanup_resp(
@@ -258,22 +258,28 @@ class ArcGISRESTfulBase:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.return_geom = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
-                    logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
+                    if len(fails) > 1:
+                        logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
+                    else:
+                        logger.warning("Found 1 failed request. Retrying ...")
                     resp.extend(self.retry_failed_requests())
 
-                    logger.warning(
-                        " ".join(
-                            [
-                                f"Total of {self.n_missing} out of {self.total_n_features}",
-                                "requested features are not available in the dataset.",
-                                "Returning the successfully retrieved features.",
-                                "The failed object IDs have been saved in the",
-                                f"file {self.failed_path}. The service returned the",
-                                "following error message for the failed requests:\n",
-                                err,
-                            ]
+                    if self.n_missing > 0:
+                        logger.warning(
+                            " ".join(
+                                [
+                                    f"Total of {self.n_missing} out of {self.total_n_features}",
+                                    "requested features are not available in the dataset.",
+                                    "Returning the successfully retrieved features.",
+                                    "The failed object IDs have been saved in the",
+                                    f"file {self.failed_path}. The service returned the",
+                                    "following error message for the failed requests:\n",
+                                    err,
+                                ]
+                            )
                         )
-                    )
+                    else:
+                        logger.info("All feature IDs have been successfully retrieved.")
 
         return resp
 
@@ -377,9 +383,11 @@ class ArcGISRESTfulBase:
             except ServiceError:
                 continue
 
+        features = list(tlz.concat(features))
+        self.n_missing -= len(features)
         self.disable_retry = retry
         os.environ["HYRIVER_CACHE_DISABLE"] = f"{caching}".lower()
-        return list(tlz.concat(features))
+        return features  # type: ignore[return-value]
 
     def get_response(
         self, url: str, payloads: Sequence[dict[str, str]], method: str = "GET"
