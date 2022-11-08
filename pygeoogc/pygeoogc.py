@@ -204,9 +204,9 @@ class ArcGISRESTful:
 
         ftype = self.client.field_types[field]
         if "string" in ftype:
-            fids = ", ".join(f"'{i}'" for i in ids_ls)
+            fids = ", ".join(f"'{i}'" for i in set(ids_ls))
         else:
-            fids = ", ".join(f"{i}" for i in ids_ls)
+            fids = ", ".join(f"{i}" for i in set(ids_ls))
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
