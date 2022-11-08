@@ -2,6 +2,14 @@
 History
 =======
 
+0.13.8 (unreleased)
+-------------------
+
+Bug Fixes
+~~~~~~~~~
+- Fix the warning message in ``ArcGISRESTFul`` where wrong number of missing
+  feature IDs were being reported.
+
 0.13.7 (2022-11-04)
 -------------------
 
