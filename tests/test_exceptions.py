@@ -1,4 +1,6 @@
 """Tests for exceptions and requests"""
+import sys
+
 import pytest
 
 from pygeoogc import (
@@ -12,12 +14,8 @@ from pygeoogc import (
     ZeroMatchedError,
 )
 
-try:
-    import typeguard  # noqa: F401
-except ImportError:
-    has_typeguard = False
-else:
-    has_typeguard = True
+
+has_typeguard = True if sys.modules.get("typeguard") else False
 
 
 class TestRESTException:
