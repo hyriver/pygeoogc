@@ -14,7 +14,6 @@ from pygeoogc import (
     ZeroMatchedError,
 )
 
-
 has_typeguard = True if sys.modules.get("typeguard") else False
 
 
