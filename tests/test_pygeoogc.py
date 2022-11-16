@@ -110,18 +110,18 @@ class TestREST:
     def test_bysql(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
-        oids = hr.oids_bysql("PERMANENT_IDENTIFIER IN ('103455178', '103454362', '103453218')")
+        oids = hr.oids_bysql("nhdplusid IN (50000100239005, 50000100235192)")
         resp = hr.get_features(oids, return_m=True)
 
-        assert len(resp[0]["features"]) == 3
+        assert len(resp[0]["features"]) == 2
 
     def test_byfield(self):
         """RESTFul by SQL filter"""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
-        oids = hr.oids_byfield("PERMANENT_IDENTIFIER", ["103455178", "103454362", "103453218"])
+        oids = hr.oids_byfield("nhdplusid", ["50000100239005", "50000100235192"])
         resp = hr.get_features(oids)
 
-        assert len(resp[0]["features"]) == 3
+        assert len(resp[0]["features"]) == 2
 
 
 def test_retrysession_head():
