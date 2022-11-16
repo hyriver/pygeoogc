@@ -544,6 +544,7 @@ class WFS(WFSBase):
         geo_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
+        geom_name: str = "the_geom",
     ) -> str | bytes | dict[str, Any]:
         """Get features based on a geometry.
 
@@ -572,6 +573,12 @@ class WFS(WFSBase):
             * ``OVERLAPS``
             * ``RELATE``
             * ``BEYOND``
+        
+        geom_name : str, optional
+            Geometry name to be used with CQL filter, defaults to ``the_geom`` that is
+            OGR's convention. This value depends on web services and should be set
+            accordingly. For example, PyGeoAPI and WaterData use ``geometry`` and ``SHAPE``,
+            respectively.
 
         Returns
         -------
@@ -600,7 +607,7 @@ class WFS(WFSBase):
         if predicate not in valid_predicates:
             raise InputValueError("predicate", valid_predicates)
 
-        return self.getfeature_byfilter(f"{predicate.upper()}(the_geom, {g_wkt})", method="POST")
+        return self.getfeature_byfilter(f"{predicate.upper()}({geom_name}, {g_wkt})", method="POST")
 
     def getfeature_byid(
         self,
