@@ -473,7 +473,8 @@ class WMSBase:
         self.available_outformat = wms.getOperationByName("GetMap").formatOptions
         self.available_outformat = [f.lower() for f in self.available_outformat]
         self.available_crs = {
-            lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in self.available_layer
+            lyr: [utils.validate_crs(s) for s in wms[lyr].crsOptions]
+            for lyr in self.available_layer
         }
 
     def validate_wms(self) -> None:
@@ -488,7 +489,11 @@ class WMSBase:
             raise InputValueError("outformat", self.available_outformat)
 
         if any(self.crs_str.lower() not in self.available_crs[lyr] for lyr in layers):
-            _valid_crss = (f"{lyr}: {', '.join(cs)}\n" for lyr, cs in self.available_crs.items())
+            _valid_crss = (
+                f"{lyr}: {', '.join(cs)}\n"
+                for lyr, cs in self.available_crs.items()
+                if lyr in layers
+            )
             raise InputValueError("CRS", _valid_crss)
 
     def get_validlayers(self) -> dict[str, str]:
@@ -583,7 +588,10 @@ class WFSBase:
             self.available_outformat = wfs_features.parameters["outputFormat"]["values"]
         self.available_outformat = [f.lower() for f in self.available_outformat]
 
-        self.available_crs = [f"{s.authority.lower()}:{s.code}" for s in wfs[self.layer].crsOptions]
+        self.available_crs = {
+            lyr: [utils.validate_crs(f"{s.authority}:{s.code}") for s in wfs[lyr].crsOptions]
+            for lyr in self.available_layer
+        }
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
@@ -599,8 +607,8 @@ class WFSBase:
         if self.outformat not in self.available_outformat:
             raise InputValueError("outformat", self.available_outformat)
 
-        if self.crs_str.lower() not in self.available_crs:
-            raise InputValueError("crs", self.available_crs)
+        if self.crs_str not in self.available_crs[self.layer]:
+            raise InputValueError("crs", self.available_crs[self.layer])
 
     def get_validnames(self) -> list[str]:
         """Get valid column names for a layer."""
