@@ -573,7 +573,7 @@ class WFS(WFSBase):
             * ``OVERLAPS``
             * ``RELATE``
             * ``BEYOND``
-        
+
         geom_name : str, optional
             Geometry name to be used with CQL filter, defaults to ``the_geom`` that is
             OGR's convention. This value depends on web services and should be set
