@@ -495,7 +495,7 @@ def validate_crs(crs: CRSTYPE) -> str:
         Validated CRS as a string.
     """
     try:
-        return pyproj.CRS(crs).to_string()  # type: ignore
+        return pyproj.CRS(crs).to_string().lower()  # type: ignore
     except pyproj.exceptions.CRSError as ex:
         raise InputTypeError("crs", "a valid CRS") from ex
 
