@@ -11,9 +11,21 @@ New Features
   the geometry name for CQL queries. The default value is ``the_geom``
   which is OGR default value and retains backward compatibility.
 
+Bug Fixes
+~~~~~~~~~
+- Fix an issue in ``WFS`` class where number of requested features
+  exceeds the maximum number of features allowed by the server, but
+  only a portion of the features are returned. This release addresses
+  this issue by first getting only the number of features and then
+  requesting the features in chunks of features IDs based on the
+  maximum number of features allowed by the server.
+
 Internal Changes
 ~~~~~~~~~~~~~~~~
-- More robust handling of getting valid CRS options for ``WFS`` and ``WMS``.
+- Add a new property to ``WFS`` class called ``schema`` that contains
+  information about column names and their types for all layers. It also
+  the geometry type and its name for each layer.
+- Drop support for WFS version 1.0.0 since it does not support paging.
 
 
 Bug Fixes
