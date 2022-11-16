@@ -473,8 +473,7 @@ class WMSBase:
         self.available_outformat = wms.getOperationByName("GetMap").formatOptions
         self.available_outformat = [f.lower() for f in self.available_outformat]
         self.available_crs = {
-            lyr: [utils.validate_crs(s) for s in wms[lyr].crsOptions]
-            for lyr in self.available_layer
+            lyr: [s.lower() for s in wms[lyr].crsOptions] for lyr in self.available_layer
         }
 
     def validate_wms(self) -> None:
@@ -589,7 +588,7 @@ class WFSBase:
         self.available_outformat = [f.lower() for f in self.available_outformat]
 
         self.available_crs = {
-            lyr: [utils.validate_crs(f"{s.authority}:{s.code}") for s in wfs[lyr].crsOptions]
+            lyr: [f"{s.authority.lower()}:{s.code}" for s in wfs[lyr].crsOptions]
             for lyr in self.available_layer
         }
 
