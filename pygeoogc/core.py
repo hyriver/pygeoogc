@@ -563,7 +563,13 @@ class WFSBase:
     def __post_init__(self) -> None:
         """Validate crs."""
         self.crs_str = utils.validate_crs(self.crs)
-        self.version = validate_version(self.version, ["1.0.0", "1.1.0", "2.0.0"])
+        self.version = validate_version(self.version, ["1.1.0", "2.0.0"])
+        if self.version == "2.0.0":
+            self.nfeat_key = "numberMatched="
+            self.count_key = "count"
+        else:
+            self.nfeat_key = "numberOfFeatures="
+            self.count_key = "maxFeatures"
         valid_methods = ["json", "binary", "text"]
         if self.read_method not in valid_methods:
             raise InputValueError("read_method", valid_methods)
@@ -581,16 +587,15 @@ class WFSBase:
         self.available_layer = list(wfs.contents)
 
         wfs_features = wfs.getOperationByName("GetFeature")
-        if self.version == "1.0.0":
-            self.available_outformat = [f.rsplit("}", 1)[-1] for f in wfs_features.formatOptions]
-        else:
-            self.available_outformat = wfs_features.parameters["outputFormat"]["values"]
+        self.available_outformat = wfs_features.parameters["outputFormat"]["values"]
         self.available_outformat = [f.lower() for f in self.available_outformat]
 
         self.available_crs = {
             lyr: [f"{s.authority.lower()}:{s.code}" for s in wfs[lyr].crsOptions]
             for lyr in self.available_layer
         }
+
+        self.schema = {lyr: wfs.get_schema(lyr) for lyr in self.available_layer}
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
@@ -608,32 +613,6 @@ class WFSBase:
 
         if self.crs_str not in self.available_crs[self.layer]:
             raise InputValueError("crs", self.available_crs[self.layer])
-
-    def get_validnames(self) -> list[str]:
-        """Get valid column names for a layer."""
-        max_features = "count" if self.version == "2.0.0" else "maxFeatures"
-
-        payload = {
-            "service": "wfs",
-            "version": self.version,
-            "outputFormat": "application/json",
-            "request": "GetFeature",
-            "typeName": self.layer,
-            max_features: 1,
-        }
-        rjson = ar.retrieve_json([self.url], [{"params": payload}])[0]
-        valid_fields = list(
-            set(
-                utils.traverse_json(rjson, ["fields", "name"])
-                + utils.traverse_json(rjson, ["fields", "alias"])
-                + ["*"]
-            )
-        )
-
-        if None in valid_fields:
-            valid_fields = list(utils.traverse_json(rjson, ["features", "properties"])[0].keys())
-
-        return valid_fields
 
     def __repr__(self) -> str:
         """Print the services properties."""
