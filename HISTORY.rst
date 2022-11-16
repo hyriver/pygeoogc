@@ -5,6 +5,17 @@ History
 0.13.8 (unreleased)
 -------------------
 
+New Features
+~~~~~~~~~~~~
+- Add a new argument to ``WFS.getfeature_bygeom`` to allow specifying
+  the geometry name for CQL queries. The default value is ``the_geom``
+  which is OGR default value and retains backward compatibility.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- More robust handling of getting valid CRS options for ``WFS`` and ``WMS``.
+
+
 Bug Fixes
 ~~~~~~~~~
 - Fix the warning message in ``ArcGISRESTFul`` where wrong number of missing
