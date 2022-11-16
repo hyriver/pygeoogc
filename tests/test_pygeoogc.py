@@ -176,8 +176,8 @@ class TestWFS:
         max_nrecords=5,
     )
 
-    def to_df(self, r):
-        return pd.read_csv(io.StringIO(r))
+    def to_df(self, resp):
+        return pd.concat(pd.read_csv(io.StringIO(r)) for r in resp)
 
     def test_byid(self):
         """WFS by ID"""
@@ -190,37 +190,37 @@ class TestWFS:
             "01017000",
             "01017060",
         ]
-        resps = self.wfs.getfeature_byid("staid", stations)
-        df = pd.concat(self.to_df(r) for r in resps)
+        resp = self.wfs.getfeature_byid("staid", stations)
+        df = self.to_df(resp)
         assert set(df.staid.unique()) == {int(s) for s in stations}
 
     def test_bygeom(self):
         """WFS by geometry"""
-        r = self.wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
-        assert self.to_df(r).shape[0] == 7
+        resp = self.wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
+        assert self.to_df(resp).shape[0] == 7
 
     def test_bybox(self):
         """WFS by bounding box"""
         bbox = GEO_URB.bounds
-        r = self.wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
-        assert self.to_df(r).shape[0] == 7
+        resp = self.wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
+        assert self.to_df(resp).shape[0] == 7
 
     def test_byfilter(self):
         """WFS by CQL filter"""
-        r = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
-        assert self.to_df(r).shape[0] == 2
+        resp = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
+        assert self.to_df(resp).shape[0] == 2
 
-    def test_wfs100(self):
-        """WFS 1.0.0 by geom"""
+    def test_wfs110(self):
+        """WFS 1.1.0 by geom"""
         wfs = WFS(
             ServiceURL().wfs.waterdata,
             layer="wmadata:gagesii",
             outformat="json",
-            version="1.0.0",
+            version="1.1.0",
             crs=ALT_CRS,
         )
-        r = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
-        assert len(r["features"]) == 7
+        resp = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
+        assert len(resp[0]["features"]) == 7
 
 
 def test_decompose():
