@@ -6,14 +6,13 @@ import uuid
 from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union
 
 import async_retriever as ar
-import cytoolz as tlz
 import pyproj
 import shapely.ops as ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
-from .exceptions import InputTypeError, InputValueError, ZeroMatchedError
+from .exceptions import InputTypeError, InputValueError, MissingInputError, ZeroMatchedError
 
 if TYPE_CHECKING:
     from ssl import SSLContext
@@ -499,7 +498,8 @@ class WFS(WFSBase):
         bbox: tuple[float, float, float, float],
         box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
-    ) -> str | bytes | dict[str, Any]:
+        sort_attr: str | None = None,
+    ) -> list[str | bytes | dict[str, Any]]:
         """Get data from a WFS service within a bounding box.
 
         Parameters
@@ -514,29 +514,62 @@ class WFS(WFSBase):
             order from xy to yx, following the latest WFS version specifications but some don't.
             If the returned value does not have any geometry, it indicates that most probably the
             axis order does not match. You can set this to True in that case.
+        sort_attr : str, optional
+            The column name in the database to sort request by, defaults
+            to the first attribute in the schema that contains ``id`` in its name.
 
         Returns
         -------
-        str or bytes or dict
+        list of str or bytes or dict
             WFS query response within a bounding box.
         """
         utils.check_bbox(bbox)
         box_crs = pyproj.CRS(box_crs)
 
-        if self.version != "1.0.0" and box_crs.is_geographic and not always_xy:
+        if box_crs.is_geographic and not always_xy:
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
         payload = {
             "service": "wfs",
             "version": self.version,
-            "outputFormat": self.outformat,
+            "outputFormat": "text/xml",
             "request": "GetFeature",
             "typeName": self.layer,
             "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
             "srsName": self.crs_str,
+            "resultType": "hits",
         }
+        resp = ar.retrieve_text([self.url], [{"params": payload}])
+        nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
 
-        return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
+        if sort_attr is None:
+            sort_attr = next(
+                (a for a in self.schema[self.layer]["properties"] if "id" in a.lower()), None
+            )
+
+        if sort_attr is None:
+            msg = "sort_attr is None and no id column found in the schema"
+            raise MissingInputError(msg)
+
+        payloads = [
+            {
+                "service": "wfs",
+                "version": self.version,
+                "outputFormat": self.outformat,
+                "request": "GetFeature",
+                "typeName": self.layer,
+                "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
+                "srsName": self.crs_str,
+                "startIndex": i,
+                self.count_key: self.max_nrecords,
+                "sortBy": sort_attr,
+            }
+            for i in range(0, nfeatures, self.max_nrecords)
+        ]
+
+        return ar.retrieve(
+            [self.url] * len(payloads), self.read_method, [{"params": p} for p in payloads]
+        )
 
     def getfeature_bygeom(
         self,
@@ -544,8 +577,7 @@ class WFS(WFSBase):
         geo_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
-        geom_name: str = "the_geom",
-    ) -> str | bytes | dict[str, Any]:
+    ) -> list[str | bytes | dict[str, Any]]:
         """Get features based on a geometry.
 
         Parameters
@@ -574,20 +606,15 @@ class WFS(WFSBase):
             * ``RELATE``
             * ``BEYOND``
 
-        geom_name : str, optional
-            Geometry name to be used with CQL filter, defaults to ``the_geom`` that is
-            OGR's convention. This value depends on web services and should be set
-            accordingly. For example, PyGeoAPI and WaterData use ``geometry`` and ``SHAPE``,
-            respectively.
-
         Returns
         -------
         str or bytes or dict
             WFS query response based on the given geometry.
         """
         geom = utils.match_crs(geometry, geo_crs, self.crs_str)
+        geom_name = self.schema[self.layer]["geometry_column"]
 
-        if self.version != "1.0.0" and pyproj.CRS(geo_crs).is_geographic and not always_xy:
+        if pyproj.CRS(geo_crs).is_geographic and not always_xy:
             g_wkt = ops.transform(lambda x, y: (y, x), geom).wkt
         else:
             g_wkt = geom.wkt
@@ -620,7 +647,7 @@ class WFS(WFSBase):
         ----------
         featurename : str
             The name of the column for searching for feature IDs.
-        featureids : str or list
+        featureids : int, str, or list of them
             The feature ID(s).
 
         Returns
@@ -628,9 +655,9 @@ class WFS(WFSBase):
         str or bytes or dict
             WMS query response.
         """
-        valid_features = self.get_validnames()
+        valid_features = self.schema[self.layer]["properties"]
         if featurename not in valid_features:
-            raise InputValueError("featurename", valid_features)
+            raise InputValueError("featurename", list(valid_features))
 
         if not isinstance(featureids, (str, int, list, tuple)):
             raise InputTypeError("featureids", "str or list of str")
@@ -638,21 +665,20 @@ class WFS(WFSBase):
         featureids = [featureids] if isinstance(featureids, (str, int)) else list(featureids)
 
         if len(featureids) == 0:
-            raise InputTypeError("featureids", "int or str or list")
+            raise InputTypeError("featureids", "int, str, or list")
 
-        fid_list = (
-            ", ".join(f"'{fid}'" for fid in fids)
-            for fids in tlz.partition_all(self.max_nrecords, set(featureids))
+        if "str" in valid_features[featurename]:
+            feat_vals = ", ".join(f"'{fid}'" for fid in set(featureids))
+        else:
+            feat_vals = ", ".join(f"{fid}" for fid in set(featureids))
+
+        return self.getfeature_byfilter(
+            f"{featurename} IN ({feat_vals})", method="POST", sort_attr=featurename
         )
 
-        return [
-            self.getfeature_byfilter(f"{featurename} IN ({fids})", method="POST")
-            for fids in fid_list
-        ]
-
     def getfeature_byfilter(
-        self, cql_filter: str, method: str = "GET"
-    ) -> str | bytes | dict[str, Any]:
+        self, cql_filter: str, method: str = "GET", sort_attr: str | None = None
+    ) -> list[str | bytes | dict[str, Any]]:
         """Get features based on a valid CQL filter.
 
         Notes
@@ -667,6 +693,9 @@ class WFS(WFSBase):
             A valid CQL filter expression.
         method : str
             The request method, could be GET or POST (for long filters).
+        sort_attr : str, optional
+            The column name in the database to sort request by, defaults
+            to the first attribute in the schema that contains ``id`` in its name.
 
         Returns
         -------
@@ -683,20 +712,59 @@ class WFS(WFSBase):
         payload = {
             "service": "wfs",
             "version": self.version,
-            "outputFormat": self.outformat,
+            "outputFormat": "text/xml",
             "request": "GetFeature",
             "typeName": self.layer,
             "srsName": self.crs_str,
             "cql_filter": cql_filter,
+            "resultType": "hits",
         }
 
         if method == "GET":
-            return ar.retrieve([self.url], self.read_method, [{"params": payload}])[0]
+            resp = ar.retrieve_text([self.url], [{"params": payload}])
+        else:
+            headers = {"content-type": "application/x-www-form-urlencoded"}
+            resp = ar.retrieve_text([self.url], [{"data": payload, "headers": headers}], "POST")
+
+        nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
+
+        if sort_attr is None:
+            sort_attr = next(
+                (a for a in self.schema[self.layer]["properties"] if "id" in a.lower()), None
+            )
+
+        if sort_attr is None:
+            msg = "sort_attr is None and no id column found in the schema"
+            raise MissingInputError(msg)
+
+        payloads = [
+            {
+                "service": "wfs",
+                "version": self.version,
+                "outputFormat": self.outformat,
+                "request": "GetFeature",
+                "typeName": self.layer,
+                "srsName": self.crs_str,
+                "cql_filter": cql_filter,
+                "startIndex": i,
+                self.count_key: self.max_nrecords,
+                "sortBy": sort_attr,
+            }
+            for i in range(0, nfeatures, self.max_nrecords)
+        ]
+
+        if method == "GET":
+            return ar.retrieve(
+                [self.url] * len(payloads), self.read_method, [{"params": p} for p in payloads]
+            )
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
         return ar.retrieve(
-            [self.url], self.read_method, [{"data": payload, "headers": headers}], "POST"
-        )[0]
+            [self.url] * len(payloads),
+            self.read_method,
+            [{"data": p, "headers": headers} for p in payloads],
+            "POST",
+        )
 
 
 class HttpURLs(NamedTuple):
