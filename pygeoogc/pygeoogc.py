@@ -541,7 +541,6 @@ class WFS(WFSBase):
         }
         resp = ar.retrieve_text([self.url], [{"params": payload}])
         nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
-        sort_param = self.get_sort_params(sort_attr, nfeatures)
 
         payloads = [
             {
@@ -552,8 +551,7 @@ class WFS(WFSBase):
                 "typeName": self.layer,
                 "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
                 "srsName": self.crs_str,
-                "startIndex": i,
-                **sort_param,
+                **self.sort_params(sort_attr, nfeatures, i),
             }
             for i in range(0, nfeatures, self.max_nrecords)
         ]
@@ -725,7 +723,6 @@ class WFS(WFSBase):
             resp = ar.retrieve_text([self.url], [{"data": payload, "headers": headers}], "POST")
 
         nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
-        sort_param = self.get_sort_params(sort_attr, nfeatures)
 
         payloads = [
             {
@@ -736,8 +733,7 @@ class WFS(WFSBase):
                 "typeName": self.layer,
                 "srsName": self.crs_str,
                 "cql_filter": cql_filter,
-                "startIndex": i,
-                **sort_param,
+                **self.sort_params(sort_attr, nfeatures, i),
             }
             for i in range(0, nfeatures, self.max_nrecords)
         ]
