@@ -12,7 +12,7 @@ from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygo
 
 from . import utils
 from .core import ArcGISRESTfulBase, WFSBase, WMSBase
-from .exceptions import InputTypeError, InputValueError, MissingInputError, ZeroMatchedError
+from .exceptions import InputTypeError, InputValueError, ZeroMatchedError
 
 if TYPE_CHECKING:
     from ssl import SSLContext
@@ -541,15 +541,7 @@ class WFS(WFSBase):
         }
         resp = ar.retrieve_text([self.url], [{"params": payload}])
         nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
-
-        if sort_attr is None:
-            sort_attr = next(
-                (a for a in self.schema[self.layer]["properties"] if "id" in a.lower()), None
-            )
-
-        if sort_attr is None:
-            msg = "sort_attr is None and no id column found in the schema"
-            raise MissingInputError(msg)
+        sort_param = self.get_sort_params(sort_attr, nfeatures)
 
         payloads = [
             {
@@ -562,7 +554,7 @@ class WFS(WFSBase):
                 "srsName": self.crs_str,
                 "startIndex": i,
                 self.count_key: self.max_nrecords,
-                "sortBy": sort_attr,
+                **sort_param,
             }
             for i in range(0, nfeatures, self.max_nrecords)
         ]
@@ -577,6 +569,7 @@ class WFS(WFSBase):
         geo_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
+        sort_attr: str | None = None,
     ) -> list[str | bytes | dict[str, Any]]:
         """Get features based on a geometry.
 
@@ -606,6 +599,10 @@ class WFS(WFSBase):
             * ``RELATE``
             * ``BEYOND``
 
+        sort_attr : str, optional
+            The column name in the database to sort request by, defaults
+            to the first attribute in the schema that contains ``id`` in its name.
+
         Returns
         -------
         str or bytes or dict
@@ -631,10 +628,12 @@ class WFS(WFSBase):
             "RELATE",
             "BEYOND",
         ]
-        if predicate not in valid_predicates:
+        if predicate.upper() not in valid_predicates:
             raise InputValueError("predicate", valid_predicates)
 
-        return self.getfeature_byfilter(f"{predicate.upper()}({geom_name}, {g_wkt})", method="POST")
+        return self.getfeature_byfilter(
+            f"{predicate.upper()}({geom_name}, {g_wkt})", method="POST", sort_attr=sort_attr
+        )
 
     def getfeature_byid(
         self,
@@ -727,15 +726,7 @@ class WFS(WFSBase):
             resp = ar.retrieve_text([self.url], [{"data": payload, "headers": headers}], "POST")
 
         nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
-
-        if sort_attr is None:
-            sort_attr = next(
-                (a for a in self.schema[self.layer]["properties"] if "id" in a.lower()), None
-            )
-
-        if sort_attr is None:
-            msg = "sort_attr is None and no id column found in the schema"
-            raise MissingInputError(msg)
+        sort_param = self.get_sort_params(sort_attr, nfeatures)
 
         payloads = [
             {
@@ -748,7 +739,7 @@ class WFS(WFSBase):
                 "cql_filter": cql_filter,
                 "startIndex": i,
                 self.count_key: self.max_nrecords,
-                "sortBy": sort_attr,
+                **sort_param,
             }
             for i in range(0, nfeatures, self.max_nrecords)
         ]
