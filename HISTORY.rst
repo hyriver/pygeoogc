@@ -7,9 +7,13 @@ History
 
 New Features
 ~~~~~~~~~~~~
-- Add a new argument to ``WFS.getfeature_bygeom`` to allow specifying
-  the geometry name for CQL queries. The default value is ``the_geom``
-  which is OGR default value and retains backward compatibility.
+- Add a new property to ``WFS`` class called ``schema`` that contains
+  information about column names and their types for all layers. It also
+  the geometry type and its name for each layer.
+- Automatically determine the geometry keyword that should be passed to
+  ``WFS.getfeature_bygeom`` using the new ``schema`` property of ``WFS``.
+- Add support for disabling SSL verification to ``RetrySession`` via ``ssl``
+  parameter.
 
 Bug Fixes
 ~~~~~~~~~
@@ -22,9 +26,6 @@ Bug Fixes
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
-- Add a new property to ``WFS`` class called ``schema`` that contains
-  information about column names and their types for all layers. It also
-  the geometry type and its name for each layer.
 - Drop support for WFS version 1.0.0 since it does not support paging.
 
 
