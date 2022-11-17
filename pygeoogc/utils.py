@@ -19,7 +19,7 @@ from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
-from urllib3 import Retry
+import urllib3
 
 from .exceptions import InputTypeError, ServiceError
 
@@ -78,6 +78,8 @@ class RetrySession:
     disable : bool, optional
         If ``True`` temporarily disable caching requests and get new responses
         from the server, defaults to ``False``.
+    ssl : bool, optional
+        If ``True`` verify SSL certificates, defaults to ``True``.
     """
 
     def __init__(
@@ -89,6 +91,7 @@ class RetrySession:
         cache_name: str | Path | None = None,
         expire_after: int = -1,
         disable: bool = False,
+        ssl: bool = True,
     ) -> None:
         disable = os.getenv("HYRIVER_CACHE_DISABLE", f"{disable}").lower() == "true"
         if disable:
@@ -102,8 +105,12 @@ class RetrySession:
                 expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
             )
 
+        if not ssl:
+            urllib3.disable_warnings()
+            self.session.verify = False
+
         adapter = HTTPAdapter(
-            max_retries=Retry(
+            max_retries=urllib3.Retry(
                 total=retries,
                 read=retries,
                 connect=retries,
