@@ -614,6 +614,26 @@ class WFSBase:
         if self.crs_str not in self.available_crs[self.layer]:
             raise InputValueError("crs", self.available_crs[self.layer])
 
+    def get_sort_params(self, sort_attr: str | None, nfeatures: int) -> dict[str, str]:
+        """Get the sort parameters for the WFS request."""
+        if nfeatures <= self.max_nrecords:
+            return {}
+
+        valid_attrs = self.schema[self.layer]["properties"]
+        if sort_attr is None:
+            sort_attr = next(
+                (a for a in self.schema[self.layer]["properties"] if "id" in a.lower()), None
+            )
+            if sort_attr is None:
+                msg = "sort_attr is None and no id column found in the schema."
+                msg += " Please set the sort_attr manually. Available columns are:\n"
+                msg += ", ".join(list(valid_attrs))
+                raise MissingInputError(msg)
+
+        if sort_attr not in valid_attrs:
+            raise InputValueError("sort_attr", list(valid_attrs))
+        return {"sortBy": sort_attr}
+
     def __repr__(self) -> str:
         """Print the services properties."""
         return "\n".join(
