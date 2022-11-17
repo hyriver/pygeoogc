@@ -614,7 +614,7 @@ class WFSBase:
         if self.crs_str not in self.available_crs[self.layer]:
             raise InputValueError("crs", self.available_crs[self.layer])
 
-    def get_sort_params(self, sort_attr: str | None, nfeatures: int) -> dict[str, str]:
+    def get_sort_params(self, sort_attr: str | None, nfeatures: int) -> dict[str, str | int]:
         """Get the sort parameters for the WFS request."""
         if nfeatures <= self.max_nrecords:
             return {}
@@ -632,7 +632,7 @@ class WFSBase:
 
         if sort_attr not in valid_attrs:
             raise InputValueError("sort_attr", list(valid_attrs))
-        return {"sortBy": sort_attr}
+        return {self.count_key: self.max_nrecords, "sortBy": sort_attr}
 
     def __repr__(self) -> str:
         """Print the services properties."""

@@ -553,7 +553,6 @@ class WFS(WFSBase):
                 "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
                 "srsName": self.crs_str,
                 "startIndex": i,
-                self.count_key: self.max_nrecords,
                 **sort_param,
             }
             for i in range(0, nfeatures, self.max_nrecords)
@@ -738,7 +737,6 @@ class WFS(WFSBase):
                 "srsName": self.crs_str,
                 "cql_filter": cql_filter,
                 "startIndex": i,
-                self.count_key: self.max_nrecords,
                 **sort_param,
             }
             for i in range(0, nfeatures, self.max_nrecords)
