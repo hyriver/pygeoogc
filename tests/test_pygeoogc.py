@@ -131,6 +131,13 @@ def test_retrysession_head():
     assert resp.headers["Content-length"] == "35588"
 
 
+def test_retry_ssl():
+    session = utils.RetrySession(ssl=False)
+    base_url = "/".join(("https://gaftp.epa.gov/epadatacommons/ORD", "NHDPlusLandscapeAttributes/StreamCat/HydroRegions"))
+    r = session.get(base_url)
+    assert r.status_code == 200
+
+
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
 class TestWMS:
     wms_url: str = ServiceURL().wms.gebco
