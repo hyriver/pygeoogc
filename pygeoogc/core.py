@@ -240,10 +240,10 @@ class ArcGISRESTfulBase:
         """Remove failed responses."""
         fails = [i for i, r in enumerate(resp) if "error" in r]
 
-        if len(fails) > 0:
+        if fails:
             err = resp[fails[0]]["error"]["message"]
             resp = [r for i, r in enumerate(resp) if i not in fails]
-            if len(resp) == 0 and self.disable_retry:
+            if not resp and self.disable_retry:
                 raise ServiceError(err)
 
             if "objectIds" in payloads[fails[0]]:
@@ -251,7 +251,7 @@ class ArcGISRESTfulBase:
                 self.n_missing = len(oids)
 
                 self.failed_path = Path("cache", f"failed_ids_{self.request_id}.txt")
-                with open(self.failed_path, "w") as f:
+                with self.failed_path.open("w") as f:
                     f.write("\n".join(oids))
 
                 if not self.disable_retry:
@@ -323,7 +323,7 @@ class ArcGISRESTfulBase:
         resp = self.get_response(self.query_url, payloads, "POST")
 
         resp = self._cleanup_resp(resp, payloads)
-        if len(resp) == 0:
+        if not resp:
             raise ZeroMatchedError
         return resp
 

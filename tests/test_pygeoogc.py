@@ -133,7 +133,12 @@ def test_retrysession_head():
 
 def test_retry_ssl():
     session = utils.RetrySession(ssl=False)
-    base_url = "/".join(("https://gaftp.epa.gov/epadatacommons/ORD", "NHDPlusLandscapeAttributes/StreamCat/HydroRegions"))
+    base_url = "/".join(
+        (
+            "https://gaftp.epa.gov/epadatacommons/ORD",
+            "NHDPlusLandscapeAttributes/StreamCat/HydroRegions",
+        )
+    )
     r = session.get(base_url)
     assert r.status_code == 200
 

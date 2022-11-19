@@ -660,7 +660,7 @@ class WFS(WFSBase):
 
         featureids = [featureids] if isinstance(featureids, (str, int)) else list(featureids)
 
-        if len(featureids) == 0:
+        if not featureids:
             raise InputTypeError("featureids", "int, str, or list")
 
         if "str" in valid_features[featurename]:

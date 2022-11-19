@@ -27,6 +27,8 @@ Bug Fixes
 Internal Changes
 ~~~~~~~~~~~~~~~~
 - Drop support for WFS version 1.0.0 since it does not support paging.
+- Modify the codebase based on `Refurb <https://github.com/dosisod/refurb>`__
+  suggestions.
 
 
 Bug Fixes

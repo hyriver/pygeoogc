@@ -14,12 +14,12 @@ import pyproj
 import requests
 import shapely.geometry as sgeom
 import ujson as json
+import urllib3
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
-import urllib3
 
 from .exceptions import InputTypeError, ServiceError
 
