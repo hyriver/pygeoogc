@@ -17,6 +17,7 @@ import ujson as json
 import urllib3
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
+import requests_cache
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
@@ -130,6 +131,9 @@ class RetrySession:
         stream: bool | None = None,
     ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
+        if stream:
+            requests_cache.uninstall_cache()
+
         resp = self.session.get(url, params=payload, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
@@ -146,6 +150,9 @@ class RetrySession:
         stream: bool | None = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
+        if stream:
+            requests_cache.uninstall_cache()
+
         resp = self.session.post(url, data=payload, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
