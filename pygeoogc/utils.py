@@ -127,9 +127,10 @@ class RetrySession:
         url: str,
         payload: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
+        stream: bool | None = None,
     ) -> Response:
         """Retrieve data from a url by GET and return the Response."""
-        resp = self.session.get(url, params=payload, headers=headers)
+        resp = self.session.get(url, params=payload, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
         except RequestException as ex:
@@ -142,9 +143,10 @@ class RetrySession:
         url: str,
         payload: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
+        stream: bool | None = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
-        resp = self.session.post(url, data=payload, headers=headers)
+        resp = self.session.post(url, data=payload, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
         except RequestException as ex:
@@ -167,6 +169,10 @@ class RetrySession:
             raise ServiceError(check_response(resp.text)) from ex
         else:
             return resp
+
+    def close(self) -> None:
+        """Close the session."""
+        self.session.close()
 
 
 def traverse_json(
