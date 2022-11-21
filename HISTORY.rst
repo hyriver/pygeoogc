@@ -14,6 +14,10 @@ New Features
   ``WFS.getfeature_bygeom`` using the new ``schema`` property of ``WFS``.
 - Add support for disabling SSL verification to ``RetrySession`` via ``ssl``
   parameter.
+- Add support for streaming responses to ``RetrySession`` via ``stream``
+  parameter to ``get`` and ``post`` methods.
+- Add support for closing the session to ``RetrySession`` via ``close``
+  method.
 
 Bug Fixes
 ~~~~~~~~~
