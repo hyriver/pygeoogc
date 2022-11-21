@@ -129,6 +129,9 @@ def test_retrysession_head():
     session = utils.RetrySession()
     resp = session.head(url)
     assert resp.headers["Content-length"] == "35588"
+    resp = session.get(url, stream=True)
+    assert resp.headers["Content-length"] == "35588"
+    session.close()
 
 
 def test_retry_ssl():
@@ -141,6 +144,7 @@ def test_retry_ssl():
     )
     r = session.get(base_url)
     assert r.status_code == 200
+    session.close()
 
 
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
