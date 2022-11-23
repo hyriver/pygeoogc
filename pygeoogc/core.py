@@ -611,7 +611,7 @@ class WFSBase:
         if self.outformat not in self.available_outformat:
             raise InputValueError("outformat", self.available_outformat)
 
-        if self.crs_str not in self.available_crs[self.layer]:
+        if self.crs_str.lower() not in self.available_crs[self.layer]:
             raise InputValueError("crs", self.available_crs[self.layer])
 
     def sort_params(
