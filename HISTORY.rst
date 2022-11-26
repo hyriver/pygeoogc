@@ -18,6 +18,10 @@ New Features
   parameter to ``get`` and ``post`` methods.
 - Add support for closing the session to ``RetrySession`` via ``close``
   method.
+- Add support for passing ``params``, ``data``, and ``json`` to ``RetrySession``
+  via ``get`` and ``post`` methods. Previously, keyword ``payload`` was used for
+  ``params`` in ``get`` and ``data`` in ``post``. Now, ``params`` and ``data``
+  can also be passed as keyword arguments to these methods.
 
 Bug Fixes
 ~~~~~~~~~
