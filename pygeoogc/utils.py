@@ -126,6 +126,7 @@ class RetrySession:
         self,
         url: str,
         payload: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
         stream: bool | None = None,
     ) -> Response:
@@ -134,11 +135,11 @@ class RetrySession:
             msg = ". ".join(
                 (
                     "Streaming is not supported with caching enabled",
-                    "Reinstantiate the class: RetrySession(disable=True).",
+                    "Reinstantiate the class like so: RetrySession(disable=True).",
                 )
             )
             raise ValueError(msg)
-
+        params = params or payload
         resp = self.session.get(url, params=payload, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
@@ -151,6 +152,8 @@ class RetrySession:
         self,
         url: str,
         payload: Mapping[str, Any] | None = None,
+        data: Mapping[str, Any] | None = None,
+        json: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
         stream: bool | None = None,
     ) -> Response:
@@ -159,12 +162,12 @@ class RetrySession:
             msg = ". ".join(
                 (
                     "Streaming is not supported with caching enabled",
-                    "Reinstantiate the class: RetrySession(disable=True).",
+                    "Reinstantiate the class like so: RetrySession(disable=True).",
                 )
             )
             raise ValueError(msg)
-
-        resp = self.session.post(url, data=payload, headers=headers, stream=stream)
+        data = data or payload
+        resp = self.session.post(url, data=payload, json=json, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
         except RequestException as ex:
@@ -175,12 +178,13 @@ class RetrySession:
     def head(
         self,
         url: str,
-        data: Mapping[str, Any] | None = None,
         params: Mapping[str, Any] | None = None,
+        data: Mapping[str, Any] | None = None,
+        json: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
     ) -> Response:
         """Retrieve data from a url by POST and return the Response."""
-        resp = self.session.head(url, data=data, params=params, headers=headers)
+        resp = self.session.head(url, data=data, params=params, json=json, headers=headers)
         try:
             resp.raise_for_status()
         except RequestException as ex:
