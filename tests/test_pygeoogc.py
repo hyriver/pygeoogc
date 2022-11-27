@@ -135,6 +135,21 @@ def test_retrysession_head():
     session.close()
 
 
+def test_retrysession_params():
+    url = "https://postman-echo.com"
+    params = {"params_get": "foo"}
+    data = {"data_post": "foo"}
+    session = utils.RetrySession(disable=True)
+
+    get1 = session.get(f"{url}/get", params=params)
+    get2 = session.get(f"{url}/get", payload=params)
+    assert get1.json()["args"] == get2.json()["args"]
+
+    post1 = session.post(f"{url}/post", data=data)
+    post2 = session.post(f"{url}/post", payload=data)
+    assert post1.json()["args"] == post2.json()["args"]
+
+
 def test_retry_ssl():
     session = utils.RetrySession(ssl=False)
     base_url = "/".join(
