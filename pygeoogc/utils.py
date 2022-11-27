@@ -6,13 +6,14 @@ import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Mapping, Tuple, TypeVar, Union
+from typing import Any, Mapping, TypeVar, Union
 
 import async_retriever as ar
+import cytoolz as tlz
 import defusedxml.ElementTree as ETree
+import joblib
 import pyproj
 import requests
-import shapely.geometry as sgeom
 import ujson as json
 import urllib3
 from requests.adapters import HTTPAdapter
@@ -20,22 +21,29 @@ from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
+from shapely.geometry import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon
+from shapely.geometry import box as shapely_box
 
-from .exceptions import InputTypeError, ServiceError
+from . import cache_keys
+from .exceptions import InputTypeError, InputValueError, ServiceError
 
 CRSTYPE = Union[int, str, pyproj.CRS]
 BOX_ORD = "(west, south, east, north)"
 G = TypeVar(
     "G",
-    sgeom.Point,
-    sgeom.MultiPoint,
-    sgeom.Polygon,
-    sgeom.MultiPolygon,
-    sgeom.LineString,
-    sgeom.MultiLineString,
-    Tuple[float, float, float, float],
-    List[Tuple[float, float]],
+    Point,
+    MultiPoint,
+    Polygon,
+    MultiPolygon,
+    LineString,
+    MultiLineString,
+    tuple[float, float, float, float],
+    list[tuple[float, float]],
 )
+MAX_CONN = 10
+CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
+
+__all__ = ["RetrySession", "traverse_json", "streaming_download", "match_crs", "validate_crs"]
 
 
 def check_response(resp: str) -> str:
@@ -197,6 +205,113 @@ class RetrySession:
         self.session.close()
 
 
+def streaming_download(
+    urls: list[str] | str,
+    kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
+    fnames: str | Path | list[str | Path] | None = None,
+    file_extention: str = "",
+    method: str = "GET",
+    ssl: bool = True,
+    chunk_size: int = CHUNK_SIZE,
+    n_jobs: int = MAX_CONN,
+) -> Path | list[Path]:
+    """Download and store files in parallel from a list of URLs/Keywords.
+
+    Notes
+    -----
+    This function uses ``joblib`` with ``loky`` backend.
+
+    Parameters
+    ----------
+    urls : tuple or list
+        A list of URLs to download.
+    kwds : tuple or list, optional
+        A list of keywords associated with each URL, e.g.,
+        ({"params": ..., "headers": ...}, ...). Defaults to ``None``.
+    fnames : tuple or list, optional
+        A list of filenames associated with each URL, e.g.,
+        ("file1.zip", ...). Defaults to ``None``. If not provided,
+        random unique filenames will be generated based on
+        URL and keyword pairs.
+    file_extention : str, optional
+        Extension to use for storing the files, defaults to ``None``,
+        i.e., no extension if ``fnames`` is not provided otherwise. This
+        argument will be only be used if ``fnames`` is not passed.
+    method : str, optional
+        HTTP method to use, i.e, ``GET`` or ``POST``, by default "GET".
+    ssl : bool, optional
+        Whether to use SSL verification, by default ``True``.
+    chunk_size : int, optional
+        Chunk size to use when downloading, by default 100 MB is used.
+    n_jobs: int, optional
+        The maximum number of concurrent downloads, defaults to 10.
+
+    Returns
+    -------
+    list
+        A list of ``pathlib.Path`` objects associated with URLs in the
+        same order.
+    """
+    method = method.upper()
+    valid_methods = ("GET", "POST")
+    if method not in valid_methods:
+        raise InputValueError("method", valid_methods)
+
+    url_list = tuple(urls) if isinstance(urls, (list, tuple)) else (urls,)
+
+    if kwds is None:
+        if method == "GET":
+            kwd_list = ({"params": None},) * len(url_list)
+        else:
+            kwd_list = ({"data": None},) * len(url_list)
+    else:
+        kwd_list = tuple(kwds) if isinstance(kwds, (list, tuple)) else (kwds,)  # type: ignore
+    key_list = {k for keys in kwd_list for k in keys}
+    valid_keys = ("params", "data", "json", "headers")
+    if any(k not in valid_keys for k in key_list):
+        raise InputValueError("kwds", valid_keys)
+
+    if len(url_list) != len(kwd_list):
+        raise InputTypeError("urls/kwds", "list of same length")
+
+    fex = file_extention.replace(".", "")
+    if fnames is None:
+        cache_dir = os.getenv("HYRIVER_CACHE_NAME", Path("cache", "tmp"))
+        cache_dir = Path(cache_dir).parent
+        files = (
+            Path(cache_dir, f"{cache_keys.create_key(method, u, **p)}.{fex}")
+            for u, p in zip(url_list, kwd_list)
+        )
+    else:
+        f_list = tuple(fnames) if isinstance(fnames, (list, tuple)) else (fnames,)
+        if len(url_list) != len(f_list):
+            raise InputTypeError("urls/f_list", "list of same length")
+        files = (Path(f) for f in f_list)
+
+    session = RetrySession(disable=True, ssl=ssl)
+    if method == "GET":
+        func = tlz.partial(session.get, stream=True)
+    else:
+        func = tlz.partial(session.post, stream=True)
+
+    def download(url: str, kwd: Mapping[str, None | dict[Any, Any]], fname: Path) -> Path:
+        resp = func(url, **kwd)
+        fsize = int(resp.headers.get("Content-Length", -1))
+        if not fname.exists() or fname.stat().st_size != fsize:
+            fname.parent.mkdir(exist_ok=True, parents=True)
+            with fname.open("wb") as f:
+                f.writelines(resp.iter_content(chunk_size))
+        return fname
+
+    if len(url_list) == 1:
+        return download(url_list[0], kwd_list[0], next(files))
+
+    fpaths: list[Path] = joblib.Parallel(n_jobs=n_jobs)(
+        joblib.delayed(download)(u, k, f) for u, k, f in zip(url_list, kwd_list, files)
+    )
+    return fpaths
+
+
 def traverse_json(
     items: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
 ) -> list[Any]:
@@ -278,9 +393,9 @@ class ESRIGeomQuery:
 
     Parameters
     ----------
-    geometry : tuple or sgeom.Polygon or sgeom.Point or sgeom.LineString
+    geometry : tuple or Polygon or Point or LineString
         The input geometry which can be a point (x, y), a list of points [(x, y), ...],
-        bbox (xmin, ymin, xmax, ymax), or a Shapely's sgeom.Polygon.
+        bbox (xmin, ymin, xmax, ymax), or a Shapely's Polygon.
     wkid : int
         The Well-known ID (WKID) of the geometry's spatial reference e.g., for EPSG:4326,
         4326 should be passed. Check
@@ -292,8 +407,8 @@ class ESRIGeomQuery:
         tuple[float, float]
         | list[tuple[float, float]]
         | tuple[float, float, float, float]
-        | sgeom.Polygon
-        | sgeom.LineString
+        | Polygon
+        | LineString
     )
     wkid: int
 
@@ -348,7 +463,7 @@ class ESRIGeomQuery:
 
     def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
-        if not isinstance(self.geometry, sgeom.Polygon):
+        if not isinstance(self.geometry, Polygon):
             raise InputTypeError("geometry", "Polygon")
 
         geo_type = "esriGeometryPolygon"
@@ -357,7 +472,7 @@ class ESRIGeomQuery:
 
     def polyline(self) -> Mapping[str, str]:
         """Query for a polyline."""
-        if not isinstance(self.geometry, sgeom.LineString):
+        if not isinstance(self.geometry, LineString):
             raise InputTypeError("geometry", "LineString")
 
         geo_type = "esriGeometryPolyline"
@@ -406,18 +521,18 @@ def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
     if isinstance(
         geom,
         (
-            sgeom.Polygon,
-            sgeom.LineString,
-            sgeom.MultiLineString,
-            sgeom.MultiPolygon,
-            sgeom.Point,
-            sgeom.MultiPoint,
+            Polygon,
+            LineString,
+            MultiLineString,
+            MultiPolygon,
+            Point,
+            MultiPoint,
         ),
     ):
         return ops.transform(project, geom)  # type: ignore
 
     if isinstance(geom, tuple) and len(geom) == 4:
-        return ops.transform(project, sgeom.box(*geom)).bounds  # type: ignore
+        return ops.transform(project, shapely_box(*geom)).bounds  # type: ignore
 
     if isinstance(geom, list) and all(len(c) == 2 for c in geom):
         xx, yy = zip(*geom)
@@ -487,8 +602,8 @@ def bbox_decompose(
 
     xmin, ymin, xmax, ymax = match_crs(bbox, box_crs, 4326)
 
-    x_dist = geod.geometry_length(sgeom.LineString([(xmin, ymin), (xmax, ymin)]))
-    y_dist = geod.geometry_length(sgeom.LineString([(xmin, ymin), (xmin, ymax)]))
+    x_dist = geod.geometry_length(LineString([(xmin, ymin), (xmax, ymin)]))
+    y_dist = geod.geometry_length(LineString([(xmin, ymin), (xmin, ymax)]))
     width = int(math.ceil(x_dist / resolution))
     height = int(math.ceil(y_dist / resolution))
 

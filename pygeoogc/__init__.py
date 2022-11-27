@@ -11,7 +11,7 @@ from .exceptions import (
 )
 from .print_versions import show_versions
 from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
-from .utils import RetrySession
+from .utils import RetrySession, match_crs, streaming_download, traverse_json, validate_crs
 
 try:
     __version__ = version("pygeoogc")
@@ -30,5 +30,9 @@ __all__ = [
     "ServiceError",
     "ServiceUnavailableError",
     "ZeroMatchedError",
+    "traverse_json",
+    "streaming_download",
+    "match_crs",
+    "validate_crs",
     "show_versions",
 ]
