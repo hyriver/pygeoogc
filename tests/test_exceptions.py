@@ -3,6 +3,7 @@ import sys
 
 import pytest
 
+import pygeoogc as ogc
 from pygeoogc import (
     ArcGISRESTful,
     InputTypeError,
@@ -93,3 +94,39 @@ class TestRetrySession:
             }
             _ = RetrySession().post(url, payload)
         assert "character is not a digit" in str(ex.value)
+
+
+def test_download_wrong_keyword():
+    with pytest.raises(InputValueError) as ex:
+        url = f"{ServiceURL().restful.nwis}/dv"
+        payload = {
+            "param": {
+                "format": "json",
+                "sites": "01031500xx",
+                "startDT": "2005-01-01",
+                "endDT": "2005-01-31",
+                "parameterCd": "00060",
+                "statCd": "00003",
+                "siteStatus": "all",
+            }
+        }
+        _ = ogc.streaming_download(url, payload)
+    assert "params" in str(ex.value)
+
+
+def test_download_mismatch_length():
+    with pytest.raises(InputTypeError) as ex:
+        url = [f"{ServiceURL().restful.nwis}/dv", f"{ServiceURL().restful.nwis}/dv"]
+        payload = {
+            "params": {
+                "format": "json",
+                "sites": "01031500xx",
+                "startDT": "2005-01-01",
+                "endDT": "2005-01-31",
+                "parameterCd": "00060",
+                "statCd": "00003",
+                "siteStatus": "all",
+            }
+        }
+        _ = ogc.streaming_download(url, payload)
+    assert "list of same length" in str(ex.value)

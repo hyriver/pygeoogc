@@ -163,6 +163,19 @@ def test_retry_ssl():
     session.close()
 
 
+def test_stream():
+    url = "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_500KB_CSV-1.csv"
+    fname = ogc.streaming_download(url)
+    assert fname.stat().st_size == 512789
+
+    urls = (
+        url,
+        "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_300KB_CSV-1.csv",
+    )
+    fname = ogc.streaming_download(urls)
+    assert fname[0].stat().st_size == 512789 and fname[1].stat().st_size == 307578
+
+
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
 class TestWMS:
     wms_url: str = ServiceURL().wms.gebco
