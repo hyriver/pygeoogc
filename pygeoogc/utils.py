@@ -97,7 +97,9 @@ class RetrySession:
         if self.disable:
             self.session = requests.Session()
         else:
-            self.cache_name = os.getenv("HYRIVER_CACHE_NAME", cache_name or Path("cache", "http_cache.sqlite"))
+            self.cache_name = os.getenv(
+                "HYRIVER_CACHE_NAME_HTTP", cache_name or Path("cache", "http_cache.sqlite")
+            )
             backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
             self.session = CachedSession(
                 expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
