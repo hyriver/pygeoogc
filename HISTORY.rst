@@ -22,6 +22,8 @@ New Features
   via ``get`` and ``post`` methods. Previously, keyword ``payload`` was used for
   ``params`` in ``get`` and ``data`` in ``post``. Now, ``params`` and ``data``
   can also be passed as keyword arguments to these methods.
+- Add a new function called ``streaming_download`` for downloading large
+  files in parallel and in chunks.
 
 Bug Fixes
 ~~~~~~~~~
