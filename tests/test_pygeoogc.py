@@ -129,6 +129,8 @@ def test_retrysession_head():
     session = utils.RetrySession()
     resp = session.head(url)
     assert resp.headers["Content-length"] == "35588"
+    session.close()
+
     session = utils.RetrySession(disable=True)
     resp = session.get(url, stream=True)
     assert resp.headers["Content-length"] == "35588"
