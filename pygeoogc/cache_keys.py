@@ -1,6 +1,6 @@
 """Functions for creating keys used for cache requests.
 
-This module is based on the ` aiohttp-client-cache` package, which is
+This module is based on the `aiohttp-client-cache` package, which is
 licensed under the MIT license. See the `LICENSE` file for more details.
 """
 import hashlib
