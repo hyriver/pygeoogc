@@ -97,9 +97,7 @@ class RetrySession:
         if self.disable:
             self.session = requests.Session()
         else:
-            self.cache_name = (
-                Path("cache", "http_cache.sqlite") if cache_name is None else Path(cache_name)
-            )
+            self.cache_name = os.getenv("HYRIVER_CACHE_NAME", cache_name or Path("cache", "http_cache.sqlite"))
             backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
             self.session = CachedSession(
                 expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
@@ -140,7 +138,7 @@ class RetrySession:
             )
             raise ValueError(msg)
         params = params or payload
-        resp = self.session.get(url, params=payload, headers=headers, stream=stream)
+        resp = self.session.get(url, params=params, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
         except RequestException as ex:
@@ -167,7 +165,7 @@ class RetrySession:
             )
             raise ValueError(msg)
         data = data or payload
-        resp = self.session.post(url, data=payload, json=json, headers=headers, stream=stream)
+        resp = self.session.post(url, data=data, json=json, headers=headers, stream=stream)
         try:
             resp.raise_for_status()
         except RequestException as ex:
