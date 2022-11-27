@@ -303,7 +303,7 @@ def streaming_download(
                 f.writelines(resp.iter_content(chunk_size))
         return fname
 
-    if len(url_list) == 1:
+    if not isinstance(urls, (list, tuple)):
         return download(url_list[0], kwd_list[0], next(files))
 
     fpaths: list[Path] = joblib.Parallel(n_jobs=n_jobs)(
