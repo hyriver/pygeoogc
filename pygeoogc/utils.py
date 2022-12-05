@@ -23,6 +23,7 @@ from requests_cache.backends.sqlite import SQLiteCache
 from shapely import ops
 from shapely.geometry import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon
 from shapely.geometry import box as shapely_box
+from urllib3.exceptions import InsecureRequestWarning
 
 from . import cache_keys
 from .exceptions import InputTypeError, InputValueError, ServiceError
@@ -114,7 +115,7 @@ class RetrySession:
             )
 
         if not ssl:
-            urllib3.disable_warnings()
+            urllib3.disable_warnings(InsecureRequestWarning)
             self.session.verify = False
 
         adapter = HTTPAdapter(
@@ -209,6 +210,7 @@ def streaming_download(
     urls: list[str] | str,
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
     fnames: str | Path | list[str | Path] | None = None,
+    file_prefix: str = "",
     file_extention: str = "",
     method: str = "GET",
     ssl: bool = True,
@@ -233,6 +235,10 @@ def streaming_download(
         ("file1.zip", ...). Defaults to ``None``. If not provided,
         random unique filenames will be generated based on
         URL and keyword pairs.
+    file_prefix : str, optional
+        Prefix to add to filenames when storing the files, defaults
+        to ``None``, i.e., no prefix. This argument will be only be
+        used if ``fnames`` is not passed.
     file_extention : str, optional
         Extension to use for storing the files, defaults to ``None``,
         i.e., no extension if ``fnames`` is not provided otherwise. This
@@ -279,7 +285,7 @@ def streaming_download(
         cache_dir = os.getenv("HYRIVER_CACHE_NAME", Path("cache", "tmp"))
         cache_dir = Path(cache_dir).parent
         files = (
-            Path(cache_dir, f"{cache_keys.create_key(method, u, **p)}.{fex}")
+            Path(cache_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
             for u, p in zip(url_list, kwd_list)
         )
     else:
