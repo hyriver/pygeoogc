@@ -6,7 +6,7 @@ import math
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, TypeVar, Union
+from typing import Any, Generator, Mapping, TypeVar, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -85,8 +85,7 @@ class RetrySession:
     expire_after : int, optional
         Expiration time for the cache in seconds, defaults to -1 (never expire).
     disable : bool, optional
-        If ``True`` temporarily disable caching requests and get new responses
-        from the server, defaults to ``False``.
+        If ``True`` temporarily disable caching request/responses, defaults to ``False``.
     ssl : bool, optional
         If ``True`` verify SSL certificates, defaults to ``True``.
     """
@@ -206,6 +205,51 @@ class RetrySession:
         self.session.close()
 
 
+def _prepare_requests_args(
+    urls: list[str] | str,
+    kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None,
+    method: str,
+    fnames: str | Path | list[str | Path] | None,
+    file_prefix: str,
+    file_extention: str,
+) -> tuple[
+    tuple[str, ...], tuple[dict[str, None | dict[Any, Any]], ...], Generator[Path, None, None]
+]:
+    """Get url and kwds for streaming download."""
+    url_list = tuple(urls) if isinstance(urls, (list, tuple)) else (urls,)
+
+    if kwds is None:
+        if method == "GET":
+            kwd_list = ({"params": None},) * len(url_list)
+        else:
+            kwd_list = ({"data": None},) * len(url_list)
+    else:
+        kwd_list = tuple(kwds) if isinstance(kwds, (list, tuple)) else (kwds,)  # type: ignore
+    key_list = {k for keys in kwd_list for k in keys}
+    valid_keys = ("params", "data", "json", "headers")
+    if any(k not in valid_keys for k in key_list):
+        raise InputValueError("kwds", valid_keys)
+
+    if len(url_list) != len(kwd_list):
+        raise InputTypeError("urls/kwds", "list of same length")
+
+    fex = file_extention.replace(".", "")
+    if fnames is None:
+        cache_dir = os.getenv("HYRIVER_CACHE_NAME", Path("cache", "tmp"))
+        cache_dir = Path(cache_dir).parent
+        files = (
+            Path(cache_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
+            for u, p in zip(url_list, kwd_list)
+        )
+    else:
+        f_list = tuple(fnames) if isinstance(fnames, (list, tuple)) else (fnames,)
+        if len(url_list) != len(f_list):
+            raise InputTypeError("urls/fnames", "lists of same length")
+        files = (Path(f) for f in f_list)
+
+    return url_list, kwd_list, files
+
+
 def streaming_download(
     urls: list[str] | str,
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
@@ -263,36 +307,9 @@ def streaming_download(
     if method not in valid_methods:
         raise InputValueError("method", valid_methods)
 
-    url_list = tuple(urls) if isinstance(urls, (list, tuple)) else (urls,)
-
-    if kwds is None:
-        if method == "GET":
-            kwd_list = ({"params": None},) * len(url_list)
-        else:
-            kwd_list = ({"data": None},) * len(url_list)
-    else:
-        kwd_list = tuple(kwds) if isinstance(kwds, (list, tuple)) else (kwds,)  # type: ignore
-    key_list = {k for keys in kwd_list for k in keys}
-    valid_keys = ("params", "data", "json", "headers")
-    if any(k not in valid_keys for k in key_list):
-        raise InputValueError("kwds", valid_keys)
-
-    if len(url_list) != len(kwd_list):
-        raise InputTypeError("urls/kwds", "list of same length")
-
-    fex = file_extention.replace(".", "")
-    if fnames is None:
-        cache_dir = os.getenv("HYRIVER_CACHE_NAME", Path("cache", "tmp"))
-        cache_dir = Path(cache_dir).parent
-        files = (
-            Path(cache_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
-            for u, p in zip(url_list, kwd_list)
-        )
-    else:
-        f_list = tuple(fnames) if isinstance(fnames, (list, tuple)) else (fnames,)
-        if len(url_list) != len(f_list):
-            raise InputTypeError("urls/f_list", "list of same length")
-        files = (Path(f) for f in f_list)
+    url_list, kwd_list, files = _prepare_requests_args(
+        urls, kwds, method, fnames, file_prefix, file_extention
+    )
 
     session = RetrySession(disable=True, ssl=ssl)
     if method == "GET":
@@ -387,9 +404,7 @@ def traverse_json(
     if isinstance(items, dict):
         return extract(items, ipath, 0, [])
 
-    outer_arr = []
-    for item in items:
-        outer_arr.append(extract(item, ipath, 0, []))
+    outer_arr = [extract(item, ipath, 0, []) for item in items]
     return outer_arr
 
 
