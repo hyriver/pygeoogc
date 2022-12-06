@@ -131,6 +131,9 @@ def test_retrysession_head():
     assert resp.headers["Content-length"] == "35588"
     session.close()
 
+
+def test_retrysession_get_length():
+    url = "https://httpbin.org/image/jpeg"
     session = utils.RetrySession(disable=True)
     resp = session.get(url, stream=True)
     assert resp.headers["Content-length"] == "35588"
