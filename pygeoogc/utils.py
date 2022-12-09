@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generator, Mapping, TypeVar, Union
+import warnings
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -46,6 +47,7 @@ CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
 
 __all__ = ["RetrySession", "traverse_json", "streaming_download", "match_crs", "validate_crs"]
 
+warnings.filterwarnings("ignore", message=".*too short worker timeout.*")
 
 def check_response(resp: str) -> str:
     """Extract error message from a response, if any."""
