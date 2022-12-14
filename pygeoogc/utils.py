@@ -4,10 +4,10 @@ from __future__ import annotations
 import itertools
 import math
 import os
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generator, Mapping, TypeVar, Union
-import warnings
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -48,6 +48,7 @@ CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
 __all__ = ["RetrySession", "traverse_json", "streaming_download", "match_crs", "validate_crs"]
 
 warnings.filterwarnings("ignore", message=".*too short worker timeout.*")
+
 
 def check_response(resp: str) -> str:
     """Extract error message from a response, if any."""
@@ -249,7 +250,7 @@ def _prepare_requests_args(
             raise InputTypeError("urls/fnames", "lists of same length")
         files = (Path(f) for f in f_list)
 
-    return url_list, kwd_list, files
+    return url_list, kwd_list, files  # type: ignore[return-value]
 
 
 def streaming_download(
