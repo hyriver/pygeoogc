@@ -26,7 +26,7 @@ dependencies:
   - pyyaml
   - requests
   - requests-cache >=0.9.6
-  - shapely >=1.8
+  - shapely >=2.0
   - urllib3
 
   # test deps
