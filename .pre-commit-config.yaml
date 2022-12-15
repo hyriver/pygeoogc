@@ -20,6 +20,13 @@ repos:
       name: Autoformat setup.cfg
       args: [--min-py3-version, "3.8", "--include-version-classifiers"]
 
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.3.1
+    hooks:
+    - id: pyupgrade
+      name: Upgrade sytnax to python 3.8+ with pyupgrade
+      args: [--py38-plus]
+
   - repo: https://github.com/hadialqattan/pycln
     rev: v2.1.2
     hooks:
@@ -79,13 +86,6 @@ repos:
     hooks:
     - id: codespell
       name: Checks for common misspellings in text files.
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
-    hooks:
-    - id: pyupgrade
-      name: Upgrade sytnax to python 3.8+ with pyupgrade
-      args: [--py38-plus]
 
   - repo: https://github.com/guilatrova/tryceratops
     rev: v1.1.0
