@@ -318,4 +318,4 @@ def test_show_versions():
     """Show versions"""
     f = io.StringIO()
     ogc.show_versions(file=f)
-    assert "INSTALLED VERSIONS" in f.getvalue()
+    assert "SYS INFO" in f.getvalue()
