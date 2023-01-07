@@ -8,7 +8,7 @@ import urllib.parse as urlparse
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Sequence, Union
+from typing import Any, Iterator, Mapping, Sequence, Union, cast
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -137,12 +137,12 @@ class ArcGISRESTfulBase:
         self.outfields = outfields if isinstance(outfields, (list, tuple)) else [outfields]
         self.crs = utils.validate_crs(crs)
         self.max_workers = max_workers
-        if self.max_workers < 1 or not isinstance(self.max_workers, int):
+        if self.max_workers < 1:
             raise InputTypeError("max_workers", "positive integer > 1")
         self.verbose = verbose
         self.disable_retry = disable_retry
 
-        self.out_sr = pyproj.CRS(self.crs).to_epsg()
+        self.out_sr = cast("int", pyproj.CRS(self.crs).to_epsg())
         self.n_features = 0
         self.url = f"{self.base_url}/{self.layer}"
         self.query_url = f"{self.url}/query"

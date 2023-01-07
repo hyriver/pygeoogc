@@ -7,7 +7,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generator, Mapping, TypeVar, Union
+from typing import Any, Callable, Generator, Mapping, TypeVar, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -17,6 +17,7 @@ import pyproj
 import requests
 import ujson as json
 import urllib3
+from pyproj.exceptions import CRSError as ProjCRSError
 from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
@@ -253,6 +254,23 @@ def _prepare_requests_args(
     return url_list, kwd_list, files  # type: ignore[return-value]
 
 
+def _download(
+    session_func: Callable[[str], Response],
+    url: str,
+    kwd: Mapping[str, None | dict[Any, Any]],
+    fname: Path,
+    chunk_size: int,
+) -> Path:
+    """Download a single file."""
+    resp = session_func(url, **kwd)
+    fsize = int(resp.headers.get("Content-Length", -1))
+    if not fname.exists() or fname.stat().st_size != fsize:
+        fname.parent.mkdir(exist_ok=True, parents=True)
+        with fname.open("wb") as f:
+            f.writelines(resp.iter_content(chunk_size))
+    return fname
+
+
 def streaming_download(
     urls: list[str] | str,
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
@@ -293,9 +311,10 @@ def streaming_download(
     method : str, optional
         HTTP method to use, i.e, ``GET`` or ``POST``, by default "GET".
     ssl : bool, optional
-        Whether to use SSL verification, by default ``True``.
+        Whether to use SSL verification, defaults to ``True``.
     chunk_size : int, optional
-        Chunk size to use when downloading, by default 100 MB is used.
+        Chunk size to use when downloading, defaults to 100 * 1024 * 1024
+        i.e., 100 MB.
     n_jobs: int, optional
         The maximum number of concurrent downloads, defaults to 10.
 
@@ -320,20 +339,12 @@ def streaming_download(
     else:
         func = tlz.partial(session.post, stream=True)
 
-    def download(url: str, kwd: Mapping[str, None | dict[Any, Any]], fname: Path) -> Path:
-        resp = func(url, **kwd)
-        fsize = int(resp.headers.get("Content-Length", -1))
-        if not fname.exists() or fname.stat().st_size != fsize:
-            fname.parent.mkdir(exist_ok=True, parents=True)
-            with fname.open("wb") as f:
-                f.writelines(resp.iter_content(chunk_size))
-        return fname
-
     if not isinstance(urls, (list, tuple)):
-        return download(url_list[0], kwd_list[0], next(files))
+        return _download(func, url_list[0], kwd_list[0], next(files), chunk_size)
 
     fpaths: list[Path] = joblib.Parallel(n_jobs=n_jobs)(
-        joblib.delayed(download)(u, k, f) for u, k, f in zip(url_list, kwd_list, files)
+        joblib.delayed(_download)(func, u, k, f, chunk_size)
+        for u, k, f in zip(url_list, kwd_list, files)
     )
     return fpaths
 
@@ -460,48 +471,54 @@ class ESRIGeomQuery:
 
     def point(self) -> Mapping[str, str]:
         """Query for a point."""
-        if not (isinstance(self.geometry, tuple) and len(self.geometry) == 2):
-            raise InputTypeError("geometry", "tuple", "(x, y)")
+        if isinstance(self.geometry, tuple) and len(self.geometry) == 2:
+            geo_type = "esriGeometryPoint"
+            geo_json = dict(zip(("x", "y"), self.geometry))  # type: ignore
+            return self._get_payload(geo_type, geo_json)
 
-        geo_type = "esriGeometryPoint"
-        geo_json = dict(zip(("x", "y"), self.geometry))
-        return self._get_payload(geo_type, geo_json)
+        raise InputTypeError("geometry", "tuple", "(x, y)")
 
     def multipoint(self) -> Mapping[str, str]:
         """Query for a multi-point."""
-        if not (isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry)):
-            raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]")
+        if isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry):
+            geo_type = "esriGeometryMultipoint"
+            geo_json = {"points": [[x, y] for x, y in self.geometry]}  # type: ignore
+            return self._get_payload(geo_type, geo_json)
 
-        geo_type = "esriGeometryMultipoint"
-        geo_json = {"points": [[x, y] for x, y in self.geometry]}
-        return self._get_payload(geo_type, geo_json)
+        raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]")
 
     def bbox(self) -> Mapping[str, str]:
         """Query for a bbox."""
-        if not (isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4):
-            raise InputTypeError("geometry", "tuple", BOX_ORD)
+        if isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4:
+            geo_type = "esriGeometryEnvelope"
+            geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))  # type: ignore
+            return self._get_payload(geo_type, geo_json)
 
-        geo_type = "esriGeometryEnvelope"
-        geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
-        return self._get_payload(geo_type, geo_json)
+        raise InputTypeError("geometry", "tuple", BOX_ORD)
 
     def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
-        if not isinstance(self.geometry, Polygon):
-            raise InputTypeError("geometry", "Polygon")
+        if isinstance(self.geometry, Polygon):
+            geo_type = "esriGeometryPolygon"
+            geo_json = {
+                "rings": [
+                    [[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]  # type: ignore
+                ]
+            }
+            return self._get_payload(geo_type, geo_json)
 
-        geo_type = "esriGeometryPolygon"
-        geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
-        return self._get_payload(geo_type, geo_json)
+        raise InputTypeError("geometry", "Polygon")
 
     def polyline(self) -> Mapping[str, str]:
         """Query for a polyline."""
-        if not isinstance(self.geometry, LineString):
-            raise InputTypeError("geometry", "LineString")
+        if isinstance(self.geometry, LineString):
+            geo_type = "esriGeometryPolyline"
+            geo_json = {
+                "paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]  # type: ignore
+            }
+            return self._get_payload(geo_type, geo_json)
 
-        geo_type = "esriGeometryPolyline"
-        geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
-        return self._get_payload(geo_type, geo_json)
+        raise InputTypeError("geometry", "LineString")
 
 
 def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
@@ -553,14 +570,14 @@ def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
             MultiPoint,
         ),
     ):
-        return ops.transform(project, geom)  # type: ignore
+        return ops.transform(project, geom)
 
     if isinstance(geom, tuple) and len(geom) == 4:
-        return ops.transform(project, shapely_box(*geom)).bounds  # type: ignore
+        return ops.transform(project, shapely_box(*geom)).bounds
 
     if isinstance(geom, list) and all(len(c) == 2 for c in geom):
         xx, yy = zip(*geom)
-        return list(zip(*project(xx, yy)))
+        return list(zip(*project(xx, yy)))  # type: ignore
 
     gtypes = (
         "a list of coordinates such as [(x1, y1), ...],"
@@ -670,7 +687,7 @@ def validate_crs(crs: CRSTYPE) -> str:
     """
     try:
         return pyproj.CRS(crs).to_string()  # type: ignore
-    except pyproj.exceptions.CRSError as ex:
+    except ProjCRSError as ex:
         raise InputTypeError("crs", "a valid CRS") from ex
 
 

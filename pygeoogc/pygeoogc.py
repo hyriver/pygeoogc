@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import itertools
 import uuid
-from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Union, cast
 
 import async_retriever as ar
 import pyproj
@@ -196,10 +196,10 @@ class ArcGISRESTful:
         if field not in self.client.valid_fields:
             raise InputValueError("field", self.client.valid_fields)
 
-        if not isinstance(ids, Sequence):
+        if not isinstance(ids, (str, int, list, tuple)):
             raise InputTypeError("ids", "str or list")
 
-        ids_ls = [ids] if isinstance(ids, str) else ids
+        ids_ls = [str(ids)] if isinstance(ids, (str, int)) else ids
 
         ftype = self.client.field_types[field]
         if "string" in ftype:
@@ -424,7 +424,10 @@ class WMS:
             _payload["layers"] = lyr
             return f"{lyr}_dd_{counter}", _payload
 
-        layers, payloads = zip(*(_get_payloads(i) for i in itertools.product(self.layers, bounds)))
+        _lyr_payloads = (_get_payloads(i) for i in itertools.product(self.layers, bounds))
+        layers, payloads = zip(*_lyr_payloads)
+        layers = cast("tuple[str]", layers)
+        payloads = cast("tuple[dict[str, str]]", payloads)
         rbinary = ar.retrieve_binary(
             [self.url] * len(payloads),
             [{"params": p} for p in payloads],
