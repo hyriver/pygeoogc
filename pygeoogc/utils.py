@@ -7,7 +7,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Generator, Mapping, TypeVar, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Tuple, TypeVar, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -40,8 +40,8 @@ G = TypeVar(
     MultiPolygon,
     LineString,
     MultiLineString,
-    tuple[float, float, float, float],
-    list[tuple[float, float]],
+    Tuple[float, float, float, float],
+    List[Tuple[float, float]],
 )
 MAX_CONN = 10
 CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
@@ -98,8 +98,8 @@ class RetrySession:
         self,
         retries: int = 3,
         backoff_factor: float = 0.3,
-        status_to_retry: tuple[int, ...] = (500, 502, 504),
-        prefixes: tuple[str, ...] = ("https://",),
+        status_to_retry: Tuple[int, ...] = (500, 502, 504),
+        prefixes: Tuple[str, ...] = ("https://",),
         cache_name: str | Path | None = None,
         expire_after: int = -1,
         disable: bool = False,
@@ -210,14 +210,14 @@ class RetrySession:
 
 
 def _prepare_requests_args(
-    urls: list[str] | str,
-    kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None,
+    urls: List[str] | str,
+    kwds: List[Dict[str, Dict[Any, Any]]] | Dict[str, Dict[Any, Any]] | None,
     method: str,
-    fnames: str | Path | list[str | Path] | None,
+    fnames: str | Path | List[str | Path] | None,
     file_prefix: str,
     file_extention: str,
-) -> tuple[
-    tuple[str, ...], tuple[dict[str, None | dict[Any, Any]], ...], Generator[Path, None, None]
+) -> Tuple[
+    Tuple[str, ...], Tuple[Dict[str, None | Dict[Any, Any]], ...], Generator[Path, None, None]
 ]:
     """Get url and kwds for streaming download."""
     url_list = tuple(urls) if isinstance(urls, (list, tuple)) else (urls,)
@@ -257,7 +257,7 @@ def _prepare_requests_args(
 def _download(
     session_func: Callable[[str], Response],
     url: str,
-    kwd: Mapping[str, None | dict[Any, Any]],
+    kwd: Mapping[str, None | Dict[Any, Any]],
     fname: Path,
     chunk_size: int,
 ) -> Path:
@@ -272,16 +272,16 @@ def _download(
 
 
 def streaming_download(
-    urls: list[str] | str,
-    kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
-    fnames: str | Path | list[str | Path] | None = None,
+    urls: List[str] | str,
+    kwds: List[Dict[str, Dict[Any, Any]]] | Dict[str, Dict[Any, Any]] | None = None,
+    fnames: str | Path | List[str | Path] | None = None,
     file_prefix: str = "",
     file_extention: str = "",
     method: str = "GET",
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
-) -> Path | list[Path]:
+) -> Path | List[Path]:
     """Download and store files in parallel from a list of URLs/Keywords.
 
     Notes
@@ -342,7 +342,7 @@ def streaming_download(
     if not isinstance(urls, (list, tuple)):
         return _download(func, url_list[0], kwd_list[0], next(files), chunk_size)
 
-    fpaths: list[Path] = joblib.Parallel(n_jobs=n_jobs)(
+    fpaths: List[Path] = joblib.Parallel(n_jobs=n_jobs)(
         joblib.delayed(_download)(func, u, k, f, chunk_size)
         for u, k, f in zip(url_list, kwd_list, files)
     )
@@ -350,8 +350,8 @@ def streaming_download(
 
 
 def traverse_json(
-    items: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
-) -> list[Any]:
+    items: Dict[str, Any] | List[Dict[str, Any]], ipath: str | List[str]
+) -> List[Any]:
     """Extract an element from a JSON file along a specified ipath.
 
     This function is based on `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__.
@@ -382,11 +382,11 @@ def traverse_json(
     """
 
     def extract(
-        sub_items: list[Any] | dict[str, Any] | None,
-        path: str | list[str],
+        sub_items: List[Any] | Dict[str, Any] | None,
+        path: str | List[str],
         ind: int,
-        arr: list[Any],
-    ) -> list[Any]:
+        arr: List[Any],
+    ) -> List[Any]:
         key = path[ind]
         if ind + 1 < len(path):
             if isinstance(sub_items, dict):
@@ -439,15 +439,15 @@ class ESRIGeomQuery:
     """
 
     geometry: (
-        tuple[float, float]
-        | list[tuple[float, float]]
-        | tuple[float, float, float, float]
+        Tuple[float, float]
+        | List[Tuple[float, float]]
+        | Tuple[float, float, float, float]
         | Polygon
         | LineString
     )
     wkid: int
 
-    def _get_payload(self, geo_type: str, geo_json: dict[str, Any]) -> Mapping[str, str]:
+    def _get_payload(self, geo_type: str, geo_json: Dict[str, Any]) -> Mapping[str, str]:
         """Generate a request payload based on ESRI template.
 
         Parameters
@@ -586,18 +586,18 @@ def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
     raise InputTypeError("geom", gtypes)
 
 
-def check_bbox(bbox: tuple[float, float, float, float]) -> None:
+def check_bbox(bbox: Tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
     if not (isinstance(bbox, tuple) and len(bbox) == 4):
         raise InputTypeError("bbox", "tuple", BOX_ORD)
 
 
 def bbox_decompose(
-    bbox: tuple[float, float, float, float],
+    bbox: Tuple[float, float, float, float],
     resolution: float,
     box_crs: CRSTYPE = 4326,
     max_px: int = 8000000,
-) -> list[tuple[tuple[float, float, float, float], str, int, int]]:
+) -> List[Tuple[Tuple[float, float, float, float], str, int, int]]:
     r"""Split the bounding box vertically for WMS requests.
 
     Parameters
@@ -653,7 +653,7 @@ def bbox_decompose(
 
     n_px = int(math.sqrt(max_px))
 
-    def _split_directional(low: float, high: float, px_tot: int) -> tuple[list[int], list[float]]:
+    def _split_directional(low: float, high: float, px_tot: int) -> Tuple[List[int], List[float]]:
         npt = [n_px for _ in range(int(px_tot / n_px))] + [px_tot % n_px]
         xd = abs(high - low)
         dx = [xd * n / sum(npt) for n in npt]
@@ -691,11 +691,11 @@ def validate_crs(crs: CRSTYPE) -> str:
         raise InputTypeError("crs", "a valid CRS") from ex
 
 
-def valid_wms_crs(url: str) -> list[str]:
+def valid_wms_crs(url: str) -> List[str]:
     """Get valid CRSs from a WMS service version 1.3.0."""
     ns = "http://www.opengis.net/wms"
 
-    def get_path(tag_list: list[str]) -> str:
+    def get_path(tag_list: List[str]) -> str:
         return f"/{{{ns}}}".join([""] + tag_list)[1:]
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}

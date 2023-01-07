@@ -15,12 +15,12 @@ import subprocess
 import sys
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as get_version
-from typing import TextIO
+from typing import List, TextIO, Tuple
 
 __all__ = ["show_versions"]
 
 
-def netcdf_and_hdf5_versions() -> list[tuple[str, str | None]]:
+def netcdf_and_hdf5_versions() -> List[Tuple[str, str | None]]:
     libhdf5_version = None
     libnetcdf_version = None
 
@@ -37,7 +37,7 @@ def netcdf_and_hdf5_versions() -> list[tuple[str, str | None]]:
     return [("libhdf5", libhdf5_version), ("libnetcdf", libnetcdf_version)]
 
 
-def get_sys_info() -> list[tuple[str, str | None]]:
+def get_sys_info() -> List[Tuple[str, str | None]]:
     """Return system information as a dict.
 
     From https://github.com/numpy/numpy/blob/master/setup.py#L64-L89
@@ -49,7 +49,7 @@ def get_sys_info() -> list[tuple[str, str | None]]:
     """
     blob = []
 
-    def _minimal_ext_cmd(cmd: list[str]) -> bytes:
+    def _minimal_ext_cmd(cmd: List[str]) -> bytes:
         # construct minimal environment
         env = {}
         for k in ("SYSTEMROOT", "PATH", "HOME"):

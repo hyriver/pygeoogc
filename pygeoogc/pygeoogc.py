@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import itertools
 import uuid
-from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, NamedTuple, Tuple, Union, cast
 
 import async_retriever as ar
 import pyproj
@@ -67,7 +67,7 @@ class ArcGISRESTful:
         base_url: str,
         layer: int | None = None,
         outformat: str = "geojson",
-        outfields: list[str] | str = "*",
+        outfields: List[str] | str = "*",
         crs: CRSTYPE = 4326,
         max_workers: int = 1,
         verbose: bool = False,
@@ -91,15 +91,15 @@ class ArcGISRESTful:
             | Polygon
             | Point
             | MultiPoint
-            | tuple[float, float]
-            | list[tuple[float, float]]
-            | tuple[float, float, float, float]
+            | Tuple[float, float]
+            | List[Tuple[float, float]]
+            | Tuple[float, float, float, float]
         ),
         geo_crs: CRSTYPE = 4326,
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: str | None = None,
         distance: int | None = None,
-    ) -> Iterator[tuple[str, ...]]:
+    ) -> Iterator[Tuple[str, ...]]:
         """Get feature IDs within a geometry that can be combined with a SQL where clause.
 
         Parameters
@@ -178,7 +178,7 @@ class ArcGISRESTful:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
             raise ZeroMatchedError(msg) from ex
 
-    def oids_byfield(self, field: str, ids: str | list[str]) -> Iterator[tuple[str, ...]]:
+    def oids_byfield(self, field: str, ids: str | List[str]) -> Iterator[Tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
 
         Parameters
@@ -209,7 +209,7 @@ class ArcGISRESTful:
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
-    def oids_bysql(self, sql_clause: str) -> Iterator[tuple[str, ...]]:
+    def oids_bysql(self, sql_clause: str) -> Iterator[Tuple[str, ...]]:
         """Get feature IDs using a valid SQL 92 WHERE clause.
 
         Notes
@@ -245,7 +245,7 @@ class ArcGISRESTful:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
             raise ZeroMatchedError(msg) from ex
 
-    def partition_oids(self, oids: list[int] | int) -> Iterator[tuple[str, ...]]:
+    def partition_oids(self, oids: List[int] | int) -> Iterator[Tuple[str, ...]]:
         """Partition feature IDs based on ``self.max_nrecords``.
 
         Parameters
@@ -262,10 +262,10 @@ class ArcGISRESTful:
 
     def get_features(
         self,
-        featureids: Iterator[tuple[str, ...]],
+        featureids: Iterator[Tuple[str, ...]],
         return_m: bool = False,
         return_geom: bool = True,
-    ) -> list[dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
         """Get features based on the feature IDs.
 
         Parameters
@@ -320,7 +320,7 @@ class WMS:
     def __init__(
         self,
         url: str,
-        layers: str | list[str],
+        layers: str | List[str],
         outformat: str,
         version: str = "1.3.0",
         crs: CRSTYPE = 4326,
@@ -345,19 +345,19 @@ class WMS:
             [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
         )
 
-    def get_validlayers(self) -> dict[str, str]:
+    def get_validlayers(self) -> Dict[str, str]:
         """Get the layers supported by the WMS service."""
         return self.client.get_validlayers()
 
     def getmap_bybox(
         self,
-        bbox: tuple[float, float, float, float],
+        bbox: Tuple[float, float, float, float],
         resolution: float,
         box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         max_px: int = 8000000,
-        kwargs: dict[str, Any] | None = None,
-    ) -> dict[str, bytes]:
+        kwargs: Dict[str, Any] | None = None,
+    ) -> Dict[str, bytes]:
         """Get data from a WMS service within a geometry or bounding box.
 
         Parameters
@@ -410,8 +410,8 @@ class WMS:
             payload["crs"] = self.crs_str
 
         def _get_payloads(
-            args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]]
-        ) -> tuple[str, dict[str, str]]:
+            args: Tuple[str, Tuple[Tuple[float, float, float, float], str, int, int]]
+        ) -> Tuple[str, Dict[str, str]]:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
@@ -426,8 +426,8 @@ class WMS:
 
         _lyr_payloads = (_get_payloads(i) for i in itertools.product(self.layers, bounds))
         layers, payloads = zip(*_lyr_payloads)
-        layers = cast("tuple[str]", layers)
-        payloads = cast("tuple[dict[str, str]]", payloads)
+        layers = cast("Tuple[str]", layers)
+        payloads = cast("Tuple[Dict[str, str]]", payloads)
         rbinary = ar.retrieve_binary(
             [self.url] * len(payloads),
             [{"params": p} for p in payloads],
@@ -498,11 +498,11 @@ class WFS(WFSBase):
 
     def getfeature_bybox(
         self,
-        bbox: tuple[float, float, float, float],
+        bbox: Tuple[float, float, float, float],
         box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         sort_attr: str | None = None,
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> List[str | bytes | Dict[str, Any]]:
         """Get data from a WFS service within a bounding box.
 
         Parameters
@@ -570,7 +570,7 @@ class WFS(WFSBase):
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
         sort_attr: str | None = None,
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> List[str | bytes | Dict[str, Any]]:
         """Get features based on a geometry.
 
         Parameters
@@ -638,8 +638,8 @@ class WFS(WFSBase):
     def getfeature_byid(
         self,
         featurename: str,
-        featureids: list[int | str] | int | str,
-    ) -> list[str | bytes | dict[str, Any]]:
+        featureids: List[int | str] | int | str,
+    ) -> List[str | bytes | Dict[str, Any]]:
         """Get features based on feature IDs.
 
         Parameters
@@ -677,7 +677,7 @@ class WFS(WFSBase):
 
     def getfeature_byfilter(
         self, cql_filter: str, method: str = "GET", sort_attr: str | None = None
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> List[str | bytes | Dict[str, Any]]:
         """Get features based on a valid CQL filter.
 
         Notes
