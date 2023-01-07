@@ -2,12 +2,20 @@
 History
 =======
 
+0.13.10 (unreleased)
+--------------------
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Use ``pyright`` for type checking instead of ``mypy`` since it is faster
+  and more accurate. Also, fix all the type errors reported by ``pyright``.
+
 0.13.9 (2022-12-15)
 -------------------
 
 Bug Fixes
 ~~~~~~~~~
-- Add the missing annotation import to the `cache_keys` to ensure
+- Add the missing annotation import to the ``cache_keys`` to ensure
   Python 3.8 and 3.9 work with Python 3.10 style type hinting.
 
 0.13.8 (2022-12-09)
