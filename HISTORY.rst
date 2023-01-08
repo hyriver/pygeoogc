@@ -5,10 +5,18 @@ History
 0.13.10 (unreleased)
 --------------------
 
+Bug Fixes
+~~~~~~~~~
+- Remove all Python 3.9 type-annotation-style in the codebase except for
+  function signatures to ensure compatibility with Python 3.8.
+  (:issue_ogc:`57`, :pull_ogc:`58`)
+
 Internal Changes
 ~~~~~~~~~~~~~~~~
 - Use ``pyright`` for type checking instead of ``mypy`` since it is faster
   and more accurate. Also, fix all the type errors reported by ``pyright``.
+- Improve code quality by addressing issues raised by
+  `DeepSource <https://deepsource.io/gh/hyriver/pygeoogc>`__.
 
 0.13.9 (2022-12-15)
 -------------------
@@ -328,7 +336,7 @@ Internal Changes
 - Rename ``ServiceError`` to ``ServiceUnavailable`` and ``ServerError`` to ``ServiceError``
   Since it's more representative of the intended exception.
 - Raise for response status in ``RetrySession`` before the try-except block so
-  ``RequestsException`` can raise and its error messaged be parsed.
+  ``RequestsException`` can raise, and its error messaged be parsed.
 - Deprecate ``utils.threading`` since all threading operations are now handled by
   ``AsyncRetriever``.
 - Increase test coverage.
