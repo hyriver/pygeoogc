@@ -7,7 +7,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Generator, Mapping, TypeVar, Union
+from typing import Any, Callable, Generator, List, Mapping, Tuple, TypeVar, Union
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -27,8 +27,8 @@ from shapely.geometry import LineString, MultiLineString, MultiPoint, MultiPolyg
 from shapely.geometry import box as shapely_box
 from urllib3.exceptions import InsecureRequestWarning
 
-from . import cache_keys
-from .exceptions import InputTypeError, InputValueError, ServiceError
+from pygeoogc import cache_keys
+from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError
 
 CRSTYPE = Union[int, str, pyproj.CRS]
 BOX_ORD = "(west, south, east, north)"
@@ -40,8 +40,8 @@ G = TypeVar(
     MultiPolygon,
     LineString,
     MultiLineString,
-    tuple[float, float, float, float],
-    list[tuple[float, float]],
+    Tuple[float, float, float, float],
+    List[Tuple[float, float]],
 )
 MAX_CONN = 10
 CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB

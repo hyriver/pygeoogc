@@ -6,14 +6,14 @@ licensed under the MIT license. See the `LICENSE` file for more details.
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Mapping, Sequence, TypeAlias
+from typing import Any, Mapping, Sequence, Union
 
 from multidict import MultiDict
 from url_normalize import url_normalize
 from yarl import URL
 
-RequestParams: TypeAlias = Mapping[Any, Any] | Sequence[Any] | str | None
-StrOrURL: TypeAlias = str | URL
+RequestParams = Union[Mapping[Any, Any], Sequence[Any], str, None]
+StrOrURL = Union[str, URL]
 
 __all__ = ["create_key"]
 
