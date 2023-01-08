@@ -15,7 +15,7 @@ import defusedxml.ElementTree as ETree
 import joblib
 import pyproj
 import requests
-import ujson as json
+import ujson
 import urllib3
 from pyproj.exceptions import CRSError as ProjCRSError
 from requests.adapters import HTTPAdapter
@@ -239,7 +239,7 @@ def _prepare_requests_args(
 
     fex = file_extention.replace(".", "")
     if fnames is None:
-        cache_dir = os.getenv("HYRIVER_CACHE_NAME", Path("cache", "tmp"))
+        cache_dir = os.getenv("HYRIVER_CACHE_NAME", str(Path("cache", "tmp")))
         cache_dir = Path(cache_dir).parent
         files = (
             Path(cache_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
@@ -339,13 +339,13 @@ def streaming_download(
     else:
         func = tlz.partial(session.post, stream=True)
 
-    if not isinstance(urls, (list, tuple)):
-        return _download(func, url_list[0], kwd_list[0], next(files), chunk_size)
-
+    n_jobs = min(n_jobs, len(url_list))
     fpaths: list[Path] = joblib.Parallel(n_jobs=n_jobs)(
         joblib.delayed(_download)(func, u, k, f, chunk_size)
         for u, k, f in zip(url_list, kwd_list, files)
     )
+    if n_jobs == 1:
+        return fpaths[0]
     return fpaths
 
 
@@ -462,7 +462,7 @@ class ESRIGeomQuery:
         dict
             An ESRI geometry payload.
         """
-        esri_json = json.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
+        esri_json = ujson.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
         return {
             "geometryType": geo_type,
             "geometry": esri_json,
@@ -665,10 +665,10 @@ def bbox_decompose(
     nh, ys = _split_directional(south, north, height)
 
     bboxs = []
-    for j in range(len(nh)):
-        for i in range(len(nw)):
+    for j, h in enumerate(nh):
+        for i, w in enumerate(nw):
             bx_crs = (xs[i], ys[j], xs[i + 1], ys[j + 1])
-            bboxs.append((bx_crs, f"{i}_{j}", nw[i], nh[j]))
+            bboxs.append((bx_crs, f"{i}_{j}", w, h))
     return bboxs
 
 
