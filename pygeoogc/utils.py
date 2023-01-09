@@ -7,7 +7,18 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Generator, List, Mapping, Tuple, TypeVar, Union, Sequence, TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generator,
+    List,
+    Mapping,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -214,7 +225,7 @@ def _prepare_requests_args(
     urls: list[str] | str,
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None,
     method: str,
-    fnames: str | Path | list[str | Path] | None,
+    fnames: str | Path | Sequence[str | Path] | None,
     file_prefix: str,
     file_extention: str,
 ) -> tuple[
@@ -247,7 +258,7 @@ def _prepare_requests_args(
             for u, p in zip(url_list, kwd_list)
         )
     else:
-        f_list = tuple(fnames) if isinstance(fnames, (list, tuple)) else (fnames,)
+        f_list = (fnames,) if isinstance(fnames, (str, Path)) else tuple(fnames)
         if len(url_list) != len(f_list):
             raise InputTypeError("urls/fnames", "lists of same length")
         files = (Path(f) for f in f_list)
