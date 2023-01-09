@@ -2,14 +2,16 @@
 History
 =======
 
-0.13.10 (unreleased)
+0.13.10 (2023-01-08)
 --------------------
 
 Bug Fixes
 ~~~~~~~~~
 - Remove all Python 3.9 type-annotation-style in the codebase except for
   function signatures to ensure compatibility with Python 3.8.
-  (:issue_ogc:`57`, :pull_ogc:`58`)
+  (:issue_ogc:`57`, :pull_ogc:`58`). Thanks to
+  `Tim Cera <https://github.com/timcera>`__ for reporting and fixing the
+  issue.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
