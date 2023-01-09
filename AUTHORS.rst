@@ -5,9 +5,9 @@ Credits
 Development Lead
 ----------------
 
-* Taher Chegini <cheginit@gmail.com>
+* `Taher Chegini<https://github.com/cheginit>`__
 
 Contributors
 ------------
 
-None yet. Why not be the first?
+* `Tim Cera <https://github.com/timcera>`__: :pull_ogc:`58`
