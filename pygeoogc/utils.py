@@ -7,7 +7,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Generator, List, Mapping, Tuple, TypeVar, Union
+from typing import Any, Callable, Generator, List, Mapping, Tuple, TypeVar, Union, Sequence, TYPE_CHECKING
 
 import async_retriever as ar
 import cytoolz as tlz
@@ -30,19 +30,20 @@ from urllib3.exceptions import InsecureRequestWarning
 from pygeoogc import cache_keys
 from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError
 
-CRSTYPE = Union[int, str, pyproj.CRS]
+if TYPE_CHECKING:
+    CRSTYPE = Union[int, str, pyproj.CRS]
+    G = TypeVar(
+        "G",
+        Point,
+        MultiPoint,
+        Polygon,
+        MultiPolygon,
+        LineString,
+        MultiLineString,
+        Tuple[float, float, float, float],
+        List[Tuple[float, float]],
+    )
 BOX_ORD = "(west, south, east, north)"
-G = TypeVar(
-    "G",
-    Point,
-    MultiPoint,
-    Polygon,
-    MultiPolygon,
-    LineString,
-    MultiLineString,
-    Tuple[float, float, float, float],
-    List[Tuple[float, float]],
-)
 MAX_CONN = 10
 CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
 
@@ -274,7 +275,7 @@ def _download(
 def streaming_download(
     urls: list[str] | str,
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
-    fnames: str | Path | list[str | Path] | None = None,
+    fnames: str | Path | Sequence[str | Path] | None = None,
     file_prefix: str = "",
     file_extention: str = "",
     method: str = "GET",
