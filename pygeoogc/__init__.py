@@ -1,7 +1,7 @@
 """Top-level package for PyGeoOGC."""
 from importlib.metadata import PackageNotFoundError, version
 
-from .exceptions import (
+from pygeoogc.exceptions import (
     InputTypeError,
     InputValueError,
     MissingInputError,
@@ -9,9 +9,9 @@ from .exceptions import (
     ServiceUnavailableError,
     ZeroMatchedError,
 )
-from .print_versions import show_versions
-from .pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
-from .utils import RetrySession, match_crs, streaming_download, traverse_json, validate_crs
+from pygeoogc.print_versions import show_versions
+from pygeoogc.pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
+from pygeoogc.utils import RetrySession, match_crs, streaming_download, traverse_json, validate_crs
 
 try:
     __version__ = version("pygeoogc")

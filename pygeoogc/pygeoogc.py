@@ -10,9 +10,9 @@ import pyproj
 import shapely.ops as ops
 from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
-from . import utils
-from .core import ArcGISRESTfulBase, WFSBase, WMSBase
-from .exceptions import InputTypeError, InputValueError, ZeroMatchedError
+from pygeoogc import utils
+from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
+from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedError
 
 if TYPE_CHECKING:
     from ssl import SSLContext

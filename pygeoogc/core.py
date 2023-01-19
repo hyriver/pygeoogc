@@ -18,8 +18,8 @@ from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
 
-from . import utils
-from .exceptions import (
+from pygeoogc import utils
+from pygeoogc.exceptions import (
     InputTypeError,
     InputValueError,
     MissingInputError,
