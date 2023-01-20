@@ -1,40 +1,40 @@
 name: pygeoogc-tests
 channels:
-  - conda-forge
-  - nodefaults
+- conda-forge
+- nodefaults
 dependencies:
   # async-retriever deps
-  - aiodns
-  - aiosqlite
-  - aiohttp >=3.8.3
-  - brotli
-  - cytoolz
-  - nest-asyncio
-  - aiohttp-client-cache >=0.8.1
-  - ujson
+- aiodns
+- aiosqlite
+- aiohttp >=3.8.3
+- brotli
+- cytoolz
+- nest-asyncio
+- aiohttp-client-cache >=0.8.1
+- ujson
 
   # pygeoogc deps
   # - async-retriever >=0.3.5
-  - multidict
-  - url-normalize>=1.4
-  - yarl
-  - cytoolz
-  - defusedxml
-  - loguru
-  - owslib >=0.27.2
-  - pyproj >=2.2
-  - pyyaml
-  - requests
-  - requests-cache >=0.9.6
-  - shapely >=2.0
-  - urllib3
+- multidict
+- url-normalize>=1.4
+- yarl
+- cytoolz
+- defusedxml
+- loguru
+- owslib >=0.27.2
+- pyproj >=2.2
+- pyyaml
+- requests
+- requests-cache >=0.9.6
+- shapely >=2.0
+- urllib3
 
   # test deps
-  - pandas
-  - pytest-cov
-  - pytest-xdist
-  - psutil
+- pandas
+- pytest-cov
+- pytest-xdist
+- psutil
 
-  - pip
-  - pip:
-    - git+https://github.com/hyriver/async-retriever.git
+- pip
+- pip:
+  - git+https://github.com/hyriver/async-retriever.git
