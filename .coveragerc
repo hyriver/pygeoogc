@@ -1,7 +1,0 @@
-[report]
-omit =
-    setup.py
-    tests/*
-    pygeoogc/__init__.py
-    pygeoogc/print_versions.py
-    .nox/*
