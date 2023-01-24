@@ -2,11 +2,39 @@
 build-backend = "setuptools.build_meta"
 requires = [
   "setuptools>=42",
-  "setuptools-scm>=7"
+  "setuptools-scm>=7",
 ]
 
 [project]
+name = "pygeoogc"
+description = "An interface to ArcGIS RESTful-, WFS-, and WMS-based services."
+[project.readme]
+content-type = "text/x-rst"
+file = "README.rst"
+
+license = {text = "MIT"}
 authors = [{name = "Taher Chegini", email = "cheginit@gmail.com"}]
+requires-python = ">=3.8"
+dependencies = [
+  "async-retriever>=0.3.10",
+  "cytoolz",
+  "defusedxml",
+  "joblib",
+  "loguru",
+  "multidict",
+  "owslib>=0.27.2",
+  "pyproj>=2.2",
+  "pyyaml",
+  "requests",
+  "requests-cache>=0.9.6",
+  "shapely>=1.8",
+  "url-normalize>=1.4",
+  "urllib3",
+  "yarl",
+]
+dynamic = [
+  "version",
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
@@ -24,35 +52,12 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Hydrology",
   "Typing :: Typed"
 ]
-dependencies = [
-  "async-retriever>=0.3.10",
-  "cytoolz",
-  "defusedxml",
-  "joblib",
-  "loguru",
-  "multidict",
-  "owslib>=0.27.2",
-  "pyproj>=2.2",
-  "pyyaml",
-  "requests",
-  "requests-cache>=0.9.6",
-  "shapely>=1.8",
-  "url-normalize>=1.4",
-  "urllib3",
-  "yarl"
-]
-description = "An interface to ArcGIS RESTful-, WFS-, and WMS-based services."
-dynamic = ["version"]
-license = {text = "MIT"}
-name = "pygeoogc"
-requires-python = ">=3.8"
-
 [project.optional-dependencies]
 test = [
   "coverage[toml]",
   "pandas",
   "pytest-cov",
-  "pytest-xdist[psutil]"
+  "pytest-xdist[psutil]",
 ]
 typeguard = [
   "coverage[toml]",
@@ -60,18 +65,15 @@ typeguard = [
   "pygments",
   "pytest-cov",
   "pytest-xdist[psutil]",
-  "typeguard"
+  "typeguard",
 ]
-
-[project.readme]
-content-type = "text/x-rst"
-file = "README.rst"
 
 [project.urls]
 CI = "https://github.com/hyriver/pygeoogc/actions"
 Changelog = "https://docs.hyriver.io/changelogs/pygeoogc.html"
 Homepage = "https://docs.hyriver.io/readme/pygeoogc.html"
 Issues = "https://github.com/hyriver/pygeoogc/issues"
+
 
 [tool.bandit]
 targets = [
