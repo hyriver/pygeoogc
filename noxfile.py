@@ -116,7 +116,7 @@ def pre_commit(session: nox.Session) -> None:
 @nox.session(name="type-check", python="3.11")
 def type_check(session: nox.Session) -> None:
     "Run Pyright."
-    install_deps(session, "nhdplus")
+    install_deps(session)
     session.install("pyright")
     session.run("pyright")
 
