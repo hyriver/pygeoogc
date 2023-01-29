@@ -3,7 +3,11 @@ import textwrap
 from pathlib import Path
 
 import nox
-import tomli
+
+try:
+    import tomllib as tomli
+except ImportError:
+    import tomli
 
 
 def get_package_name() -> str:
@@ -16,6 +20,7 @@ python_versions = ["3.11"]
 package = get_package_name()
 gh_deps = {
     "async_retriever": [],
+    "hydrosignatures": [],
     "pygeoogc": ["async-retriever"],
     "pygeoutils": ["async-retriever", "pygeoogc"],
     "pynhd": ["async-retriever", "pygeoogc", "pygeoutils"],
@@ -111,7 +116,7 @@ def pre_commit(session: nox.Session) -> None:
 @nox.session(name="type-check", python="3.11")
 def type_check(session: nox.Session) -> None:
     "Run Pyright."
-    install_deps(session)
+    install_deps(session, "nhdplus")
     session.install("pyright")
     session.run("pyright")
 
