@@ -5,6 +5,13 @@ History
 0.13.12 (unreleased)
 --------------------
 
+Bug Fixes
+~~~~~~~~~
+- In ``WFS`` when some layers have missing schema info, the class failed
+  to initialize. This release fixes this issue by ignoring layers with
+  missing schema info and asks the user to pass a sort parameter instead
+  of trying to automatically find a sort parameter.
+
 Internal Changes
 ~~~~~~~~~~~~~~~~
 - Fully migrate ``setup.cfg`` and ``setup.py`` to ``pyproject.toml``.
