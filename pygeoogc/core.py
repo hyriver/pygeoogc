@@ -629,27 +629,26 @@ class WFSBase:
     def sort_params(
         self, sort_attr: str | None, nfeatures: int, start_index: int
     ) -> dict[str, str]:
-        """Get the sort parameters for the WFS request."""
+        """Get sort parameters for a WFS request."""
         if nfeatures <= self.max_nrecords:
             return {}
 
-        if self.schema[self.layer] is None is sort_attr:
-            msg = "sort_attr is None and no id column found in the schema."
-            msg += " Please set the sort_attr manually."
-            raise MissingInputError(msg)
-
-        valid_attrs = self.schema[self.layer]["properties"]
+        schema = self.schema[self.layer]
+        valid_attrs = schema["properties"] if schema else []
         if sort_attr is None:
-            sort_attr = next(
-                (a for a in self.schema[self.layer]["properties"] if "id" in a.lower()), None
-            )
+            if schema is None:
+                msg = "sort_attr is None and no id column found in the schema."
+                msg += " Please set the sort_attr manually."
+                raise MissingInputError(msg)
+
+            sort_attr = next((a for a in valid_attrs if "id" in a.lower()), None)
             if sort_attr is None:
                 msg = "sort_attr is None and no id column found in the schema."
                 msg += " Please set the sort_attr manually. Available columns are:\n"
                 msg += ", ".join(list(valid_attrs))
                 raise MissingInputError(msg)
 
-        if sort_attr not in valid_attrs:
+        if valid_attrs and sort_attr not in valid_attrs:
             raise InputValueError("sort_attr", list(valid_attrs))
         return {
             "startIndex": str(start_index),
