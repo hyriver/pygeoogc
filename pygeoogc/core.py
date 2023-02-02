@@ -595,7 +595,19 @@ class WFSBase:
             for lyr in self.available_layer
         }
 
-        self.schema = {lyr: wfs.get_schema(lyr) for lyr in self.available_layer}
+        self.schema = {}
+        if self.layer:
+            if self.layer not in self.available_layer:
+                raise InputValueError("layers", self.available_layer)
+            layers = [self.layer]
+        else:
+            layers = self.available_layer
+
+        for lyr in layers:
+            try:
+                self.schema[lyr] = wfs.get_schema(lyr)
+            except KeyError:
+                self.schema[lyr] = None
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""
@@ -620,6 +632,11 @@ class WFSBase:
         """Get the sort parameters for the WFS request."""
         if nfeatures <= self.max_nrecords:
             return {}
+
+        if self.schema[self.layer] is None is sort_attr:
+            msg = "sort_attr is None and no id column found in the schema."
+            msg += " Please set the sort_attr manually."
+            raise MissingInputError(msg)
 
         valid_attrs = self.schema[self.layer]["properties"]
         if sort_attr is None:
