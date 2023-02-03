@@ -1,6 +1,7 @@
 """Some utilities for PyGeoOGC."""
 from __future__ import annotations
 
+import contextlib
 import itertools
 import math
 import os
@@ -18,6 +19,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
 import async_retriever as ar
@@ -43,8 +45,8 @@ from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError
 
 if TYPE_CHECKING:
     CRSTYPE = Union[int, str, pyproj.CRS]
-    G = TypeVar(
-        "G",
+    GEOM = TypeVar(
+        "GEOM",
         Point,
         MultiPoint,
         Polygon,
@@ -533,7 +535,7 @@ class ESRIGeomQuery:
         raise InputTypeError("geometry", "LineString")
 
 
-def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
+def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
     """Reproject a geometry to another CRS.
 
     Parameters
@@ -584,12 +586,13 @@ def match_crs(geom: G, in_crs: CRSTYPE, out_crs: CRSTYPE) -> G:
     ):
         return ops.transform(project, geom)
 
-    if isinstance(geom, tuple) and len(geom) == 4:
-        return ops.transform(project, shapely_box(*geom)).bounds
+    if len(geom) == 4:
+        with contextlib.suppress(TypeError):
+            return ops.transform(project, shapely_box(*geom)).bounds
 
-    if isinstance(geom, list) and all(len(c) == 2 for c in geom):
-        xx, yy = zip(*geom)
-        return list(zip(*project(xx, yy)))  # type: ignore
+    with contextlib.suppress(TypeError):
+        mp = cast("MultiPoint", ops.transform(project, MultiPoint(geom)))
+        return [(p.x, p.y) for p in mp.geoms]  # type: ignore
 
     gtypes = (
         "a list of coordinates such as [(x1, y1), ...],"
