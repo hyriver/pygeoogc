@@ -17,7 +17,8 @@ from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedErro
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-CRSTYPE = Union[int, str, pyproj.CRS]
+    RESPONSE = Union[list[str], list[bytes], list[dict[str, Any]]]
+    CRSTYPE = Union[int, str, pyproj.CRS]
 
 
 class ArcGISRESTful:
@@ -502,7 +503,7 @@ class WFS(WFSBase):
         box_crs: CRSTYPE = 4326,
         always_xy: bool = False,
         sort_attr: str | None = None,
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> RESPONSE:
         """Get data from a WFS service within a bounding box.
 
         Parameters
@@ -559,9 +560,7 @@ class WFS(WFSBase):
             for i in range(0, nfeatures, self.max_nrecords)
         ]
 
-        return ar.retrieve(
-            [self.url] * len(payloads), self.read_method, [{"params": p} for p in payloads]
-        )
+        return self.retrieve([self.url] * len(payloads), [{"params": p} for p in payloads])
 
     def getfeature_bygeom(
         self,
@@ -570,7 +569,7 @@ class WFS(WFSBase):
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
         sort_attr: str | None = None,
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> RESPONSE:
         """Get features based on a geometry.
 
         Parameters
@@ -639,7 +638,7 @@ class WFS(WFSBase):
         self,
         featurename: str,
         featureids: Sequence[int | str] | int | str,
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> RESPONSE:
         """Get features based on feature IDs.
 
         Parameters
@@ -677,7 +676,7 @@ class WFS(WFSBase):
 
     def getfeature_byfilter(
         self, cql_filter: str, method: str = "GET", sort_attr: str | None = None
-    ) -> list[str | bytes | dict[str, Any]]:
+    ) -> RESPONSE:
         """Get features based on a valid CQL filter.
 
         Notes
@@ -740,16 +739,12 @@ class WFS(WFSBase):
             }
             for i in range(0, nfeatures, self.max_nrecords)
         ]
-
         if method == "GET":
-            return ar.retrieve(
-                [self.url] * len(payloads), self.read_method, [{"params": p} for p in payloads]
-            )
+            return self.retrieve([self.url] * len(payloads), [{"params": p} for p in payloads])
 
         headers = {"content-type": "application/x-www-form-urlencoded"}
-        return ar.retrieve(
+        return self.retrieve(
             [self.url] * len(payloads),
-            self.read_method,
             [{"data": p, "headers": headers} for p in payloads],
             "POST",
         )
