@@ -8,7 +8,7 @@ import urllib.parse as urlparse
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterator, Mapping, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Iterator, Mapping, Union, cast
 
 import async_retriever as ar
 import cytoolz.curried as tlz
@@ -47,7 +47,9 @@ if os.environ.get("HYRIVER_VERBOSE", "false").lower() == "true":
     logger.enable("pygeoogc")
 else:
     logger.disable("pygeoogc")
-CRSTYPE = Union[int, str, pyproj.CRS]
+
+if TYPE_CHECKING:
+    CRSTYPE = Union[int, str, pyproj.CRS]
 
 
 def validate_version(val: str, valid_versions: list[str]) -> str:
@@ -235,7 +237,7 @@ class ArcGISRESTfulBase:
         return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
 
     def _cleanup_resp(
-        self, resp: list[dict[str, Any]], payloads: Sequence[dict[str, str]]
+        self, resp: list[dict[str, Any]], payloads: list[dict[str, str]]
     ) -> list[dict[str, Any]]:
         """Remove failed responses."""
         fails = [i for i, r in enumerate(resp) if "error" in r]
@@ -387,10 +389,10 @@ class ArcGISRESTfulBase:
         self.n_missing -= len(features)
         self.disable_retry = retry
         os.environ["HYRIVER_CACHE_DISABLE"] = f"{caching}".lower()
-        return features  # type: ignore[return-value]
+        return features
 
     def get_response(
-        self, url: str, payloads: Sequence[dict[str, str]], method: str = "GET"
+        self, url: str, payloads: list[dict[str, str]], method: str = "GET"
     ) -> list[dict[str, Any]]:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"
@@ -570,9 +572,16 @@ class WFSBase:
         else:
             self.nfeat_key = "numberOfFeatures="
             self.count_key = "maxFeatures"
-        valid_methods = ["json", "binary", "text"]
-        if self.read_method not in valid_methods:
-            raise InputValueError("read_method", valid_methods)
+
+        if self.read_method == "text":
+            self.retrieve = ar.retrieve_text
+        elif self.read_method == "bytes":
+            self.retrieve = ar.retrieve_binary
+        elif self.read_method == "json":
+            self.retrieve = ar.retrieve_json
+        else:
+            raise InputValueError("read_method", ("json", "binary", "text"))
+
         self.get_service_options()
         if self.validation:
             self.validate_wfs()
