@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Iterator, Mapping, Sequence, Union, cast
 
 import async_retriever as ar
-import cytoolz as tlz
+import cytoolz.curried as tlz
 import pyproj
 from loguru import logger
 from owslib.wfs import WebFeatureService

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import itertools
 import uuid
-from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Union, cast
+from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union, cast
 
 import async_retriever as ar
 import pyproj
@@ -638,7 +638,7 @@ class WFS(WFSBase):
     def getfeature_byid(
         self,
         featurename: str,
-        featureids: list[int | str] | int | str,
+        featureids: Sequence[int | str] | int | str,
     ) -> list[str | bytes | dict[str, Any]]:
         """Get features based on feature IDs.
 

@@ -23,7 +23,7 @@ from typing import (
 )
 
 import async_retriever as ar
-import cytoolz as tlz
+import cytoolz.curried as tlz
 import defusedxml.ElementTree as ETree
 import joblib
 import pyproj
