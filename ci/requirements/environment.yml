@@ -20,7 +20,6 @@ dependencies:
 - yarl
 - cytoolz
 - defusedxml
-- loguru
 - owslib >=0.27.2
 - pyproj >=2.2
 - pyyaml
