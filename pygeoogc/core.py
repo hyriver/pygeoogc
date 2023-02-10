@@ -3,16 +3,15 @@ from __future__ import annotations
 
 import contextlib
 import os
-import sys
 import urllib.parse as urlparse
 import uuid
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Mapping, Union, cast
 
 import async_retriever as ar
 import cytoolz.curried as tlz
-import loguru
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
@@ -29,33 +28,7 @@ from pygeoogc.exceptions import (
 )
 
 if TYPE_CHECKING:
-    from loguru import Logger
-
     CRSTYPE = Union[int, str, pyproj.CRS]
-
-
-def get_logger(verbose: bool = False) -> Logger:
-    """Get a logger."""
-    logger = loguru.logger
-    logger.configure(
-        handlers=[
-            {
-                "sink": sys.stdout,
-                "colorize": True,
-                "format": " | ".join(
-                    [
-                        "<cyan>{time:YYYY/MM/DD HH:mm:ss}</>",  # noqa: FS003
-                        "{message}",  # noqa: FS003
-                    ]
-                ),
-            }
-        ]
-    )
-    if os.environ.get("HYRIVER_VERBOSE", f"{verbose}").lower() == "true":
-        logger.enable("pygeoogc")
-    else:
-        logger.disable("pygeoogc")
-    return logger
 
 
 def validate_version(val: str, valid_versions: list[str]) -> str:
@@ -168,7 +141,6 @@ class ArcGISRESTfulBase:
         self.total_n_features: int = 0
         self.failed_path: str | Path = ""
         self.request_id: str | None = None
-        self.logger = get_logger(self.verbose)
 
         self.initialize_service()
 
@@ -239,8 +211,6 @@ class ArcGISRESTfulBase:
             raise ZeroMatchedError
 
         self.n_features = len(oid_list)
-        if not self.disable_retry and self.verbose:
-            self.logger.info(f"Found {self.n_features:,} feature(s) in the requested region.")
         return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])
 
     def _cleanup_resp(
@@ -268,13 +238,15 @@ class ArcGISRESTfulBase:
                     self.return_geom = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
                     if len(fails) > 1:
-                        self.logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
+                        warnings.warn(
+                            f"Found {len(fails)} failed requests. Retrying ...", UserWarning
+                        )
                     else:
-                        self.logger.warning("Found 1 failed request. Retrying ...")
+                        warnings.warn("Found 1 failed request. Retrying ...", UserWarning)
                     resp.extend(self.retry_failed_requests())
 
                     if self.n_missing > 0:
-                        self.logger.warning(
+                        warnings.warn(
                             " ".join(
                                 [
                                     f"Total of {self.n_missing} out of {self.total_n_features}",
@@ -285,10 +257,9 @@ class ArcGISRESTfulBase:
                                     "following error message for the failed requests:\n",
                                     err,
                                 ]
-                            )
+                            ),
+                            UserWarning,
                         )
-                    else:
-                        self.logger.info("All feature IDs have been successfully retrieved.")
 
         return resp
 
@@ -411,9 +382,9 @@ class ArcGISRESTfulBase:
                 max_workers=self.max_workers,
             )
             resp = cast("list[dict[str, Any]]", resp)
-            return resp
         except ValueError:
             raise ZeroMatchedError
+        return resp
 
     def __repr__(self) -> str:
         """Print the service configuration."""
