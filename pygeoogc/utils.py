@@ -7,7 +7,6 @@ import math
 import os
 import warnings
 from dataclasses import dataclass
-from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -25,6 +24,7 @@ from typing import (
 import async_retriever as ar
 import cytoolz.curried as tlz
 import defusedxml.ElementTree as ETree
+import joblib
 import pyproj
 import requests
 import ujson
@@ -384,12 +384,10 @@ def streaming_download(
         func = tlz.partial(session.post, stream=True)
 
     n_jobs = min(n_jobs, len(url_list))
-    with ThreadPool(n_jobs) as pool:
-        results = pool.starmap_async(
-            _download,
-            zip(itertools.repeat(func), url_list, kwd_list, files, itertools.repeat(chunk_size)),
-        )
-        fpaths = results.get()
+    fpaths = joblib.Parallel(n_jobs=n_jobs, prefer="threads")(
+        joblib.delayed(_download)(func, u, k, f, chunk_size)
+        for u, k, f in zip(url_list, kwd_list, files)
+    )
     if n_jobs == 1:
         return fpaths[0]
     return fpaths
