@@ -9,7 +9,18 @@ import warnings
 from dataclasses import dataclass
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Generator, Mapping, Sequence, TypeVar, Union, cast, overload
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generator,
+    Mapping,
+    Sequence,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import async_retriever as ar
 import cytoolz.curried as tlz
@@ -273,6 +284,7 @@ def _download(
             f.writelines(resp.iter_content(chunk_size))
     return fname
 
+
 @overload
 def streaming_download(
     urls: str,
@@ -286,6 +298,7 @@ def streaming_download(
     n_jobs: int = MAX_CONN,
 ) -> Path:
     ...
+
 
 @overload
 def streaming_download(

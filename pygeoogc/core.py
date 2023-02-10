@@ -404,12 +404,14 @@ class ArcGISRESTfulBase:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"
         try:
-            return ar.retrieve_json(
+            resp = ar.retrieve_json(
                 [url] * len(payloads),
                 [{req_key: p} for p in payloads],
                 request_method=method,
                 max_workers=self.max_workers,
             )
+            resp = cast("list[dict[str, Any]]", resp)
+            return resp
         except ValueError:
             raise ZeroMatchedError
 
