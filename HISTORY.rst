@@ -2,7 +2,7 @@
 History
 =======
 
-0.13.12 (unreleased)
+0.13.12 (2023-02-10)
 --------------------
 
 New Features
@@ -10,7 +10,7 @@ New Features
 - Make ``match_crs`` less strict in terms of the input geometry type
   being ``tuple`` or ``list`` by relying on ``shapely`` and
   ``contextlib.suppress``. So, now users can pass any combination of
-  ``list`` or ``tuple`` as cooredinates or bounding box.
+  ``list`` or ``tuple`` as coordinates or bounding box.
 
 Bug Fixes
 ~~~~~~~~~
