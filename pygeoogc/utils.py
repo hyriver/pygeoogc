@@ -9,7 +9,7 @@ import warnings
 from dataclasses import dataclass
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Generator, Mapping, Sequence, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Generator, Mapping, Sequence, TypeVar, Union, cast, overload
 
 import async_retriever as ar
 import cytoolz.curried as tlz
@@ -273,6 +273,34 @@ def _download(
             f.writelines(resp.iter_content(chunk_size))
     return fname
 
+@overload
+def streaming_download(
+    urls: str,
+    kwds: dict[str, dict[Any, Any]] | None = None,
+    fnames: str | Path | None = None,
+    file_prefix: str = "",
+    file_extention: str = "",
+    method: str = "GET",
+    ssl: bool = True,
+    chunk_size: int = CHUNK_SIZE,
+    n_jobs: int = MAX_CONN,
+) -> Path:
+    ...
+
+@overload
+def streaming_download(
+    urls: list[str],
+    kwds: list[dict[str, dict[Any, Any]]] | None = None,
+    fnames: Sequence[str | Path] | None = None,
+    file_prefix: str = "",
+    file_extention: str = "",
+    method: str = "GET",
+    ssl: bool = True,
+    chunk_size: int = CHUNK_SIZE,
+    n_jobs: int = MAX_CONN,
+) -> list[Path]:
+    ...
+
 
 def streaming_download(
     urls: list[str] | str,
@@ -289,7 +317,7 @@ def streaming_download(
 
     Notes
     -----
-    This function uses ``joblib`` with ``loky`` backend.
+    This function runs asynchronously in parallel using ``n_jobs`` threads.
 
     Parameters
     ----------
