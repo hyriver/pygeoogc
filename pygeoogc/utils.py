@@ -7,25 +7,13 @@ import math
 import os
 import warnings
 from dataclasses import dataclass
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Generator,
-    List,
-    Mapping,
-    Sequence,
-    Tuple,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Callable, Generator, Mapping, Sequence, TypeVar, Union, cast
 
 import async_retriever as ar
 import cytoolz.curried as tlz
 import defusedxml.ElementTree as ETree
-import joblib
 import pyproj
 import requests
 import ujson
@@ -53,8 +41,8 @@ if TYPE_CHECKING:
         MultiPolygon,
         LineString,
         MultiLineString,
-        Tuple[float, float, float, float],
-        List[Tuple[float, float]],
+        tuple[float, float, float, float],
+        list[tuple[float, float]],
     )
 BOX_ORD = "(west, south, east, north)"
 MAX_CONN = 10
@@ -242,7 +230,7 @@ def _prepare_requests_args(
         else:
             kwd_list = ({"data": None},) * len(url_list)
     else:
-        kwd_list = tuple(kwds) if isinstance(kwds, (list, tuple)) else (kwds,)  # type: ignore
+        kwd_list = tuple(kwds) if isinstance(kwds, (list, tuple)) else (kwds,)
     key_list = {k for keys in kwd_list for k in keys}
     valid_keys = ("params", "data", "json", "headers")
     if any(k not in valid_keys for k in key_list):
@@ -264,8 +252,9 @@ def _prepare_requests_args(
         if len(url_list) != len(f_list):
             raise InputTypeError("urls/fnames", "lists of same length")
         files = (Path(f) for f in f_list)
-
-    return url_list, kwd_list, files  # type: ignore[return-value]
+    url_list = cast("tuple[str, ...]", url_list)
+    kwd_list = cast("tuple[dict[str, None | dict[Any, Any]], ...]", kwd_list)
+    return url_list, kwd_list, files
 
 
 def _download(
@@ -354,10 +343,12 @@ def streaming_download(
         func = tlz.partial(session.post, stream=True)
 
     n_jobs = min(n_jobs, len(url_list))
-    fpaths: list[Path] = joblib.Parallel(n_jobs=n_jobs)(
-        joblib.delayed(_download)(func, u, k, f, chunk_size)
-        for u, k, f in zip(url_list, kwd_list, files)
-    )
+    with ThreadPool(n_jobs) as pool:
+        results = pool.starmap_async(
+            _download,
+            zip(itertools.repeat(func), url_list, kwd_list, files, itertools.repeat(chunk_size)),
+        )
+        fpaths = results.get()
     if n_jobs == 1:
         return fpaths[0]
     return fpaths
@@ -487,7 +478,7 @@ class ESRIGeomQuery:
         """Query for a point."""
         if isinstance(self.geometry, tuple) and len(self.geometry) == 2:
             geo_type = "esriGeometryPoint"
-            geo_json = dict(zip(("x", "y"), self.geometry))  # type: ignore
+            geo_json = dict(zip(("x", "y"), self.geometry))
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "tuple", "(x, y)")
@@ -496,7 +487,7 @@ class ESRIGeomQuery:
         """Query for a multi-point."""
         if isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry):
             geo_type = "esriGeometryMultipoint"
-            geo_json = {"points": [[x, y] for x, y in self.geometry]}  # type: ignore
+            geo_json = {"points": [[x, y] for x, y in self.geometry]}
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]")
@@ -505,7 +496,7 @@ class ESRIGeomQuery:
         """Query for a bbox."""
         if isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4:
             geo_type = "esriGeometryEnvelope"
-            geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))  # type: ignore
+            geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "tuple", BOX_ORD)
@@ -701,7 +692,7 @@ def validate_crs(crs: CRSTYPE) -> str:
         Validated CRS as a string.
     """
     try:
-        return pyproj.CRS(crs).to_string()  # type: ignore
+        return pyproj.CRS(crs).to_string()
     except ProjCRSError as ex:
         raise InputTypeError("crs", "a valid CRS") from ex
 
