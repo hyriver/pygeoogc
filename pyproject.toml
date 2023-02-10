@@ -36,7 +36,7 @@ dependencies = [
   "async-retriever>=0.3.10",
   "cytoolz",
   "defusedxml",
-  "loguru",
+  "joblib",
   "multidict",
   "owslib>=0.27.2",
   "pyproj>=2.2",
