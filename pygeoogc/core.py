@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any, Iterator, Mapping, Union, cast
 
 import async_retriever as ar
 import cytoolz.curried as tlz
+import loguru
 import pyproj
-from loguru import logger
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
@@ -28,28 +28,34 @@ from pygeoogc.exceptions import (
     ZeroMatchedError,
 )
 
-logger.configure(
-    handlers=[
-        {
-            "sink": sys.stdout,
-            "colorize": True,
-            "format": " | ".join(
-                [
-                    "{time:YYYY-MM-DD at HH:mm:ss}",  # noqa: FS003
-                    "{name: ^15}.{function: ^15}:{line: >3}",  # noqa: FS003
-                    "{message}",  # noqa: FS003
-                ]
-            ),
-        }
-    ]
-)
-if os.environ.get("HYRIVER_VERBOSE", "false").lower() == "true":
-    logger.enable("pygeoogc")
-else:
-    logger.disable("pygeoogc")
-
 if TYPE_CHECKING:
+    from loguru import Logger
+
     CRSTYPE = Union[int, str, pyproj.CRS]
+
+
+def get_logger(verbose: bool = False) -> Logger:
+    """Get a logger."""
+    logger = loguru.logger
+    logger.configure(
+        handlers=[
+            {
+                "sink": sys.stdout,
+                "colorize": True,
+                "format": " | ".join(
+                    [
+                        "<cyan>{time:YYYY/MM/DD HH:mm:ss}</>",  # noqa: FS003
+                        "{message}",  # noqa: FS003
+                    ]
+                ),
+            }
+        ]
+    )
+    if os.environ.get("HYRIVER_VERBOSE", f"{verbose}").lower() == "true":
+        logger.enable("pygeoogc")
+    else:
+        logger.disable("pygeoogc")
+    return logger
 
 
 def validate_version(val: str, valid_versions: list[str]) -> str:
@@ -162,6 +168,7 @@ class ArcGISRESTfulBase:
         self.total_n_features: int = 0
         self.failed_path: str | Path = ""
         self.request_id: str | None = None
+        self.logger = get_logger(self.verbose)
 
         self.initialize_service()
 
@@ -233,8 +240,8 @@ class ArcGISRESTfulBase:
 
         self.n_features = len(oid_list)
         if not self.disable_retry and self.verbose:
-            logger.info(f"Found {self.n_features:,} feature(s) in the requested region.")
-        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])  # type: ignore
+            self.logger.info(f"Found {self.n_features:,} feature(s) in the requested region.")
+        return tlz.partition_all(self.max_nrecords, [str(i) for i in oid_list])
 
     def _cleanup_resp(
         self, resp: list[dict[str, Any]], payloads: list[dict[str, str]]
@@ -261,13 +268,13 @@ class ArcGISRESTfulBase:
                     self.return_geom = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
                     if len(fails) > 1:
-                        logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
+                        self.logger.warning(f"Found {len(fails)} failed requests. Retrying ...")
                     else:
-                        logger.warning("Found 1 failed request. Retrying ...")
+                        self.logger.warning("Found 1 failed request. Retrying ...")
                     resp.extend(self.retry_failed_requests())
 
                     if self.n_missing > 0:
-                        logger.warning(
+                        self.logger.warning(
                             " ".join(
                                 [
                                     f"Total of {self.n_missing} out of {self.total_n_features}",
@@ -281,7 +288,7 @@ class ArcGISRESTfulBase:
                             )
                         )
                     else:
-                        logger.info("All feature IDs have been successfully retrieved.")
+                        self.logger.info("All feature IDs have been successfully retrieved.")
 
         return resp
 
