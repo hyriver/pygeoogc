@@ -17,7 +17,9 @@ from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedErro
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-    RESPONSE = Union["list[str]", "list[bytes]", "list[dict[str, Any]]", "list[list[dict[str, Any]]]"]
+    RESPONSE = Union[
+        "list[str]", "list[bytes]", "list[dict[str, Any]]", "list[list[dict[str, Any]]]"
+    ]
     CRSTYPE = Union[int, str, pyproj.CRS]
 
 
@@ -197,10 +199,7 @@ class ArcGISRESTful:
         if field not in self.client.valid_fields:
             raise InputValueError("field", self.client.valid_fields)
 
-        if not isinstance(ids, (str, int, list, tuple)):
-            raise InputTypeError("ids", "str or list")
-
-        ids_ls = [str(ids)] if isinstance(ids, (str, int)) else ids
+        ids_ls = [ids] if isinstance(ids, (str, int)) else list(ids)
 
         ftype = self.client.field_types[field]
         if "string" in ftype:
@@ -341,10 +340,9 @@ class WMS:
         self.version = self.client.version
         self.crs = self.client.crs
         self.crs_str = self.client.crs_str
+        self.is_geographic = pyproj.CRS(self.crs).is_geographic
         self.ssl = ssl
-        self.layers = (
-            [self.client.layers] if isinstance(self.client.layers, str) else self.client.layers
-        )
+        self.layers = self.client.layers
 
     def get_validlayers(self) -> dict[str, str]:
         """Get the layers supported by the WMS service."""
@@ -416,7 +414,7 @@ class WMS:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
 
-            if self.version != "1.1.1" and pyproj.CRS(self.crs_str).is_geographic and not always_xy:
+            if self.version != "1.1.1" and self.is_geographic and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
             _payload = payload.copy()
             _payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
@@ -656,9 +654,6 @@ class WFS(WFSBase):
         valid_features = self.schema[self.layer]["properties"]
         if featurename not in valid_features:
             raise InputValueError("featurename", list(valid_features))
-
-        if not isinstance(featureids, (str, int, list, tuple)):
-            raise InputTypeError("featureids", "str or list of str")
 
         featureids = [featureids] if isinstance(featureids, (str, int)) else list(featureids)
 
