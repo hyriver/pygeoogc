@@ -237,29 +237,29 @@ class ArcGISRESTfulBase:
                     self.return_m = bool(payloads[0]["ReturnM"])
                     self.return_geom = bool(payloads[0]["returnGeometry"])
                     self.total_n_features = self.n_features
+
                     if len(fails) > 1:
-                        warnings.warn(
-                            f"Found {len(fails)} failed requests. Retrying ...", UserWarning
-                        )
-                    else:
-                        warnings.warn("Found 1 failed request. Retrying ...", UserWarning)
+                        msg = f"Found {len(fails)} failed requests. Retrying ..."
+                        warnings.warn(msg, UserWarning, stacklevel=2)
+                    elif len(fails) == 1:
+                        msg = "Found 1 failed request. Retrying ..."
+                        warnings.warn(msg, UserWarning, stacklevel=2)
+
                     resp.extend(self.retry_failed_requests())
 
                     if self.n_missing > 0:
-                        warnings.warn(
-                            " ".join(
-                                [
-                                    f"Total of {self.n_missing} out of {self.total_n_features}",
-                                    "requested features are not available in the dataset.",
-                                    "Returning the successfully retrieved features.",
-                                    "The failed object IDs have been saved in the",
-                                    f"file {self.failed_path}. The service returned the",
-                                    "following error message for the failed requests:\n",
-                                    err,
-                                ]
-                            ),
-                            UserWarning,
+                        msg = " ".join(
+                            [
+                                f"Total of {self.n_missing} out of {self.total_n_features}",
+                                "requested features are not available in the dataset.",
+                                "Returning the successfully retrieved features.",
+                                "The failed object IDs have been saved in the",
+                                f"file {self.failed_path}. The service returned the",
+                                "following error message for the failed requests:\n",
+                                err,
+                            ]
                         )
+                        warnings.warn(msg, UserWarning, stacklevel=2)
 
         return resp
 
@@ -438,6 +438,7 @@ class WMSBase:
 
     def __post_init__(self) -> None:
         """Validate crs."""
+        self.layers = [self.layers] if isinstance(self.layers, str) else list(self.layers)
         self.crs_str = utils.validate_crs(self.crs)
         self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
         self.get_service_options()
@@ -460,8 +461,7 @@ class WMSBase:
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
-        layers = [self.layers] if isinstance(self.layers, str) else self.layers
-        if any(lyr not in self.available_layer.keys() for lyr in layers):
+        if any(lyr not in self.available_layer.keys() for lyr in self.layers):
             raise InputValueError(
                 "layers", (f"{n} for {t}" for n, t in self.available_layer.items())
             )
@@ -469,11 +469,11 @@ class WMSBase:
         if self.outformat not in self.available_outformat:
             raise InputValueError("outformat", self.available_outformat)
 
-        if any(self.crs_str.lower() not in self.available_crs[lyr] for lyr in layers):
+        if any(self.crs_str.lower() not in self.available_crs[lyr] for lyr in self.layers):
             _valid_crss = (
                 f"{lyr}: {', '.join(cs)}\n"
                 for lyr, cs in self.available_crs.items()
-                if lyr in layers
+                if lyr in self.layers
             )
             raise InputValueError("CRS", _valid_crss)
 
