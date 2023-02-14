@@ -52,8 +52,8 @@ if TYPE_CHECKING:
         MultiPolygon,
         LineString,
         MultiLineString,
-        tuple[float, float, float, float],
-        list[tuple[float, float]],
+        "tuple[float, float, float, float]",
+        "list[tuple[float, float]]",
     )
 BOX_ORD = "(west, south, east, north)"
 MAX_CONN = 10

@@ -17,7 +17,7 @@ from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedErro
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-    RESPONSE = Union[list[str], list[bytes], list[dict[str, Any]], list[list[dict[str, Any]]]]
+    RESPONSE = Union["list[str]", "list[bytes]", "list[dict[str, Any]]", "list[list[dict[str, Any]]]"]
     CRSTYPE = Union[int, str, pyproj.CRS]
 
 
