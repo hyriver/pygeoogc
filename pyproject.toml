@@ -56,14 +56,6 @@ test = [
   "pytest-cov",
   "pytest-xdist[psutil]",
 ]
-typeguard = [
-  "coverage[toml]",
-  "pandas",
-  "pygments",
-  "pytest-cov",
-  "pytest-xdist[psutil]",
-  "typeguard",
-]
 [project.urls]
 CI = "https://github.com/hyriver/pygeoogc/actions"
 Changelog = "https://docs.hyriver.io/changelogs/pygeoogc.html"
