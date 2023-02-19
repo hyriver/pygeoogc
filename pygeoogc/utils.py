@@ -233,7 +233,7 @@ def _prepare_requests_args(
     tuple[str, ...], tuple[dict[str, None | dict[Any, Any]], ...], Generator[Path, None, None]
 ]:
     """Get url and kwds for streaming download."""
-    url_list = tuple(urls) if isinstance(urls, (list, tuple)) else (urls,)
+    url_list = (urls,) if isinstance(urls, str) else tuple(urls)
 
     if kwds is None:
         if method == "GET":
@@ -241,7 +241,7 @@ def _prepare_requests_args(
         else:
             kwd_list = ({"data": None},) * len(url_list)
     else:
-        kwd_list = tuple(kwds) if isinstance(kwds, (list, tuple)) else (kwds,)
+        kwd_list = (kwds,) if isinstance(kwds, dict) else tuple(kwds)
     key_list = {k for keys in kwd_list for k in keys}
     valid_keys = ("params", "data", "json", "headers")
     if any(k not in valid_keys for k in key_list):
@@ -388,7 +388,7 @@ def streaming_download(
         joblib.delayed(_download)(func, u, k, f, chunk_size)
         for u, k, f in zip(url_list, kwd_list, files)
     )
-    if n_jobs == 1:
+    if isinstance(urls, str):
         return fpaths[0]
     return fpaths
 
