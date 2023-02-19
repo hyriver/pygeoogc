@@ -11,6 +11,11 @@ New Features
   being ``tuple`` or ``list`` by relying on ``shapely`` and
   ``contextlib.suppress``. So, now users can pass any combination of
   ``list`` or ``tuple`` as coordinates or bounding box.
+- More robust handling of inputs and outputs in ``streaming_download``.
+  Now, only if input is ``str`` the function returns a single ``Path`` object.
+  Previously if there was only one URL, whether ``list`` of length one or
+  ``str``, the output was a single ``Path``, which could have had unintended
+  consequences.
 
 Bug Fixes
 ~~~~~~~~~
