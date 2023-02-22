@@ -9,7 +9,7 @@ from shapely.geometry import LineString, Polygon
 import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL, utils
 
-DEF_CRS = "epsg:4326"
+DEF_CRS = 4326
 ALT_CRS = "epsg:4269"
 GEO_NAT = Polygon(
     [[-69.77, 45.07], [-69.31, 45.07], [-69.31, 45.45], [-69.77, 45.45], [-69.77, 45.07]]
@@ -212,7 +212,7 @@ class TestWMS:
     def test_valid_crs(self):
         """Get WMS valid CRSs"""
         crs = utils.valid_wms_crs(self.wms_url)
-        assert sorted(crs) == ["epsg:3395", "epsg:3857", "epsg:4326"]
+        assert sorted(crs) == ["epsg:3395", "epsg:3857", 4326]
 
 
 class TestWFS:
