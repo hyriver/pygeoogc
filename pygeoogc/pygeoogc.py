@@ -201,7 +201,7 @@ class ArcGISRESTful:
 
         ids_ls = [ids] if isinstance(ids, (str, int)) else list(ids)
 
-        ftype = self.client.field_types[field]
+        ftype = self.client.field_types.get(field.lower())
         if "string" in ftype:
             fids = ", ".join(f"'{i}'" for i in set(ids_ls))
         else:

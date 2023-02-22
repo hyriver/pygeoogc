@@ -183,6 +183,10 @@ class ArcGISRESTfulBase:
         self.field_types = {
             f["name"]: f["type"].replace("esriFieldType", "").lower() for f in rjson["fields"]
         }
+        if "alias" in rjson["fields"][0]:
+            self.field_types.update(
+                {f["alias"]: f["type"].replace("esriFieldType", "").lower() for f in rjson["fields"]}
+            )
 
         with contextlib.suppress(KeyError):
             self.feature_types = dict(
