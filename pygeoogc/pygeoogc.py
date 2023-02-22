@@ -12,7 +12,7 @@ from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygo
 
 from pygeoogc import utils
 from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
-from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedError
+from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedError, ServiceError
 
 if TYPE_CHECKING:
     from ssl import SSLContext
@@ -718,8 +718,10 @@ class WFS(WFSBase):
         else:
             headers = {"content-type": "application/x-www-form-urlencoded"}
             resp = ar.retrieve_text([self.url], [{"data": payload, "headers": headers}], "POST")
-
-        nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
+        try:
+            nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
+        except (IndexError, ValueError) as ex:
+            raise ServiceError(resp[0], self.url) from ex
 
         payloads = [
             {
