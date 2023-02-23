@@ -185,7 +185,10 @@ class ArcGISRESTfulBase:
         }
         if "alias" in rjson["fields"][0]:
             self.field_types.update(
-                {f["alias"]: f["type"].replace("esriFieldType", "").lower() for f in rjson["fields"]}
+                {
+                    f["alias"]: f["type"].replace("esriFieldType", "").lower()
+                    for f in rjson["fields"]
+                }
             )
 
         with contextlib.suppress(KeyError):
@@ -434,7 +437,7 @@ class WMSBase:
     """
 
     url: str
-    layers: str | list[str] = ""
+    layers: str | int | list[str] | list[int] = ""
     outformat: str = ""
     version: str = "1.3.0"
     crs: CRSTYPE = 4326
@@ -442,7 +445,9 @@ class WMSBase:
 
     def __post_init__(self) -> None:
         """Validate crs."""
-        self.layers = [self.layers] if isinstance(self.layers, str) else list(self.layers)
+        self.layers = (
+            [str(self.layers)] if isinstance(self.layers, (str, int)) else list(self.layers)
+        )
         self.crs_str = utils.validate_crs(self.crs)
         self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
         self.get_service_options()

@@ -12,7 +12,7 @@ from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygo
 
 from pygeoogc import utils
 from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
-from pygeoogc.exceptions import InputTypeError, InputValueError, ZeroMatchedError, ServiceError
+from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ZeroMatchedError
 
 if TYPE_CHECKING:
     from ssl import SSLContext
@@ -201,7 +201,7 @@ class ArcGISRESTful:
 
         ids_ls = [ids] if isinstance(ids, (str, int)) else list(ids)
 
-        ftype = self.client.field_types.get(field.lower())
+        ftype = self.client.field_types.get(field)
         if "string" in ftype:
             fids = ", ".join(f"'{i}'" for i in set(ids_ls))
         else:
