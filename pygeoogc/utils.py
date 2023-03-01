@@ -74,7 +74,10 @@ def check_response(resp: str) -> str:
         try:
             return str(root[-1][0].text).strip()
         except IndexError:
-            return str(root[-1].text).strip()
+            try:
+                return str(root[-1].text).strip()
+            except IndexError:
+                return str(root.text).strip()
 
 
 class RetrySession:
