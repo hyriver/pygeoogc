@@ -201,8 +201,7 @@ class ArcGISRESTful:
 
         ids_ls = [ids] if isinstance(ids, (str, int)) else list(ids)
 
-        ftype = self.client.field_types.get(field)
-        if "string" in ftype:
+        if "string" in self.client.field_types.get(field, ""):
             fids = ", ".join(f"'{i}'" for i in set(ids_ls))
         else:
             fids = ", ".join(f"{i}" for i in set(ids_ls))
@@ -423,7 +422,9 @@ class WMS:
             _payload["layers"] = lyr
             return f"{lyr}_dd_{counter}", _payload
 
-        _lyr_payloads = (_get_payloads(i) for i in itertools.product(self.layers, bounds))
+        _lyr_payloads = (
+            _get_payloads(i) for i in itertools.product(self.layers, bounds)  # type: ignore
+        )
         layers, payloads = zip(*_lyr_payloads)
         layers = cast("tuple[str]", layers)
         payloads = cast("tuple[dict[str, str]]", payloads)
