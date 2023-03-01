@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import contextlib
 import os
-import urllib.parse as urlparse
 import uuid
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Mapping, Union, cast
+from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, Union, cast
 
 import async_retriever as ar
 import cytoolz.curried as tlz
@@ -16,6 +15,7 @@ import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from shapely.geometry import LineString, MultiPoint, Point, Polygon
+from yarl import URL
 
 from pygeoogc import utils
 from pygeoogc.exceptions import (
@@ -53,17 +53,14 @@ def validate_version(val: str, valid_versions: list[str]) -> str:
 
 def split_url(url: str, layer: int | None) -> tuple[str, int]:
     """Check if layer is included in url, if so separate and return them."""
-    url = urlparse.unquote(url)
+    url_obj = URL(url[:-1] if url.endswith("/") else url)
     if layer is None:
-        url_split = urlparse.urlsplit(url.rstrip("/"))
-        url_path, lyr = url_split.path.rsplit("/", 1)
-        url_split = url_split._replace(path=url_path)
         try:
-            return urlparse.urlunsplit(url_split), int(lyr)
+            return url_obj.human_repr(), int(url_obj.parts[-1])
         except ValueError as ex:
             msg = "Either layer must be passed as an argument or be included in ``base_url``"
             raise MissingInputError(msg) from ex
-    return url, layer
+    return url_obj.human_repr(), layer
 
 
 class ArcGISRESTfulBase:
@@ -437,7 +434,7 @@ class WMSBase:
     """
 
     url: str
-    layers: str | int | list[str] | list[int] = ""
+    layers: str | int | Sequence[str | int] = ""
     outformat: str = ""
     version: str = "1.3.0"
     crs: CRSTYPE = 4326
@@ -448,7 +445,7 @@ class WMSBase:
         self.layers = (
             [str(self.layers)] if isinstance(self.layers, (str, int)) else list(self.layers)
         )
-        self.crs_str = utils.validate_crs(self.crs)
+        self.crs_str = utils.validate_crs(self.crs).lower()
         self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
         self.get_service_options()
         if self.validation:
@@ -470,7 +467,7 @@ class WMSBase:
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
-        if any(lyr not in self.available_layer.keys() for lyr in self.layers):
+        if any(lyr not in self.available_layer.keys() for lyr in self.layers):  # type: ignore
             raise InputValueError(
                 "layers", (f"{n} for {t}" for n, t in self.available_layer.items())
             )
@@ -478,7 +475,7 @@ class WMSBase:
         if self.outformat not in self.available_outformat:
             raise InputValueError("outformat", self.available_outformat)
 
-        if any(self.crs_str.lower() not in self.available_crs[lyr] for lyr in self.layers):
+        if any(self.crs_str not in self.available_crs[lyr] for lyr in self.layers):  # type: ignore
             _valid_crss = (
                 f"{lyr}: {', '.join(cs)}\n"
                 for lyr, cs in self.available_crs.items()
@@ -497,12 +494,11 @@ class WMSBase:
 
     def __repr__(self) -> str:
         """Print the services properties."""
-        layers = self.layers if isinstance(self.layers, list) else [self.layers]
         return (
             "Connected to the WMS service with the following properties:\n"
             + f"URL: {self.url}\n"
             + f"Version: {self.version}\n"
-            + f"Layers: {', '.join(lyr for lyr in layers)}\n"
+            + f"Layers: {', '.join(str(lyr) for lyr in self.layers)}\n"  # type: ignore
             + f"Output Format: {self.outformat}\n"
             + f"Output CRS: {self.crs_str}"
         )
