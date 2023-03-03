@@ -157,7 +157,7 @@ class ArcGISRESTful:
         elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
             geom = MultiPoint(geom)
 
-        geom_query = self.client.esri_query(geom, geo_crs)
+        geom_query = utils.esri_query(geom, geo_crs, self.client.crs)
 
         payload = {
             **geom_query,
