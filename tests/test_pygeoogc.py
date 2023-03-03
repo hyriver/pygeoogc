@@ -4,7 +4,7 @@ import sys
 
 import pandas as pd
 import pytest
-from shapely.geometry import LineString, Polygon
+from shapely import LineString, Polygon
 
 import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL, utils
