@@ -7,14 +7,14 @@ import uuid
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Iterator, Mapping, Sequence, Union, cast, Literal
 
 import async_retriever as ar
 import cytoolz.curried as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from shapely.geometry import LineString, MultiPoint, Point, Polygon
+from shapely import LineString, MultiPoint, Point, Polygon
 from yarl import URL
 
 from pygeoogc import utils
@@ -374,7 +374,7 @@ class ArcGISRESTfulBase:
         return features
 
     def get_response(
-        self, url: str, payloads: list[dict[str, str]], method: str = "GET"
+        self, url: str, payloads: list[dict[str, str]], method: Literal['get', 'GET', 'post', 'POST'] = "GET"
     ) -> list[dict[str, Any]]:
         """Send payload and get the response."""
         req_key = "params" if method == "GET" else "data"

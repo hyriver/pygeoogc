@@ -34,9 +34,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
+from shapely import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon
+from shapely import box as shapely_box
 from shapely import ops
-from shapely.geometry import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon
-from shapely.geometry import box as shapely_box
 from urllib3.exceptions import InsecureRequestWarning
 
 from pygeoogc import cache_keys
@@ -590,7 +590,7 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
     Examples
     --------
     >>> from pygeoogc.utils import match_crs
-    >>> from shapely.geometry import Point
+    >>> from shapely import Point
     >>> point = Point(-7766049.665, 5691929.739)
     >>> match_crs(point, "epsg:3857", 4326).xy
     (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
