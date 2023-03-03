@@ -38,7 +38,7 @@ def _extract_layer(url: str, layer: int | None) -> tuple[str, int]:
     url_obj = URL(url[:-1] if url.endswith("/") else url)
     if layer is None:
         try:
-            return url_obj.human_repr(), int(url_obj.parts[-1])
+            return url_obj.parent.human_repr(), int(url_obj.parts[-1])
         except ValueError as ex:
             msg = "Either layer must be passed as an argument or be included in ``base_url``"
             raise MissingInputError(msg) from ex
@@ -291,31 +291,6 @@ class ArcGISRESTfulBase:
             raise ZeroMatchedError
         return resp
 
-    def esri_query(
-        self,
-        geom: (LineString | Polygon | Point | MultiPoint | tuple[float, float, float, float]),
-        geo_crs: CRSTYPE = 4326,
-    ) -> Mapping[str, str]:
-        """Generate geometry queries based on ESRI template."""
-        geom = utils.match_crs(geom, geo_crs, self.crs)
-
-        if isinstance(geom, tuple) and len(geom) == 4:
-            return utils.ESRIGeomQuery(geom, self.out_sr).bbox()
-
-        if isinstance(geom, Point):
-            return utils.ESRIGeomQuery((geom.x, geom.y), self.out_sr).point()
-
-        if isinstance(geom, MultiPoint):
-            return utils.ESRIGeomQuery([(g.x, g.y) for g in geom.geoms], self.out_sr).multipoint()
-
-        if isinstance(geom, Polygon):
-            return utils.ESRIGeomQuery(geom, self.out_sr).polygon()
-
-        if isinstance(geom, LineString):
-            return utils.ESRIGeomQuery(geom, self.out_sr).polyline()
-
-        raise InputTypeError("geom", "LineString, Polygon, Point, MultiPoint, tuple")
-
     def _retry(
         self, return_m: bool, return_geo: bool, partition_fac: float
     ) -> list[dict[str, Any]]:
@@ -342,10 +317,8 @@ class ArcGISRESTfulBase:
         partition_fac = [(0.5 - fac_min) / (n_retry - 1) * i + fac_min for i in range(n_retry)]
         features = []
         for f in partition_fac[::-1]:
-            try:
+            with contextlib.suppress(ServiceError):
                 features.append(self._retry(self.return_m, self.return_geom, f))
-            except ServiceError:
-                continue
 
         features = list(tlz.concat(features))
         self.n_missing -= len(features)
