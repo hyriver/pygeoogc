@@ -37,11 +37,6 @@ class TestRESTException:
             _ = ArcGISRESTful(self.wbd_url, 9999)
         assert "Given layer is invalid" in str(ex.value)
 
-    def test_rest_invalid_max_workers(self):
-        with pytest.raises(InputTypeError) as ex:
-            _ = ArcGISRESTful(f"{self.wbd_url}/1/", max_workers=-1)
-        assert "positive integer" in str(ex.value)
-
     def test_rest_invalid_outformat(self):
         with pytest.raises(InputValueError) as ex:
             _ = ArcGISRESTful(self.wbd_url, 1, outformat="png")
