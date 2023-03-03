@@ -10,7 +10,7 @@ import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL, utils
 
 DEF_CRS = 4326
-ALT_CRS = "epsg:4269"
+ALT_CRS = 4269
 GEO_NAT = Polygon(
     [[-69.77, 45.07], [-69.31, 45.07], [-69.31, 45.45], [-69.77, 45.45], [-69.77, 45.07]]
 )

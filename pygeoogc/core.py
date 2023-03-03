@@ -7,14 +7,13 @@ import uuid
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Literal, Mapping, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Iterator, Literal, Sequence, Union, cast
 
 import async_retriever as ar
 import cytoolz.curried as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
-from shapely import LineString, MultiPoint, Point, Polygon
 from yarl import URL
 
 from pygeoogc import utils
