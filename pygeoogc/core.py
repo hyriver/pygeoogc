@@ -30,28 +30,10 @@ from pygeoogc.exceptions import (
 if TYPE_CHECKING:
     CRSTYPE = Union[int, str, pyproj.CRS]
 
-
-def validate_version(val: str, valid_versions: list[str]) -> str:
-    """Validate version from a list of valid versions.
-
-    Parameters
-    ----------
-    val : str
-        Input version value.
-    valid_versions : list of str
-        List of valid versions.
-
-    Returns
-    -------
-    str
-        Validated version value.
-    """
-    if val not in valid_versions:
-        raise InputValueError("version", valid_versions)
-    return val
+__all__ = ["ArcGISRESTfulBase", "WMSBase", "WFSBase"]
 
 
-def split_url(url: str, layer: int | None) -> tuple[str, int]:
+def _extract_layer(url: str, layer: int | None) -> tuple[str, int]:
     """Check if layer is included in url, if so separate and return them."""
     url_obj = URL(url[:-1] if url.endswith("/") else url)
     if layer is None:
@@ -110,13 +92,11 @@ class ArcGISRESTfulBase:
         verbose: bool = False,
         disable_retry: bool = False,
     ) -> None:
-        self.base_url, self.layer = split_url(base_url, layer)
+        self.base_url, self.layer = _extract_layer(base_url, layer)
         self.outformat = outformat
         self.outfields = outfields if isinstance(outfields, (list, tuple)) else [outfields]
         self.crs = utils.validate_crs(crs)
         self.max_workers = max_workers
-        if self.max_workers < 1:
-            raise InputTypeError("max_workers", "positive integer > 1")
         self.verbose = verbose
         self.disable_retry = disable_retry
 
@@ -449,7 +429,8 @@ class WMSBase:
             [str(self.layers)] if isinstance(self.layers, (str, int)) else list(self.layers)
         )
         self.crs_str = utils.validate_crs(self.crs).lower()
-        self.version = validate_version(self.version, ["1.1.1", "1.3.0"])
+        if self.version not in ("1.1.1", "1.3.0"):
+            raise InputValueError("version", ("1.1.1", "1.3.0"))
         self.get_service_options()
         if self.validation:
             self.validate_wms()
@@ -553,13 +534,15 @@ class WFSBase:
     def __post_init__(self) -> None:
         """Validate crs."""
         self.crs_str = utils.validate_crs(self.crs)
-        self.version = validate_version(self.version, ["1.1.0", "2.0.0"])
+
         if self.version == "2.0.0":
             self.nfeat_key = "numberMatched="
             self.count_key = "count"
-        else:
+        elif self.version == "1.1.0":
             self.nfeat_key = "numberOfFeatures="
             self.count_key = "maxFeatures"
+        else:
+            raise InputValueError("version", ("1.1.0", "2.0.0"))
 
         if self.read_method == "text":
             self.retrieve = ar.retrieve_text
