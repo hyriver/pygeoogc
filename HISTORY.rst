@@ -2,6 +2,18 @@
 History
 =======
 
+0.14.0 (unreleased)
+-------------------
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+- Bump the minimum required version of ``shapely`` to 2.0,
+  and use its new API.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Sync all minor versions of HyRiver packages to 0.14.0.
+
 0.13.12 (2023-02-10)
 --------------------
 
