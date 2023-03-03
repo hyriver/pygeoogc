@@ -568,6 +568,33 @@ class ESRIGeomQuery:
         raise InputTypeError("geometry", "LineString")
 
 
+def esri_query(
+    geom: (LineString | Polygon | Point | MultiPoint | tuple[float, float, float, float]),
+    geo_crs: CRSTYPE,
+    out_crs: CRSTYPE,
+) -> Mapping[str, str]:
+    """Generate geometry queries based on ESRI template."""
+    geom = match_crs(geom, geo_crs, out_crs)
+    wkid = cast("int", pyproj.CRS(out_crs).to_epsg())
+
+    if isinstance(geom, tuple) and len(geom) == 4:
+        return ESRIGeomQuery(geom, wkid).bbox()
+
+    if isinstance(geom, Point):
+        return ESRIGeomQuery((geom.x, geom.y), wkid).point()
+
+    if isinstance(geom, MultiPoint):
+        return ESRIGeomQuery([(g.x, g.y) for g in geom.geoms], wkid).multipoint()
+
+    if isinstance(geom, Polygon):
+        return ESRIGeomQuery(geom, wkid).polygon()
+
+    if isinstance(geom, LineString):
+        return ESRIGeomQuery(geom, wkid).polyline()
+
+    raise InputTypeError("geom", "LineString, Polygon, Point, MultiPoint, tuple")
+
+
 def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
     """Reproject a geometry to another CRS.
 
