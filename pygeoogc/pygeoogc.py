@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union, ca
 import async_retriever as ar
 import pyproj
 import shapely.ops as ops
-from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
+from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from pygeoogc import utils
 from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
@@ -776,7 +776,7 @@ class RESTfulURLs(NamedTuple):
     )
     nid: str = "https://nid.sec.usace.army.mil/api"
     airmap: str = "https://api.airmap.com/elevation/v1/ele"
-    nm_pqs: str = "https://nationalmap.gov/epqs/pqs.php"
+    nm_pqs: str = "https://epqs.nationalmap.gov/v1/json"
     pygeoapi: str = "https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes"
     nm_3dep_index: str = (
         "https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer"
