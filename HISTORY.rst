@@ -13,6 +13,10 @@ Bug Fixes
   trying to find the name from other attributes in the schema.
   If it fails to find, it raises a ``ValueError``.
 
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Remove ``pyyaml`` as a dependency since it is not used anymore.
+
 0.14.0 (2023-03-05)
 -------------------
 
