@@ -611,9 +611,13 @@ class WFS(WFSBase):
         if "geometry_column" in self.schema[self.layer]:
             geom_name = self.schema[self.layer]["geometry_column"]
         elif "properties" in self.schema[self.layer]:
-            geom_name = next((lyr for lyr in self.schema[self.layer]["properties"] if "geom" in lyr), "")
+            geom_name = next(
+                (lyr for lyr in self.schema[self.layer]["properties"] if "geom" in lyr), ""
+            )
         elif "required" in self.schema[self.layer]:
-            geom_name = next((lyr for lyr in self.schema[self.layer]["required"] if "geom" in lyr), "")
+            geom_name = next(
+                (lyr for lyr in self.schema[self.layer]["required"] if "geom" in lyr), ""
+            )
 
         if not geom_name:
             msg = "Cannot find the geometry column name in the schema."
