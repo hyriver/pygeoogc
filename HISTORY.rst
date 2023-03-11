@@ -2,6 +2,17 @@
 History
 =======
 
+0.14.1 (unreleased)
+-------------------
+
+Bug Fixes
+~~~~~~~~~
+- Fix an issue in ``WFS`` where the ``getfeature_bygeom`` method
+  fails if the requested web service does not have ``geometry_column``
+  attribute in its schema. This release addresses this issue by
+  trying to find the name from other attributes in the schema.
+  If it fails to find, it raises a ``ValueError``.
+
 0.14.0 (2023-03-05)
 -------------------
 
