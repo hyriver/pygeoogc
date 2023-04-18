@@ -620,7 +620,7 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
         return ops.transform(project, geom)
 
     if len(geom) == 4:
-        with contextlib.suppress(TypeError):
+        with contextlib.suppress(TypeError, AttributeError):
             return ops.transform(project, shapely_box(*geom)).bounds
 
     with contextlib.suppress(TypeError):
