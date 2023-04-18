@@ -12,6 +12,8 @@ Bug Fixes
   attribute in its schema. This release addresses this issue by
   trying to find the name from other attributes in the schema.
   If it fails to find, it raises a ``ValueError``.
+- Catch an edge case in ``match_crs`` function where the input is
+  a list of coordinates of length 4.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
