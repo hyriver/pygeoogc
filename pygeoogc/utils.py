@@ -121,24 +121,19 @@ class RetrySession:
         disable: bool = False,
         ssl: bool = True,
     ) -> None:
-        if disable:
-            self.disable = disable
+        if cache_name is None:
+            self.cache_name = Path(
+                os.getenv("HYRIVER_CACHE_NAME_HTTP", Path("cache", "http_cache.sqlite"))
+            )
         else:
-            self.disable = os.getenv("HYRIVER_CACHE_DISABLE", "false").lower() == "true"
+            self.cache_name = Path(cache_name)
+        self.cache_name.parent.mkdir(exist_ok=True, parents=True)
 
-        if self.disable:
-            self.session = requests.Session()
-        else:
-            if cache_name is not None:
-                self.cache_name = cache_name
-            else:
-                self.cache_name = os.getenv(
-                    "HYRIVER_CACHE_NAME_HTTP", Path("cache", "http_cache.sqlite")
-                )
-            backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
-            if expire_after == EXPIRE_AFTER:
-                expire_after = int(os.getenv("HYRIVER_CACHE_EXPIRE", EXPIRE_AFTER))
-            self.session = CachedSession(expire_after=expire_after, backend=backend)
+        self.expire_after = expire_after
+        if self.expire_after == EXPIRE_AFTER:
+            self.expire_after = int(os.getenv("HYRIVER_CACHE_EXPIRE", EXPIRE_AFTER))
+
+        self.disable = disable
 
         if not ssl:
             urllib3.disable_warnings(InsecureRequestWarning)
@@ -156,6 +151,23 @@ class RetrySession:
         )
         for prefix in prefixes:
             self.session.mount(prefix, adapter)
+
+    @property
+    def disable(self) -> bool:
+        """Disable caching request/responses."""
+        return self._disable
+
+    @disable.setter
+    def disable(self, value: bool) -> None:
+        self._disable = value
+        if not self._disable:
+            self._disable = os.getenv("HYRIVER_CACHE_DISABLE", "false").lower() == "true"
+
+        if self._disable:
+            self.session = requests.Session()
+        else:
+            backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
+            self.session = CachedSession(expire_after=self.expire_after, backend=backend)
 
     def get(
         self,
