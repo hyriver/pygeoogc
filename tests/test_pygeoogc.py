@@ -4,7 +4,7 @@ import sys
 
 import pandas as pd
 import pytest
-from shapely import LineString, Polygon
+from shapely.geometry import LineString, Polygon
 
 import pygeoogc as ogc
 from pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL, utils
@@ -80,6 +80,7 @@ class TestREST:
         resp = service.get_features(oids, return_m=True)
         assert len(resp[0]["features"]) == 3
 
+    @pytest.mark.skip(reason="Service is not available anymore.")
     def test_retry(self):
         rest_url = "/".join(
             [
