@@ -34,9 +34,9 @@ from requests.adapters import HTTPAdapter
 from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
-from shapely import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon
-from shapely import box as shapely_box
 from shapely import ops
+from shapely.geometry import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon
+from shapely.geometry import box as shapely_box
 from urllib3.exceptions import InsecureRequestWarning
 
 from pygeoogc import cache_keys
@@ -58,7 +58,7 @@ if TYPE_CHECKING:
 BOX_ORD = "(west, south, east, north)"
 MAX_CONN = 10
 CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
-
+EXPIRE_AFTER = 60 * 60 * 24 * 7  # 1 week
 __all__ = ["RetrySession", "traverse_json", "streaming_download", "match_crs", "validate_crs"]
 
 warnings.filterwarnings("ignore", message=".*too short worker timeout.*")
@@ -117,21 +117,28 @@ class RetrySession:
         status_to_retry: tuple[int, ...] = (500, 502, 504),
         prefixes: tuple[str, ...] = ("https://",),
         cache_name: str | Path | None = None,
-        expire_after: int = -1,
+        expire_after: int = EXPIRE_AFTER,
         disable: bool = False,
         ssl: bool = True,
     ) -> None:
-        self.disable = os.getenv("HYRIVER_CACHE_DISABLE", f"{disable}").lower() == "true"
+        if disable:
+            self.disable = disable
+        else:
+            self.disable = os.getenv("HYRIVER_CACHE_DISABLE", "false").lower() == "true"
+
         if self.disable:
             self.session = requests.Session()
         else:
-            self.cache_name = os.getenv(
-                "HYRIVER_CACHE_NAME_HTTP", cache_name or Path("cache", "http_cache.sqlite")
-            )
+            if cache_name is not None:
+                self.cache_name = cache_name
+            else:
+                self.cache_name = os.getenv(
+                    "HYRIVER_CACHE_NAME_HTTP", Path("cache", "http_cache.sqlite")
+                )
             backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
-            self.session = CachedSession(
-                expire_after=int(os.getenv("HYRIVER_CACHE_EXPIRE", expire_after)), backend=backend
-            )
+            if expire_after == EXPIRE_AFTER:
+                expire_after = int(os.getenv("HYRIVER_CACHE_EXPIRE", EXPIRE_AFTER))
+            self.session = CachedSession(expire_after=expire_after, backend=backend)
 
         if not ssl:
             urllib3.disable_warnings(InsecureRequestWarning)
@@ -590,7 +597,7 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
     Examples
     --------
     >>> from pygeoogc.utils import match_crs
-    >>> from shapely import Point
+    >>> from shapely.geometry import Point
     >>> point = Point(-7766049.665, 5691929.739)
     >>> match_crs(point, "epsg:3857", 4326).xy
     (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
