@@ -396,7 +396,7 @@ class WMS:
             "request": "GetMap",
         }
 
-        if not isinstance(kwargs, (dict, type(None))):
+        if kwargs is not None and not isinstance(kwargs, dict):
             raise InputTypeError("kwargs", "dict or None")
 
         if isinstance(kwargs, dict):
