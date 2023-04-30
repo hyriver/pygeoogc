@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union, ca
 
 import async_retriever as ar
 import pyproj
-import shapely.ops as ops
-from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
+from shapely import ops
+from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
 from pygeoogc import utils
 from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
