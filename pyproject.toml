@@ -32,7 +32,7 @@ dynamic = [
   "version",
 ]
 dependencies = [
-  "async-retriever>=0.14",
+  "async-retriever=0.15",
   "cytoolz",
   "defusedxml",
   "joblib",
