@@ -797,7 +797,7 @@ class RESTfulURLs(NamedTuple):
     )
     geoconnex: str = "https://reference.geoconnex.us"
     stnflood: str = "https://stn.wim.usgs.gov/STNServices/"
-    stnflood_dd: str = "https://stn.wim.usgs.gov/STNWeb/datadictionary/"
+    stnflood_dd: str = "https://stn.wim.usgs.gov/STNWeb/datadictionary/"#
 
 
 class WFSURLs(NamedTuple):
