@@ -796,6 +796,8 @@ class RESTfulURLs(NamedTuple):
         "https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer"
     )
     geoconnex: str = "https://reference.geoconnex.us"
+    stnflood: str = "https://stn.wim.usgs.gov/STNServices/"
+    stnflood_dd: str = "https://stn.wim.usgs.gov/STNWeb/datadictionary/"
 
 
 class WFSURLs(NamedTuple):
