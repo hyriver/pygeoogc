@@ -146,7 +146,7 @@ class RetrySession:
                 connect=retries,
                 backoff_factor=backoff_factor,
                 status_forcelist=status_to_retry,
-                allowed_methods=False,
+                allowed_methods=None,
             )
         )
         for prefix in prefixes:
@@ -410,6 +410,7 @@ def streaming_download(
         joblib.delayed(_download)(func, u, k, f, chunk_size)
         for u, k, f in zip(url_list, kwd_list, files)
     )
+    fpaths = cast("list[Path]", fpaths)
     if isinstance(urls, str):
         return fpaths[0]
     return fpaths
