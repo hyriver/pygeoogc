@@ -403,8 +403,9 @@ class WMSBase:
         self.crs_str = utils.validate_crs(self.crs).lower()
         if self.version not in ("1.1.1", "1.3.0"):
             raise InputValueError("version", ("1.1.1", "1.3.0"))
-        self.get_service_options()
+
         if self.validation:
+            self.get_service_options()
             self.validate_wms()
 
     def get_service_options(self) -> None:
@@ -535,6 +536,9 @@ class WFSBase:
             wfs = WebFeatureService(self.url, version=self.version)
         except AttributeError as ex:
             raise ServiceUnavailableError(self.url) from ex
+
+        if wfs is None:
+            raise ServiceUnavailableError(self.url)
 
         self.available_layer = list(wfs.contents)
 
