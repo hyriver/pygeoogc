@@ -30,7 +30,7 @@ def normalize_url_params(url: StrOrURL, params: RequestParams = None) -> URL:
         url = url.with_query(norm_params)
 
     # Apply additional normalization and convert back to URL object
-    return URL(url_normalize(str(url)))
+    return URL(str(url_normalize(str(url))))
 
 
 def encode_dict(data: Any) -> bytes:
