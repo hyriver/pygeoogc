@@ -7,8 +7,9 @@ History
 
 New Features
 ~~~~~~~~~~~~
-- Added the STN Flood Event Data URL to the list of RESTfuls.
+- Add the STN Flood Event Data URL to the list of RESTfuls.
   Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`_.
+- Add the link for the eHydro's web service.
 
 0.15.0 (2023-05-07)
 -------------------
