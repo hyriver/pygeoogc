@@ -798,6 +798,7 @@ class RESTfulURLs(NamedTuple):
     geoconnex: str = "https://reference.geoconnex.us"
     stnflood: str = "https://stn.wim.usgs.gov/STNServices/"
     stnflood_dd: str = "https://stn.wim.usgs.gov/STNWeb/datadictionary/"
+    ehydro: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/eHydro_Survey_Data/FeatureServer/0"
 
 
 class WFSURLs(NamedTuple):
