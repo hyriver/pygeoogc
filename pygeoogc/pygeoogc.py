@@ -199,12 +199,12 @@ class ArcGISRESTful:
         if field not in self.client.valid_fields:
             raise InputValueError("field", self.client.valid_fields)
 
-        ids_ls = [ids] if isinstance(ids, (str, int)) else list(ids)
+        ids_ls = {ids} if isinstance(ids, (str, int)) else set(ids)
 
         if "string" in self.client.field_types.get(field, ""):
-            fids = ", ".join(f"'{i}'" for i in set(ids_ls))
+            fids = ", ".join(f"'{i}'" for i in ids_ls)
         else:
-            fids = ", ".join(f"{i}" for i in set(ids_ls))
+            fids = ", ".join(f"{i}" for i in ids_ls)
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
@@ -543,7 +543,10 @@ class WFS(WFSBase):
             "resultType": "hits",
         }
         resp = ar.retrieve_text([self.url], [{"params": payload}])
-        nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
+        try:
+            nfeatures = int(resp[0].split(self.nfeat_key)[-1].split(" ")[0].strip('"'))
+        except (IndexError, ValueError) as ex:
+            raise ServiceError(resp[0], self.url) from ex
 
         payloads = [
             {
