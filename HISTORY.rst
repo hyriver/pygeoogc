@@ -2,6 +2,15 @@
 History
 =======
 
+0.15.2 (2023-0X-XX)
+-------------------
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Improve the example in the the docstring of ``traverse_json`` function.
+- Improve exception handling in the ``ArcGISRESTful`` class and return
+  a more informative error message.
+
 0.15.1 (2023-08-02)
 -------------------
 
