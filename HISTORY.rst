@@ -7,7 +7,7 @@ History
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
-- Improve the example in the the docstring of ``traverse_json`` function.
+- Improve the example in the docstring of ``traverse_json`` function.
 - Improve exception handling in the ``ArcGISRESTful`` class and return
   a more informative error message.
 
