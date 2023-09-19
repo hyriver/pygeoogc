@@ -18,19 +18,23 @@ New Features
 - Added RESTfulURLs for FEMA's National Flood Hazard Layer (NFHL) service.
 
 0.15.1 (2023-07-27)
+0.15.2 (2023-0X-XX)
 -------------------
-Contributor: [Fernando Aristizabal](https://github.com/fernando-aristizabal)
 
-From release 0.15 onward, all minor versions of HyRiver packages
-will be pinned. This ensures that previous minor versions of HyRiver
-packages cannot be installed with later minor releases. For example,
-if you have ``pygeoogc==0.14.x`` installed, you cannot install
-``pygeoogc==0.15.x`` series. This is to ensure that the API is
-consistent across all minor versions.
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Improve the example in the docstring of ``traverse_json`` function.
+- Improve exception handling in the ``ArcGISRESTful`` class and return
+  a more informative error message.
+
+0.15.1 (2023-08-02)
+-------------------
 
 New Features
 ~~~~~~~~~~~~
-- Added RESTfulURLs for STN Flood Event Data Retriever.
+- Add the STN Flood Event Data URL to the list of RESTfuls.
+  Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`_.
+- Add the link for the eHydro's web service.
 
 0.15.0 (2023-05-07)
 -------------------

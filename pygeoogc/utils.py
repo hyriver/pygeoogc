@@ -146,7 +146,7 @@ class RetrySession:
                 connect=retries,
                 backoff_factor=backoff_factor,
                 status_forcelist=status_to_retry,
-                allowed_methods=False,
+                allowed_methods=None,
             )
         )
         for prefix in prefixes:
@@ -410,21 +410,22 @@ def streaming_download(
         joblib.delayed(_download)(func, u, k, f, chunk_size)
         for u, k, f in zip(url_list, kwd_list, files)
     )
+    fpaths = cast("list[Path]", fpaths)
     if isinstance(urls, str):
         return fpaths[0]
     return fpaths
 
 
 def traverse_json(
-    items: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
+    json_data: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
 ) -> list[Any]:
-    """Extract an element from a JSON file along a specified ipath.
+    """Extract an element from a JSON-like object along a specified ipath.
 
     This function is based on `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__.
 
     Parameters
     ----------
-    items : dict
+    json_data : dict or list of dicts
         The input json dictionary
     ipath : list
         The ipath to the requested element
@@ -432,19 +433,19 @@ def traverse_json(
     Returns
     -------
     list
-        The sub_items founds in the JSON
+        The sub-items founds in the JSON
 
     Examples
     --------
-    >>> from pygeoogc.utils import traverse_json
-    >>> data = [{
-    ...     "employees": [
+    >>> data = [
+    ...     {"employees": [
     ...         {"name": "Alice", "role": "dev", "nbr": 1},
-    ...         {"name": "Bob", "role": "dev", "nbr": 2}],
-    ...     "firm": {"name": "Charlie's Waffle Emporium", "location": "CA"},
-    ... },]
+    ...         {"name": "Bob", "role": "dev", "nbr": 2},
+    ...         ],},
+    ...     {"firm": {"name": "Charlie's Waffle Emporium", "location": "CA"}},
+    ... ]
     >>> traverse_json(data, ["employees", "name"])
-    [['Alice', 'Bob']]
+    [['Alice', 'Bob'], [None]]
     """
 
     def extract(
@@ -481,10 +482,10 @@ def traverse_json(
                 arr.append(None)
         return arr
 
-    if isinstance(items, dict):
-        return extract(items, ipath, 0, [])
+    if isinstance(json_data, dict):
+        return extract(json_data, ipath, 0, [])
 
-    outer_arr = [extract(item, ipath, 0, []) for item in items]
+    outer_arr = [extract(item, ipath, 0, []) for item in json_data]
     return outer_arr
 
 
@@ -608,7 +609,6 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
 
     Examples
     --------
-    >>> from pygeoogc.utils import match_crs
     >>> from shapely.geometry import Point
     >>> point = Point(-7766049.665, 5691929.739)
     >>> match_crs(point, "epsg:3857", 4326).xy

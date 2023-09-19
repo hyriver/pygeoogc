@@ -50,7 +50,7 @@ Package          Description                                                    
 ================ ==================================================================== ============
 PyNHD_           Navigate and subset NHDPlus (MR and HR) using web services           |pynhd|
 Py3DEP_          Access topographic data through National Map's 3DEP web service      |py3dep|
-PyGeoHydro_      Access NWIS, NID, WQP, HCDN 2009, NLCD, CAMELS, and SSEBop databases |pygeohydro|
+PyGeoHydro_      Access NWIS, NID, WQP, eHydro, NLCD, CAMELS, and SSEBop databases    |pygeohydro|
 PyDaymet_        Access daily, monthly, and annual climate data via Daymet            |pydaymet|
 PyNLDAS2_        Access hourly NLDAS-2 data via web services                          |pynldas2|
 HydroSignatures_ A collection of tools for computing hydrological signatures          |signatures|
@@ -88,7 +88,7 @@ PyGeoOGC: Retrieve Data from RESTful, WMS, and WFS Services
     :target: https://pypi.python.org/pypi/pygeoogc
     :alt: Python Versions
 
-.. image:: https://pepy.tech/badge/pygeoogc
+.. image:: https://static.pepy.tech/badge/pygeoogc
     :target: https://pepy.tech/project/pygeoogc
     :alt: Downloads
 

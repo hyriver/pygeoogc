@@ -170,16 +170,16 @@ def test_retry_ssl():
 
 
 def test_stream():
-    url = "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_500KB_CSV-1.csv"
+    url = "http://speedtest.ftp.otenet.gr/files/test100k.db"
     fname = ogc.streaming_download(url)
-    assert fname.stat().st_size == 512789
+    assert fname.stat().st_size == 102400
 
     urls = (
         url,
-        "https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_300KB_CSV-1.csv",
+        "http://speedtest.ftp.otenet.gr/files/test1Mb.db",
     )
     fname = ogc.streaming_download(urls)
-    assert fname[0].stat().st_size == 512789 and fname[1].stat().st_size == 307578
+    assert fname[0].stat().st_size == 102400 and fname[1].stat().st_size == 1048576
 
 
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
