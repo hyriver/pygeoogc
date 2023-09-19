@@ -773,7 +773,12 @@ class RESTfulURLs(NamedTuple):
 
     daymet: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac"
     daymet_point: str = "https://daymet.ornl.gov/single-pixel/api/data"
-    fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer"
+    fema_nfhl: str = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer"
+    fema_prelim_cslf: str = "https://hazards.fema.gov/gis/cslf/rest/services/Prelim_CSLF/MapServer"
+    fema_draft_cslf: str = "https://hazards.fema.gov/gis/cslf/rest/services/Draft_CSLF/MapServer"
+    fema_prelim_nfhl: str = "https://hazards.fema.gov/gis/nfhl/rest/services/PrelimPending/Prelim_NFHL/MapServer"
+    fema_pending_nfhl: str = "https://hazards.fema.gov/gis/nfhl/rest/services/PrelimPending/Pending_NFHL/MapServer"
+    fema_draft_nfhl: str = "https://hazards.fema.gov/gis/nfhl/rest/services/AFHI/Draft_FIRM_DB/MapServer"
     fws: str = "https://www.fws.gov/wetlandsmapservice/rest/services"
     nldi: str = "https://labs.waterdata.usgs.gov/api/nldi"
     nwis: str = "https://waterservices.usgs.gov/nwis"
