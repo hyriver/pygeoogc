@@ -4,8 +4,6 @@ History
 
 0.15.2 (2023-XX-XX)
 -------------------
-Contributor: [Fernando Aristizabal](https://github.com/fernando-aristizabal)
-
 From release 0.15 onward, all minor versions of HyRiver packages
 will be pinned. This ensures that previous minor versions of HyRiver
 packages cannot be installed with later minor releases. For example,
@@ -16,8 +14,8 @@ consistent across all minor versions.
 New Features
 ~~~~~~~~~~~~
 - Added RESTfulURLs for FEMA's National Flood Hazard Layer (NFHL) service.
+  Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`__
 
-0.15.1 (2023-07-27)
 0.15.2 (2023-0X-XX)
 -------------------
 
