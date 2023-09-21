@@ -802,6 +802,7 @@ class RESTfulURLs(NamedTuple):
     stnflood: str = "https://stn.wim.usgs.gov/STNServices/"
     stnflood_dd: str = "https://stn.wim.usgs.gov/STNWeb/datadictionary/"
     ehydro: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/eHydro_Survey_Data/FeatureServer/0"
+    ehydro_bins: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/Hydrographic_Survey_Bins/FeatureServer/2"
 
 
 class WFSURLs(NamedTuple):
