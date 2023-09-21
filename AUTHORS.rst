@@ -10,5 +10,5 @@ Development Lead
 Contributors
 ------------
 
-* `Tim Cera <https://github.com/timcera>`__: :pull_ogc:`58`
-* `Fernando Aristizabal <https://github.com/fernando-aristizabal>`__: :pull_ogc:`62`
+* `Tim Cera <https://github.com/timcera>`__
+* `Fernando Aristizabal <https://github.com/fernando-aristizabal>`__

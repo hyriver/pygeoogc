@@ -4,20 +4,12 @@ History
 
 0.15.2 (2023-XX-XX)
 -------------------
-From release 0.15 onward, all minor versions of HyRiver packages
-will be pinned. This ensures that previous minor versions of HyRiver
-packages cannot be installed with later minor releases. For example,
-if you have ``pygeoogc==0.14.x`` installed, you cannot install
-``pygeoogc==0.15.x`` series. This is to ensure that the API is
-consistent across all minor versions.
 
 New Features
 ~~~~~~~~~~~~
 - Added RESTfulURLs for FEMA's National Flood Hazard Layer (NFHL) service.
-  Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`__
-
-0.15.2 (2023-0X-XX)
--------------------
+  Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`__.
+  (:pull_ogc:`62`)
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
@@ -27,11 +19,18 @@ Internal Changes
 
 0.15.1 (2023-08-02)
 -------------------
+From release 0.15 onward, all minor versions of HyRiver packages
+will be pinned. This ensures that previous minor versions of HyRiver
+packages cannot be installed with later minor releases. For example,
+if you have ``pygeoogc==0.14.x`` installed, you cannot install
+``pygeoogc==0.15.x`` series. This is to ensure that the API is
+consistent across all minor versions.
 
 New Features
 ~~~~~~~~~~~~
 - Add the STN Flood Event Data URL to the list of RESTfuls.
   Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`_.
+  (:pull_ogc:`59`)
 - Add the link for the eHydro's web service.
 
 0.15.0 (2023-05-07)
