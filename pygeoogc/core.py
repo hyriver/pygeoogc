@@ -397,6 +397,7 @@ class WMSBase:
 
     def __post_init__(self) -> None:
         """Validate crs."""
+        self.outformat = self.outformat.lower()
         self.layers = (
             [str(self.layers)] if isinstance(self.layers, (str, int)) else list(self.layers)
         )
