@@ -156,6 +156,8 @@ class ArcGISRESTfulBase:
     def _set_layer_properties(self) -> None:
         """Set properties of the target layer."""
         rjson = self.get_response(self.url, [{"f": "json"}])[0]
+        if "fields" not in rjson:
+            return
         self.valid_fields = list(
             set(
                 utils.traverse_json(rjson, ["fields", "name"])
@@ -191,7 +193,7 @@ class ArcGISRESTfulBase:
         if self.outformat.lower() not in self.query_formats:
             raise InputValueError("outformat", self.query_formats)
 
-        if any(f not in self.valid_fields for f in self.outfields):
+        if self.valid_fields and any(f not in self.valid_fields for f in self.outfields):
             raise InputValueError("outfields", self.valid_fields)
 
     def partition_oids(self, oids: list[int] | int) -> Iterator[tuple[str, ...]]:
