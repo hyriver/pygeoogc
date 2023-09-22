@@ -127,46 +127,42 @@ class TestREST:
 
 def test_retrysession_head():
     url = "https://httpbin.org/image/jpeg"
-    session = utils.RetrySession()
-    resp = session.head(url)
-    assert resp.headers["Content-length"] == "35588"
-    session.close()
+    with utils.RetrySession() as session:
+        resp = session.head(url)
+        assert resp.headers["Content-length"] == "35588"
 
 
 def test_retrysession_get_length():
     url = "https://httpbin.org/image/jpeg"
-    session = utils.RetrySession(disable=True)
-    resp = session.get(url, stream=True)
-    assert resp.headers["Content-length"] == "35588"
-    session.close()
+    with utils.RetrySession(disable=True) as session:
+        resp = session.get(url, stream=True)
+        assert resp.headers["Content-length"] == "35588"
 
 
 def test_retrysession_params():
     url = "https://postman-echo.com"
     params = {"params_get": "foo"}
     data = {"data_post": "foo"}
-    session = utils.RetrySession(disable=True)
+    with utils.RetrySession(disable=True) as session:
+        get1 = session.get(f"{url}/get", params=params)
+        get2 = session.get(f"{url}/get", payload=params)
+        assert get1.json()["args"] == get2.json()["args"]
 
-    get1 = session.get(f"{url}/get", params=params)
-    get2 = session.get(f"{url}/get", payload=params)
-    assert get1.json()["args"] == get2.json()["args"]
-
-    post1 = session.post(f"{url}/post", data=data)
-    post2 = session.post(f"{url}/post", payload=data)
-    assert post1.json()["args"] == post2.json()["args"]
+        post1 = session.post(f"{url}/post", data=data)
+        post2 = session.post(f"{url}/post", payload=data)
+        assert post1.json()["args"] == post2.json()["args"]
 
 
 def test_retry_ssl():
-    session = utils.RetrySession(ssl=False)
-    base_url = "/".join(
-        (
-            "https://gaftp.epa.gov/epadatacommons/ORD",
-            "NHDPlusLandscapeAttributes/StreamCat/HydroRegions",
+    with utils.RetrySession(ssl=False) as session:
+        base_url = "/".join(
+            (
+                "https://gaftp.epa.gov/epadatacommons/ORD",
+                "NHDPlusLandscapeAttributes/StreamCat/HydroRegions",
+            )
         )
-    )
-    r = session.get(base_url)
-    assert r.status_code == 200
-    session.close()
+        r = session.get(base_url)
+        assert r.status_code == 200
 
 
 def test_stream():
