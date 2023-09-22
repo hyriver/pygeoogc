@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 import uuid
 import warnings
@@ -128,6 +129,12 @@ class ArcGISRESTfulBase:
 
             extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
             bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
+            if any(math.isnan(float(b)) for b in bounds):
+                if rjson.get("initialExtent"):
+                    extent = rjson["initialExtent"]
+                    bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
+                else:
+                    raise ServiceError(self.base_url)
         except (ValueError, KeyError) as ex:
             raise ServiceError(self.base_url) from ex
 
