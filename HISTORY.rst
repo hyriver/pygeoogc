@@ -10,6 +10,15 @@ New Features
 - Added RESTfulURLs for FEMA's National Flood Hazard Layer (NFHL) service.
   Contributed by `Fernando Aristizabal <https://github.com/fernando-aristizabal>`__.
   (:pull_ogc:`62`)
+- Now, ``RetrySession`` can be used as a context manager. This is useful for
+  closing the session after using it. For example:
+
+.. code:: python
+
+    from pygeoogc import RetrySession
+
+    with RetrySession() as session:
+        r = session.get("https://httpbin.org/get").json()
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
