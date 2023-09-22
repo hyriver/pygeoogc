@@ -243,6 +243,12 @@ class RetrySession:
         """Close the session."""
         self.session.close()
 
+    def __enter__(self)-> RetrySession:
+        return self
+
+    def __exit__(self, *args: Any)-> None:
+        self.close()
+
 
 def _prepare_requests_args(
     urls: list[str] | str,
@@ -411,6 +417,7 @@ def streaming_download(
         for u, k, f in zip(url_list, kwd_list, files)
     )
     fpaths = cast("list[Path]", fpaths)
+    session.close()
     if isinstance(urls, str):
         return fpaths[0]
     return fpaths
