@@ -243,10 +243,10 @@ class RetrySession:
         """Close the session."""
         self.session.close()
 
-    def __enter__(self)-> RetrySession:
+    def __enter__(self) -> RetrySession:
         return self
 
-    def __exit__(self, *args: Any)-> None:
+    def __exit__(self, *args: Any) -> None:
         self.close()
 
 
