@@ -416,7 +416,7 @@ class WMS:
             if self.version != "1.1.1" and self.is_geographic and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
             _payload = payload.copy()
-            _payload["bbox"] = f'{",".join(str(c) for c in _bbox)}'
+            _payload["bbox"] = f'{",".join(str(round(c, 6)) for c in _bbox)}'
             _payload["width"] = str(_width)
             _payload["height"] = str(_height)
             _payload["layers"] = lyr
@@ -538,7 +538,7 @@ class WFS(WFSBase):
             "outputFormat": "text/xml",
             "request": "GetFeature",
             "typeName": self.layer,
-            "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
+            "bbox": f'{",".join(str(round(c, 6)) for c in bbox)},{box_crs.to_string()}',
             "srsName": self.crs_str,
             "resultType": "hits",
         }
@@ -555,7 +555,7 @@ class WFS(WFSBase):
                 "outputFormat": self.outformat,
                 "request": "GetFeature",
                 "typeName": self.layer,
-                "bbox": f'{",".join(str(c) for c in bbox)},{box_crs.to_string()}',
+                "bbox": f'{",".join(str(round(c, 6)) for c in bbox)},{box_crs.to_string()}',
                 "srsName": self.crs_str,
                 **self.sort_params(sort_attr, nfeatures, i),
             }
