@@ -1,4 +1,4 @@
-"""Tests for exceptions and requests"""
+"""Tests for exceptions and requests."""
 import sys
 
 import pytest
@@ -14,8 +14,6 @@ from pygeoogc import (
     ServiceURL,
     ZeroMatchedError,
 )
-
-has_typeguard = True if sys.modules.get("typeguard") else False
 
 
 class TestRESTException:
@@ -57,7 +55,6 @@ class TestRESTException:
             _ = self.rest_wbd.partition_oids([])
         assert "Service returned no features" in str(ex.value)
 
-    @pytest.mark.skipif(has_typeguard, reason="Broken if Typeguard is enabled")
     def test_rest_unsupported_geometry(self):
         with pytest.raises(InputTypeError) as ex:
             self.rest_wbd.oids_bygeom({1, 2})

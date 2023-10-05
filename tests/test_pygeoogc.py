@@ -33,7 +33,7 @@ class TestREST:
     nhd_url: str = ServiceURL().restful.nhdplushr
 
     def test_byid(self):
-        """RESTFul by ID"""
+        """RESTFul by ID."""
         wbd2 = ArcGISRESTful(self.wbd_url, 1, outfields=["huc2", "name", "areaacres"])
         print(wbd2)
         huc2 = wbd2.get_features(wbd2.partition_oids(list(range(1, 6))))
@@ -55,7 +55,7 @@ class TestREST:
         assert point == line
 
     def test_bygeom(self):
-        """RESTFul by geometry"""
+        """RESTFul by geometry."""
         geofab = ArcGISRESTful(self.fab_url, max_workers=4)
         _ = geofab.oids_bygeom(GEO_NAT.bounds)
         oids = geofab.oids_bygeom(GEO_NAT)
@@ -65,7 +65,7 @@ class TestREST:
         assert len(wb_all[0]["features"]) - len(wb_large[0]["features"]) == 915
 
     def test_bymultipoint(self):
-        """RESTFul by geometry"""
+        """RESTFul by geometry."""
         geom = [
             (-97.06138, 32.837),
             (-97.06133, 32.836),
@@ -109,7 +109,7 @@ class TestREST:
         assert len(resp) == 3 and len(f_oids) == (len(oids) - len(resp))
 
     def test_bysql(self):
-        """RESTFul by SQL filter"""
+        """RESTFul by SQL filter."""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
         oids = hr.oids_bysql("nhdplusid IN (50000100239005, 50000100235192)")
         resp = hr.get_features(oids, return_m=True)
@@ -117,7 +117,7 @@ class TestREST:
         assert len(resp[0]["features"]) == 2
 
     def test_byfield(self):
-        """RESTFul by SQL filter"""
+        """RESTFul by SQL filter."""
         hr = ArcGISRESTful(self.nhd_url, 2, outformat="json")
         oids = hr.oids_byfield("nhdplusid", ["50000100239005", "50000100235192"])
         resp = hr.get_features(oids)
@@ -184,7 +184,7 @@ class TestWMS:
     layer: str = "GEBCO_LATEST"
 
     def test_v111(self):
-        """WMS version 1.1.1"""
+        """WMS version 1.1.1."""
         wms = WMS(
             self.wms_url,
             layers=self.layer,
@@ -200,14 +200,14 @@ class TestWMS:
         )
 
     def test_bybox(self):
-        """WMS by bounding box"""
+        """WMS by bounding box."""
         wms = WMS(self.wms_url, layers=self.layer, outformat="image/tiff", crs=DEF_CRS)
         print(wms)
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6))
         assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11507302
 
     def test_valid_crs(self):
-        """Get WMS valid CRSs"""
+        """Get WMS valid CRSs."""
         crs = utils.valid_wms_crs(self.wms_url)
         assert sorted(crs) == ["epsg:3395", "epsg:3857", "epsg:4326"]
 
@@ -227,7 +227,7 @@ class TestWFS:
         return pd.concat(pd.read_csv(io.StringIO(r)) for r in resp)
 
     def test_byid(self):
-        """WFS by ID"""
+        """WFS by ID."""
         print(self.wfs)
         stations = [
             "01011000",
@@ -242,23 +242,23 @@ class TestWFS:
         assert set(df.staid.unique()) == {int(s) for s in stations}
 
     def test_bygeom(self):
-        """WFS by geometry"""
+        """WFS by geometry."""
         resp = self.wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
         assert self.to_df(resp).shape[0] == 7
 
     def test_bybox(self):
-        """WFS by bounding box"""
+        """WFS by bounding box."""
         bbox = GEO_URB.bounds
         resp = self.wfs.getfeature_bybox(bbox, box_crs=DEF_CRS, always_xy=True)
         assert self.to_df(resp).shape[0] == 7
 
     def test_byfilter(self):
-        """WFS by CQL filter"""
+        """WFS by CQL filter."""
         resp = self.wfs.getfeature_byfilter("staid LIKE '010315%'")
         assert self.to_df(resp).shape[0] == 2
 
     def test_wfs110(self):
-        """WFS 1.1.0 by geom"""
+        """WFS 1.1.0 by geom."""
         wfs = WFS(
             ServiceURL().wfs.waterdata,
             layer="wmadata:gagesii",
@@ -271,7 +271,7 @@ class TestWFS:
 
 
 def test_decompose():
-    """Bounding box decomposition"""
+    """Bounding box decomposition."""
     bboxs = utils.bbox_decompose(GEO_URB.bounds, 10)
     assert bboxs[0][-1] == 2828
 
@@ -285,7 +285,7 @@ def test_decompose():
     ],
 )
 def test_matchcrs(geo, gtype, expected):
-    """Match CRS"""
+    """Match CRS."""
     matched = utils.match_crs(geo, DEF_CRS, "epsg:2149")
     if gtype == "coords":
         val = matched[-1][0]
@@ -297,7 +297,7 @@ def test_matchcrs(geo, gtype, expected):
 
 
 def test_esriquery():
-    """ESRI geometry query builder"""
+    """ESRI geometry query builder."""
     point = utils.ESRIGeomQuery(COORDS[0], wkid=DEF_CRS).point()
     line = utils.ESRIGeomQuery(LineString(COORDS), wkid=DEF_CRS).polyline()
     assert (
@@ -307,12 +307,12 @@ def test_esriquery():
 
 
 def test_urls():
-    """Service URLs"""
+    """Service URLs."""
     assert len(ServiceURL()) == 4
 
 
 def test_show_versions():
-    """Show versions"""
+    """Show versions."""
     f = io.StringIO()
     ogc.show_versions(file=f)
     assert "SYS INFO" in f.getvalue()
