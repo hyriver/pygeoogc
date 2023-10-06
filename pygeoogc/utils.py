@@ -1,4 +1,5 @@
 """Some utilities for PyGeoOGC."""
+# pyright: reportGeneralTypeIssues=false
 from __future__ import annotations
 
 import contextlib
@@ -13,6 +14,7 @@ from typing import (
     Any,
     Callable,
     Generator,
+    Literal,
     Mapping,
     Sequence,
     TypeVar,
@@ -21,7 +23,6 @@ from typing import (
     overload,
 )
 
-import async_retriever as ar
 import cytoolz.curried as tlz
 import defusedxml.ElementTree as ETree
 import joblib
@@ -39,10 +40,13 @@ from shapely.geometry import LineString, MultiLineString, MultiPoint, MultiPolyg
 from shapely.geometry import box as shapely_box
 from urllib3.exceptions import InsecureRequestWarning
 
+import async_retriever as ar
 from pygeoogc import cache_keys
 from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError
 
 if TYPE_CHECKING:
+    from typing_extensions import Self
+
     CRSTYPE = Union[int, str, pyproj.CRS]
     GEOM = TypeVar(
         "GEOM",
@@ -243,10 +247,10 @@ class RetrySession:
         """Close the session."""
         self.session.close()
 
-    def __enter__(self) -> RetrySession:
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: object) -> None:
         self.close()
 
 
@@ -423,24 +427,23 @@ def streaming_download(
     return fpaths
 
 
-def traverse_json(
-    json_data: dict[str, Any] | list[dict[str, Any]], ipath: str | list[str]
-) -> list[Any]:
+def traverse_json(json_data: dict[str, Any] | list[dict[str, Any]], ipath: list[str]) -> list[Any]:
     """Extract an element from a JSON-like object along a specified ipath.
 
-    This function is based on `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__.
+    This function is based on
+    `bcmullins <https://bcmullins.github.io/parsing-json-python/>`__.
 
     Parameters
     ----------
     json_data : dict or list of dicts
-        The input json dictionary
+        The input json dictionary.
     ipath : list
-        The ipath to the requested element
+        The ipath to the requested element.
 
     Returns
     -------
     list
-        The sub-items founds in the JSON
+        The sub-items founds in the JSON.
 
     Examples
     --------
@@ -457,36 +460,27 @@ def traverse_json(
 
     def extract(
         sub_items: list[Any] | dict[str, Any] | None,
-        path: str | list[str],
+        path: list[str],
         ind: int,
         arr: list[Any],
     ) -> list[Any]:
         key = path[ind]
-        if ind + 1 < len(path):
-            if isinstance(sub_items, dict):
-                if key in sub_items:
-                    extract(sub_items.get(key), path, ind + 1, arr)
+        if isinstance(sub_items, dict):
+            if key in sub_items:
+                if ind + 1 == len(path):
+                    arr.append(sub_items[key])
                 else:
-                    arr.append(None)
-            elif isinstance(sub_items, list):
-                if not sub_items:
-                    arr.append(None)
-                else:
-                    for i in sub_items:
-                        extract(i, path, ind, arr)
+                    extract(sub_items[key], path, ind + 1, arr)
             else:
                 arr.append(None)
-        if ind + 1 == len(path):
-            if isinstance(sub_items, list):
-                if not sub_items:
-                    arr.append(None)
-                else:
-                    for i in sub_items:
-                        arr.append(i.get(key))
-            elif isinstance(sub_items, dict):
-                arr.append(sub_items.get(key))
-            else:
+        elif isinstance(sub_items, list):
+            if not sub_items:
                 arr.append(None)
+            else:
+                for i in sub_items:
+                    extract(i, path, ind, arr)
+        else:
+            arr.append(None)
         return arr
 
     if isinstance(json_data, dict):
@@ -521,7 +515,17 @@ class ESRIGeomQuery:
     )
     wkid: int
 
-    def _get_payload(self, geo_type: str, geo_json: dict[str, Any]) -> Mapping[str, str]:
+    def _get_payload(
+        self,
+        geo_type: Literal[
+            "esriGeometryPoint",
+            "esriGeometryMultipoint",
+            "esriGeometryEnvelope",
+            "esriGeometryPolygon",
+            "esriGeometryPolyline",
+        ],
+        geo_json: dict[str, Any],
+    ) -> Mapping[str, str]:
         """Generate a request payload based on ESRI template.
 
         Parameters
@@ -545,40 +549,39 @@ class ESRIGeomQuery:
 
     def point(self) -> Mapping[str, str]:
         """Query for a point."""
-        if isinstance(self.geometry, tuple) and len(self.geometry) == 2:
-            geo_type = "esriGeometryPoint"
-            geo_json = dict(zip(("x", "y"), self.geometry))
-            return self._get_payload(geo_type, geo_json)
-
-        raise InputTypeError("geometry", "tuple", "(x, y)")
+        try:
+            point = Point(*self.geometry)
+        except (TypeError, AttributeError, ValueError) as ex:
+            raise InputTypeError("geometry", "tuple", "(x, y)") from ex
+        geo_type = "esriGeometryPoint"
+        geo_json = {"x": point.x, "y": point.y}
+        return self._get_payload(geo_type, geo_json)
 
     def multipoint(self) -> Mapping[str, str]:
         """Query for a multi-point."""
-        if isinstance(self.geometry, list) and all(len(g) == 2 for g in self.geometry):
-            geo_type = "esriGeometryMultipoint"
-            geo_json = {"points": [[x, y] for x, y in self.geometry]}
-            return self._get_payload(geo_type, geo_json)
-
-        raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]")
+        try:
+            mp = MultiPoint(self.geometry)
+        except (TypeError, AttributeError, ValueError) as ex:
+            raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]") from ex
+        geo_type = "esriGeometryMultipoint"
+        geo_json = {"points": [[p.x, p.y] for p in mp.geoms]}
+        return self._get_payload(geo_type, geo_json)
 
     def bbox(self) -> Mapping[str, str]:
         """Query for a bbox."""
-        if isinstance(self.geometry, (tuple, list)) and len(self.geometry) == 4:
-            geo_type = "esriGeometryEnvelope"
-            geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), self.geometry))
-            return self._get_payload(geo_type, geo_json)
-
-        raise InputTypeError("geometry", "tuple", BOX_ORD)
+        try:
+            bbox = shapely_box(*self.geometry)
+        except (TypeError, AttributeError, ValueError) as ex:
+            raise InputTypeError("geometry", "tuple", BOX_ORD) from ex
+        geo_type = "esriGeometryEnvelope"
+        geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), bbox.bounds))
+        return self._get_payload(geo_type, geo_json)
 
     def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
         if isinstance(self.geometry, Polygon):
             geo_type = "esriGeometryPolygon"
-            geo_json = {
-                "rings": [
-                    [[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]  # type: ignore
-                ]
-            }
+            geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "Polygon")
@@ -587,9 +590,7 @@ class ESRIGeomQuery:
         """Query for a polyline."""
         if isinstance(self.geometry, LineString):
             geo_type = "esriGeometryPolyline"
-            geo_json = {
-                "paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]  # type: ignore
-            }
+            geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "LineString")
@@ -627,9 +628,6 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
     >>> match_crs(coords, "epsg:3857", 4326)
     [(-69.7636111130079, 45.44549114818127)]
     """
-    if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
-        return geom
-
     project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
 
     if isinstance(
@@ -643,25 +641,45 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
             MultiPoint,
         ),
     ):
+        if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
+            return geom
         return ops.transform(project, geom)
 
-    if len(geom) == 4:
-        with contextlib.suppress(TypeError, AttributeError):
-            return ops.transform(project, shapely_box(*geom)).bounds
+    with contextlib.suppress(TypeError, AttributeError, ValueError):
+        if len(geom) > 4:
+            raise TypeError
+        if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
+            bbox = shapely_box(*geom)
+        else:
+            bbox = cast("Polygon", ops.transform(project, shapely_box(*geom)))
+        return tuple(float(p) for p in bbox.bounds)
 
-    with contextlib.suppress(TypeError):
-        mp = cast("MultiPoint", ops.transform(project, MultiPoint(geom)))
-        return [(p.x, p.y) for p in mp.geoms]  # type: ignore
+    with contextlib.suppress(TypeError, AttributeError, ValueError):
+        if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
+            point = Point(geom)
+        else:
+            point = cast("Point", ops.transform(project, Point(geom)))
+        return [(float(point.x), float(point.y))]
 
-    gtypes = (
-        "a list of coordinates such as [(x1, y1), ...],"
-        + "a bounding box like so (xmin, ymin, xmax, ymax), or any valid shapely's geometry."
+    with contextlib.suppress(TypeError, AttributeError, ValueError):
+        if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
+            mp = MultiPoint(geom)
+        else:
+            mp = cast("MultiPoint", ops.transform(project, MultiPoint(geom)))
+        return [(float(p.x), float(p.y)) for p in mp.geoms]
+
+    gtypes = " ".join(
+        (
+            "a list of coordinates such as [(x1, y1), ...],",
+            "a bounding box like so (xmin, ymin, xmax, ymax),",
+            "or any valid shapely's geometry.",
+        )
     )
     raise InputTypeError("geom", gtypes)
 
 
 def esri_query(
-    geom: (LineString | Polygon | Point | MultiPoint | tuple[float, float, float, float]),
+    geom: GEOM,
     geo_crs: CRSTYPE,
     out_crs: CRSTYPE,
 ) -> Mapping[str, str]:
@@ -669,8 +687,11 @@ def esri_query(
     geom = match_crs(geom, geo_crs, out_crs)
     wkid = cast("int", pyproj.CRS(out_crs).to_epsg())
 
-    if isinstance(geom, tuple) and len(geom) == 4:
-        return ESRIGeomQuery(geom, wkid).bbox()
+    with contextlib.suppress(TypeError, AttributeError, ValueError):
+        geom = Point(geom)
+
+    with contextlib.suppress(TypeError, AttributeError, ValueError):
+        geom = MultiPoint(geom)
 
     if isinstance(geom, Point):
         return ESRIGeomQuery((geom.x, geom.y), wkid).point()
@@ -684,13 +705,18 @@ def esri_query(
     if isinstance(geom, LineString):
         return ESRIGeomQuery(geom, wkid).polyline()
 
+    with contextlib.suppress(InputTypeError):
+        return ESRIGeomQuery(geom, wkid).bbox()
+
     raise InputTypeError("geom", "LineString, Polygon, Point, MultiPoint, tuple")
 
 
 def check_bbox(bbox: tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
-    if not (isinstance(bbox, tuple) and len(bbox) == 4):
-        raise InputTypeError("bbox", "tuple", BOX_ORD)
+    try:
+        _ = shapely_box(*bbox)
+    except (TypeError, AttributeError, ValueError) as ex:
+        raise InputTypeError("bbox", "tuple", BOX_ORD) from ex
 
 
 def bbox_decompose(
@@ -709,7 +735,7 @@ def bbox_decompose(
         The target resolution for a WMS request in meters.
     box_crs : str, int, or pyproj.CRS, optional
         The spatial reference of the input bbox, default to ``epsg:4326``.
-    max_px : int, opitonal
+    max_px : int, optional
         The maximum allowable number of pixels (width x height) for a WMS requests,
         defaults to 8 million based on some trial-and-error.
 
@@ -797,7 +823,7 @@ def valid_wms_crs(url: str) -> list[str]:
     ns = "http://www.opengis.net/wms"
 
     def get_path(tag_list: list[str]) -> str:
-        return f"/{{{ns}}}".join([""] + tag_list)[1:]
+        return f"/{{{ns}}}".join(["", *tag_list])[1:]
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
     root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
