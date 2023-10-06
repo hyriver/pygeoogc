@@ -16,7 +16,7 @@ from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, Z
 if TYPE_CHECKING:
     from ssl import SSLContext
 
-    from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
+    from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
     RESPONSE = Union[
         "list[str]", "list[bytes]", "list[dict[str, Any]]", "list[list[dict[str, Any]]]"
