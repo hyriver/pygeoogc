@@ -1,5 +1,4 @@
 """Tests for exceptions and requests."""
-import sys
 
 import pytest
 
@@ -57,7 +56,7 @@ class TestRESTException:
 
     def test_rest_unsupported_geometry(self):
         with pytest.raises(InputTypeError) as ex:
-            self.rest_wbd.oids_bygeom({1, 2})
+            self.rest_wbd.oids_bygeom((1, 2, 3, 4, 5))
         assert "The geom argument should be" in str(ex.value)
 
     def test_rest_unsupported_spatial_rel(self):

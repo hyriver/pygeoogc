@@ -5,17 +5,18 @@ import itertools
 import uuid
 from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union, cast
 
-import async_retriever as ar
 import pyproj
 from shapely import ops
-from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
+import async_retriever as ar
 from pygeoogc import utils
 from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
 from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ZeroMatchedError
 
 if TYPE_CHECKING:
     from ssl import SSLContext
+
+    from shapely.geometry import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
     RESPONSE = Union[
         "list[str]", "list[bytes]", "list[dict[str, Any]]", "list[list[dict[str, Any]]]"
@@ -152,12 +153,8 @@ class ArcGISRESTful:
         if spatial_relation not in valid_spatialrels:
             raise InputValueError("spatial_relation", valid_spatialrels)
 
-        if isinstance(geom, tuple) and len(geom) == 2:
-            geom = Point(geom)
-        elif isinstance(geom, list) and all(len(g) == 2 for g in geom):
-            geom = MultiPoint(geom)
-
         geom_query = utils.esri_query(geom, geo_crs, self.client.crs)
+        print(geom_query)
 
         payload = {
             **geom_query,
@@ -373,7 +370,7 @@ class WMS:
             order from xy to yx, following the latest WFS version specifications but some don't.
             If the returned value does not have any geometry, it indicates that most probably the
             axis order does not match. You can set this to True in that case.
-        max_px : int, opitonal
+        max_px : int, optional
             The maximum allowable number of pixels (width x height) for a WMS requests,
             defaults to 8 million based on some trial-and-error.
         kwargs: dict, optional
@@ -422,9 +419,7 @@ class WMS:
             _payload["layers"] = lyr
             return f"{lyr}_dd_{counter}", _payload
 
-        _lyr_payloads = (
-            _get_payloads(i) for i in itertools.product(self.layers, bounds)  # type: ignore
-        )
+        _lyr_payloads = (_get_payloads(i) for i in itertools.product(self.layers, bounds))
         layers, payloads = zip(*_lyr_payloads)
         layers = cast("tuple[str]", layers)
         payloads = cast("tuple[dict[str, str]]", payloads)

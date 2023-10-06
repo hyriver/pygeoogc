@@ -6,17 +6,16 @@ import math
 import os
 import uuid
 import warnings
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator, Literal, Sequence, Union, cast
 
-import async_retriever as ar
 import cytoolz.curried as tlz
 import pyproj
 from owslib.wfs import WebFeatureService
 from owslib.wms import WebMapService
 from yarl import URL
 
+import async_retriever as ar
 from pygeoogc import utils
 from pygeoogc.exceptions import (
     InputTypeError,
@@ -108,15 +107,15 @@ class ArcGISRESTfulBase:
         self.query_formats: list[str] = []
         self.extent: tuple[float, float, float, float] | None = None
         self.units: str | None = None
-        self.max_nrecords: int = 1000
+        self.max_nrecords = 1000
         self.valid_fields: list[str] = []
         self.field_types: dict[str, str] = {}
         self.feature_types: dict[int, str] | None = None
-        self.return_m: bool = False
-        self.return_geom: bool = True
-        self.n_missing: int = 0
-        self.total_n_features: int = 0
-        self.failed_path: str | Path = ""
+        self.return_m = False
+        self.return_geom = True
+        self.n_missing = 0
+        self.total_n_features = 0
+        self.failed_path = Path("cache", "failed_ids.txt")
         self.request_id: str | None = None
 
         self.initialize_service()
@@ -303,7 +302,7 @@ class ArcGISRESTfulBase:
         self, return_m: bool, return_geo: bool, partition_fac: float
     ) -> list[dict[str, Any]]:
         """Retry failed requests."""
-        with open(self.failed_path) as f:
+        with self.failed_path.open() as f:
             oids = [int(i) for i in f.read().splitlines()]
 
         max_nrecords = self.max_nrecords
@@ -350,8 +349,8 @@ class ArcGISRESTfulBase:
                 max_workers=self.max_workers,
             )
             resp = cast("list[dict[str, Any]]", resp)
-        except ValueError:
-            raise ZeroMatchedError
+        except ValueError as ex:
+            raise ZeroMatchedError from ex
         return resp
 
     def __repr__(self) -> str:
@@ -372,7 +371,6 @@ class ArcGISRESTfulBase:
         )
 
 
-@dataclass
 class WMSBase:
     """Base class for accessing a WMS service.
 
@@ -397,24 +395,29 @@ class WMSBase:
         to avoid sending extra requests.
     """
 
-    url: str
-    layers: str | int | Sequence[str | int] = ""
-    outformat: str = ""
-    version: str = "1.3.0"
-    crs: CRSTYPE = 4326
-    validation: bool = True
-
-    def __post_init__(self) -> None:
-        """Validate crs."""
+    def __init__(
+        self,
+        url: str,
+        layers: str | int | Sequence[str | int] = "",
+        outformat: str = "",
+        version: str = "1.3.0",
+        crs: CRSTYPE = 4326,
+        validation: bool = True,
+    ) -> None:
+        self.url = url
+        self.outformat = outformat
+        self.version = version
+        self.crs = crs
         self.outformat = self.outformat.lower()
-        self.layers = (
-            [str(self.layers)] if isinstance(self.layers, (str, int)) else list(self.layers)
-        )
+        if isinstance(layers, (str, int)):
+            self.layers = [str(layers)]
+        else:
+            self.layers = [str(lyr) for lyr in layers]
         self.crs_str = utils.validate_crs(self.crs).lower()
         if self.version not in ("1.1.1", "1.3.0"):
             raise InputValueError("version", ("1.1.1", "1.3.0"))
 
-        if self.validation:
+        if validation:
             self.get_service_options()
             self.validate_wms()
 
@@ -434,7 +437,7 @@ class WMSBase:
 
     def validate_wms(self) -> None:
         """Validate input arguments with the WMS service."""
-        if any(lyr not in self.available_layer.keys() for lyr in self.layers):  # type: ignore
+        if any(lyr not in self.available_layer for lyr in self.layers):
             raise InputValueError(
                 "layers", (f"{n} for {t}" for n, t in self.available_layer.items())
             )
@@ -442,7 +445,7 @@ class WMSBase:
         if self.outformat not in self.available_outformat:
             raise InputValueError("outformat", self.available_outformat)
 
-        if any(self.crs_str not in self.available_crs[lyr] for lyr in self.layers):  # type: ignore
+        if any(self.crs_str not in self.available_crs[lyr] for lyr in self.layers):
             _valid_crss = (
                 f"{lyr}: {', '.join(cs)}\n"
                 for lyr, cs in self.available_crs.items()
@@ -461,17 +464,18 @@ class WMSBase:
 
     def __repr__(self) -> str:
         """Print the services properties."""
-        return (
-            "Connected to the WMS service with the following properties:\n"
-            + f"URL: {self.url}\n"
-            + f"Version: {self.version}\n"
-            + f"Layers: {', '.join(str(lyr) for lyr in self.layers)}\n"  # type: ignore
-            + f"Output Format: {self.outformat}\n"
-            + f"Output CRS: {self.crs_str}"
+        return "\n".join(
+            (
+                "Connected to the WMS service with the following properties:",
+                f"URL: {self.url}",
+                f"Version: {self.version}",
+                f"Layers: {', '.join(self.layers)}",
+                f"Output Format: {self.outformat}",
+                f"Output CRS: {self.crs_str}",
+            )
         )
 
 
-@dataclass
 class WFSBase:
     """Base class for WFS service.
 
@@ -505,17 +509,24 @@ class WFSBase:
         to avoid sending extra requests.
     """
 
-    url: str
-    layer: str | None = None
-    outformat: str | None = None
-    version: str = "2.0.0"
-    crs: CRSTYPE = 4326
-    read_method: str = "json"
-    max_nrecords: int = 1000
-    validation: bool = True
-
-    def __post_init__(self) -> None:
-        """Validate crs."""
+    def __init__(
+        self,
+        url: str,
+        layer: str | None = None,
+        outformat: str | None = None,
+        version: str = "2.0.0",
+        crs: CRSTYPE = 4326,
+        read_method: str = "json",
+        max_nrecords: int = 1000,
+        validation: bool = True,
+    ) -> None:
+        self.url = url
+        self.layer = layer
+        self.outformat = outformat
+        self.version = version
+        self.crs = crs
+        self.read_method = read_method
+        self.max_nrecords = max_nrecords
         self.crs_str = utils.validate_crs(self.crs)
 
         if self.version == "2.0.0":
@@ -537,7 +548,7 @@ class WFSBase:
             raise InputValueError("read_method", ("json", "binary", "text"))
 
         self.get_service_options()
-        if self.validation:
+        if validation:
             self.validate_wfs()
 
     def get_service_options(self) -> None:
@@ -579,9 +590,12 @@ class WFSBase:
         """Validate input arguments with the WFS service."""
         if self.layer is None:
             raise MissingInputError(
-                "The layer argument is missing."
-                + " The following layers are available:\n"
-                + ", ".join(self.available_layer)
+                "\n".join(
+                    (
+                        "The layer argument is missing. The following layers are available:",
+                        ", ".join(self.available_layer),
+                    )
+                )
             )
         if self.layer not in self.available_layer:
             raise InputValueError("layers", self.available_layer)
