@@ -42,7 +42,7 @@ dependencies = [
   "pyproj>=3.0.1",
   "requests",
   "requests-cache>=0.9.6",
-  "shapely>=1.8.5",
+  "shapely>=2.0.0",
   "typing_extensions",
   "ujson",
   "url-normalize>=1.4",
@@ -51,7 +51,6 @@ dependencies = [
 ]
 [project.optional-dependencies]
 test = [
-  "coverage[toml]",
   "pandas",
   "pytest-cov",
   "pytest-xdist[psutil]",
