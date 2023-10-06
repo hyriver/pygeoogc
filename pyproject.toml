@@ -43,6 +43,7 @@ dependencies = [
   "requests",
   "requests-cache>=0.9.6",
   "shapely>=1.8.5",
+  "typing_extensions",
   "ujson",
   "url-normalize>=1.4",
   "urllib3",
@@ -204,6 +205,8 @@ filterwarnings = [
   "ignore:.*--rsyncdir command line argument.*",
   "ignore:.*numpy.ndarray size changed.*",
   "ignore:.*'cgi' is deprecated.*",
+  "ignore:.*Calling float on a single element.*",
+  "ignore:.*Shapely GEOS version.*",
 ]
 testpaths = [
   "tests",
