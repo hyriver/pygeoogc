@@ -154,8 +154,6 @@ class ArcGISRESTful:
             raise InputValueError("spatial_relation", valid_spatialrels)
 
         geom_query = utils.esri_query(geom, geo_crs, self.client.crs)
-        print(geom_query)
-
         payload = {
             **geom_query,
             "spatialRel": spatial_relation,
