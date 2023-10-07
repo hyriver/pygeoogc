@@ -35,7 +35,7 @@ class TestREST:
     def test_byid(self):
         """RESTFul by ID."""
         wbd2 = ArcGISRESTful(self.wbd_url, 1, outfields=["huc2", "name", "areaacres"])
-        print(wbd2)
+        assert self.wbd_url in wbd2.__repr__()
         huc2 = wbd2.get_features(wbd2.partition_oids(list(range(1, 6))))
 
         assert len(huc2[0]["features"]) == 5
@@ -89,7 +89,7 @@ class TestREST:
             ]
         )
         rest = ArcGISRESTful(rest_url, verbose=True)
-        print(rest)
+        assert rest_url in rest.__repr__()
         oids = [
             1006322,
             1006323,
@@ -106,7 +106,8 @@ class TestREST:
 
         with rest.client.failed_path.open() as f:
             f_oids = [int(i) for i in f.read().splitlines()]
-        assert len(resp) == 3 and len(f_oids) == (len(oids) - len(resp))
+        assert len(resp) == 3
+        assert len(f_oids) == (len(oids) - len(resp))
 
     def test_bysql(self):
         """RESTFul by SQL filter."""
@@ -175,7 +176,8 @@ def test_stream():
         "http://speedtest.ftp.otenet.gr/files/test1Mb.db",
     )
     fname = ogc.streaming_download(urls)
-    assert fname[0].stat().st_size == 102400 and fname[1].stat().st_size == 1048576
+    assert fname[0].stat().st_size == 102400
+    assert fname[1].stat().st_size == 1048576
 
 
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
@@ -194,15 +196,13 @@ class TestWMS:
             validation=False,
         )
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
-        assert (
-            wms.get_validlayers()[self.layer] == self.layer
-            and sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11496857
-        )
+        assert wms.get_validlayers()[self.layer] == self.layer
+        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11496857
 
     def test_bybox(self):
         """WMS by bounding box."""
         wms = WMS(self.wms_url, layers=self.layer, outformat="image/tiff", crs=DEF_CRS)
-        print(wms)
+        assert self.wms_url in wms.__repr__()
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6))
         assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11507302
 
@@ -228,7 +228,7 @@ class TestWFS:
 
     def test_byid(self):
         """WFS by ID."""
-        print(self.wfs)
+        assert ServiceURL().wfs.waterdata in self.wfs.__repr__()
         stations = [
             "01011000",
             "01013500",
@@ -277,7 +277,7 @@ def test_decompose():
 
 
 @pytest.mark.parametrize(
-    "geo,gtype,expected",
+    ("geo", "gtype", "expected"),
     [
         (COORDS, "coords", -287.707),
         (GEO_URB, "geometry", -362.099),
@@ -300,10 +300,8 @@ def test_esriquery():
     """ESRI geometry query builder."""
     point = utils.ESRIGeomQuery(COORDS[0], wkid=DEF_CRS).point()
     line = utils.ESRIGeomQuery(LineString(COORDS), wkid=DEF_CRS).polyline()
-    assert (
-        point["geometryType"] == "esriGeometryPoint"
-        and line["geometryType"] == "esriGeometryPolyline"
-    )
+    assert point["geometryType"] == "esriGeometryPoint"
+    assert line["geometryType"] == "esriGeometryPolyline"
 
 
 def test_urls():
