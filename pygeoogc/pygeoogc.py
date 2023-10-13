@@ -3,7 +3,17 @@ from __future__ import annotations
 
 import itertools
 import uuid
-from typing import TYPE_CHECKING, Any, Iterator, NamedTuple, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterator,
+    Literal,
+    NamedTuple,
+    Sequence,
+    Union,
+    cast,
+    overload,
+)
 
 import pyproj
 from shapely import ops
@@ -14,7 +24,7 @@ from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
 from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ZeroMatchedError
 
 if TYPE_CHECKING:
-    from ssl import SSLContext
+    from pathlib import Path
 
     from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
@@ -319,7 +329,7 @@ class WMS:
         version: str = "1.3.0",
         crs: CRSTYPE = 4326,
         validation: bool = True,
-        ssl: SSLContext | bool | None = None,
+        ssl: bool = True,
     ) -> None:
         self.client = WMSBase(
             url=url,
@@ -342,6 +352,32 @@ class WMS:
         """Get the layers supported by the WMS service."""
         return self.client.get_validlayers()
 
+    @overload
+    def getmap_bybox(
+        self,
+        bbox: tuple[float, float, float, float],
+        resolution: float,
+        box_crs: CRSTYPE = ...,
+        always_xy: bool = ...,
+        max_px: int = ...,
+        kwargs: dict[str, Any] | None = ...,
+        to_disk: Literal[False] = False,
+    ) -> dict[str, bytes]:
+        ...
+
+    @overload
+    def getmap_bybox(
+        self,
+        bbox: tuple[float, float, float, float],
+        resolution: float,
+        box_crs: CRSTYPE = ...,
+        always_xy: bool = ...,
+        max_px: int = ...,
+        kwargs: dict[str, Any] | None = ...,
+        to_disk: Literal[True] = True,
+    ) -> list[Path]:
+        ...
+
     def getmap_bybox(
         self,
         bbox: tuple[float, float, float, float],
@@ -350,7 +386,8 @@ class WMS:
         always_xy: bool = False,
         max_px: int = 8000000,
         kwargs: dict[str, Any] | None = None,
-    ) -> dict[str, bytes]:
+        to_disk: bool = False,
+    ) -> dict[str, bytes] | list[Path]:
         """Get data from a WMS service within a geometry or bounding box.
 
         Parameters
@@ -374,12 +411,16 @@ class WMS:
         kwargs: dict, optional
             Optional additional keywords passed as payload, defaults to None.
             For example, ``{"styles": "default"}``.
+        to_disk : bool, optional
+            Whether to save the retrieved data to disk instead of returning it,
+            defaults to ``False``.
 
         Returns
         -------
-        dict
-            A dict where the keys are the layer name and values are the returned response
-            from the WMS service as bytes.
+        dict of bytes or list of pathlib.Path
+            If ``to_disk=False``, a dict where the keys are the layer name and
+            values are the returned response from the WMS service as bytes.
+            If ``to_disk=True``, a list of pathlib.Path objects to the saved files.
         """
         utils.check_bbox(bbox)
         _bbox = utils.match_crs(bbox, box_crs, self.crs_str)
@@ -421,6 +462,14 @@ class WMS:
         layers, payloads = zip(*_lyr_payloads)
         layers = cast("tuple[str]", layers)
         payloads = cast("tuple[dict[str, str]]", payloads)
+        if to_disk:
+            return utils.streaming_download(
+                [self.url] * len(payloads),
+                [{"params": p} for p in payloads],
+                file_extention="tiff",
+                n_jobs=4,
+                ssl=self.ssl,
+            )
         rbinary = ar.retrieve_binary(
             [self.url] * len(payloads),
             [{"params": p} for p in payloads],
