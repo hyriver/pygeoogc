@@ -362,6 +362,7 @@ class WMS:
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
         to_disk: Literal[False] = False,
+        tiff_dir: str | Path | None = None,
     ) -> dict[str, bytes]:
         ...
 
@@ -374,7 +375,7 @@ class WMS:
         always_xy: bool = ...,
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
-        to_disk: Literal[True] = True,
+        tiff_dir: str | Path | None = None,
     ) -> list[Path]:
         ...
 
@@ -386,7 +387,7 @@ class WMS:
         always_xy: bool = False,
         max_px: int = 8000000,
         kwargs: dict[str, Any] | None = None,
-        to_disk: bool = False,
+        tiff_dir: str | Path | None = None,
     ) -> dict[str, bytes] | list[Path]:
         """Get data from a WMS service within a geometry or bounding box.
 
@@ -411,9 +412,10 @@ class WMS:
         kwargs: dict, optional
             Optional additional keywords passed as payload, defaults to None.
             For example, ``{"styles": "default"}``.
-        to_disk : bool, optional
-            Whether to save the retrieved data to disk instead of returning it,
-            defaults to ``False``.
+        tiff_dir : str or pathlib.Path, optional
+            If given, the retrieved data will be stored on disk instead of
+            returning it, defaults to ``None``, i.e., saving to memory
+            and returning the data.
 
         Returns
         -------
@@ -462,10 +464,13 @@ class WMS:
         layers, payloads = zip(*_lyr_payloads)
         layers = cast("tuple[str]", layers)
         payloads = cast("tuple[dict[str, str]]", payloads)
-        if to_disk:
+        if tiff_dir is not None:
+            tiff_dir = Path(tiff_dir)
+            tiff_dir.mkdir(parents=True, exist_ok=True)
             return utils.streaming_download(
                 [self.url] * len(payloads),
                 [{"params": p} for p in payloads],
+                root_dir=tiff_dir,
                 file_extention="tiff",
                 n_jobs=4,
                 ssl=self.ssl,
