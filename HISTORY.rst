@@ -7,9 +7,9 @@ History
 
 New Features
 ~~~~~~~~~~~~
-- Add a new arg to ``WMS.getmap_bybox`` called ``to_disk`` for storing
-  the response from a WMS service as a GeoTIFF file on disk instead of
-  keeping all responses in memory. When ``to_disk=True``, this function
+- Add a new arg to ``WMS.getmap_bybox`` called ``tiff_dir`` for storing
+  the responses from a WMS request as a GeoTIFF file on disk instead of
+  keeping all responses in memory. When this arg is given the function
   return a list of paths to these files. This is useful for large requests
   where the response is too large to be kept in memory. You can create
   a VRT file from these files using ``pygeoutils.gtiff2vrt`` function.
