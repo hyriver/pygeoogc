@@ -258,6 +258,7 @@ def _prepare_requests_args(
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None,
     method: str,
     fnames: str | Path | Sequence[str | Path] | None,
+    root_dir: str | Path | None,
     file_prefix: str,
     file_extention: str,
 ) -> tuple[
@@ -282,11 +283,16 @@ def _prepare_requests_args(
         raise InputTypeError("urls/kwds", "list of same length")
 
     fex = file_extention.replace(".", "")
+
     if fnames is None:
-        cache_dir = os.getenv("HYRIVER_CACHE_NAME", str(Path("cache", "tmp")))
-        cache_dir = Path(cache_dir).parent
+        if root_dir is None:
+            root_dir = os.getenv("HYRIVER_CACHE_NAME", str(Path("cache", "tmp")))
+            root_dir = Path(root_dir).parent
+        else:
+            root_dir = Path(root_dir)
+        root_dir.mkdir(exist_ok=True, parents=True)
         files = (
-            Path(cache_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
+            Path(root_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
             for u, p in zip(url_list, kwd_list)
         )
     else:
@@ -321,6 +327,7 @@ def streaming_download(
     urls: str,
     kwds: dict[str, dict[Any, Any]] | None = None,
     fnames: str | Path | None = None,
+    root_dir: str | Path | None = None,
     file_prefix: str = "",
     file_extention: str = "",
     method: str = "GET",
@@ -336,6 +343,7 @@ def streaming_download(
     urls: list[str],
     kwds: list[dict[str, dict[Any, Any]]] | None = None,
     fnames: Sequence[str | Path] | None = None,
+    root_dir: str | Path | None = None,
     file_prefix: str = "",
     file_extention: str = "",
     method: str = "GET",
@@ -350,6 +358,7 @@ def streaming_download(
     urls: list[str] | str,
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None = None,
     fnames: str | Path | Sequence[str | Path] | None = None,
+    root_dir: str | Path | None = None,
     file_prefix: str = "",
     file_extention: str = "",
     method: str = "GET",
@@ -375,6 +384,11 @@ def streaming_download(
         ("file1.zip", ...). Defaults to ``None``. If not provided,
         random unique filenames will be generated based on
         URL and keyword pairs.
+    root_dir : str or Path, optional
+        Root directory to store the files, defaults to ``None`` which
+        uses HyRiver's cache directory. Note that you should either
+        provide ``root_dir`` or ``fnames``. If both are provided,
+        ``root_dir`` will be ignored.
     file_prefix : str, optional
         Prefix to add to filenames when storing the files, defaults
         to ``None``, i.e., no prefix. This argument will be only be
@@ -405,7 +419,7 @@ def streaming_download(
         raise InputValueError("method", valid_methods)
 
     url_list, kwd_list, files = _prepare_requests_args(
-        urls, kwds, method, fnames, file_prefix, file_extention
+        urls, kwds, method, fnames, root_dir, file_prefix, file_extention
     )
 
     session = RetrySession(disable=True, ssl=ssl)
