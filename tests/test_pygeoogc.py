@@ -205,7 +205,7 @@ class TestWMS:
         assert self.wms_url in wms.__repr__()
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6))
         assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11507302
-        flist = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6), to_disk=True)
+        flist = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6), tiff_dir="cache")
         assert sum(f.stat().st_size for f in flist) == 11507170
 
     def test_valid_crs(self):
