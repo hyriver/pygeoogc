@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import itertools
 import uuid
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,8 +25,6 @@ from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
 from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ZeroMatchedError
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
     RESPONSE = Union[
@@ -361,8 +360,7 @@ class WMS:
         always_xy: bool = ...,
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
-        to_disk: Literal[False] = False,
-        tiff_dir: str | Path | None = None,
+        tiff_dir: Literal[None] = None,
     ) -> dict[str, bytes]:
         ...
 
@@ -375,7 +373,7 @@ class WMS:
         always_xy: bool = ...,
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
-        tiff_dir: str | Path | None = None,
+        tiff_dir: str | Path = ...,
     ) -> list[Path]:
         ...
 
