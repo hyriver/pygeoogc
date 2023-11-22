@@ -136,6 +136,8 @@ class RetrySession:
         if self.expire_after == EXPIRE_AFTER:
             self.expire_after = int(os.getenv("HYRIVER_CACHE_EXPIRE", EXPIRE_AFTER))
 
+        self.ssl_cert = os.getenv("HYRIVER_SSL_CERT")
+
         self.disable = disable
 
         if not ssl:
@@ -171,6 +173,7 @@ class RetrySession:
         else:
             backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
             self.session = CachedSession(expire_after=self.expire_after, backend=backend)
+        self.session.cert = self.ssl_cert
 
     def get(
         self,
@@ -274,7 +277,7 @@ def _prepare_requests_args(
             kwd_list = ({"data": None},) * len(url_list)
     else:
         kwd_list = (kwds,) if isinstance(kwds, dict) else tuple(kwds)
-    key_list = {k for keys in kwd_list for k in keys}
+    key_list = set(itertools.chain.from_iterable(k.keys() for k in kwd_list))
     valid_keys = ("params", "data", "json", "headers")
     if any(k not in valid_keys for k in key_list):
         raise InputValueError("kwds", valid_keys)
