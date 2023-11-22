@@ -201,6 +201,12 @@ known-first-party = [
   "pynldas2",
 ]
 
+[tool.pycln]
+all = true
+expand_stars = true
+no_gitignore = false
+verbose = true
+
 [tool.codespell]
 skip = "__pycache__,_build,.mypy_cache,.git,./htmlcov,.nox,**/us_abbrs.py,cache"
 ignore-words-list = "gage,gages,paramss,trough"
@@ -237,15 +243,6 @@ omit = [
 parallel = true
 source = ['pygeoogc']
 
-[tool.fixit]
-formatter = "ufmt"
-
-[tool.pycln]
-all = true
-expand_stars = true
-no_gitignore = false
-verbose = true
-
 [tool.pyright]
 exclude = [
   ".nox/",
@@ -263,6 +260,9 @@ reportUnknownVariableType = false
 reportUnnecessaryIsInstance = false
 reportUntypedFunctionDecorator = false
 typeCheckingMode = "strict"
+
+[tool.fixit]
+formatter = "ufmt"
 
 [tool.refurb]
 python_version = "3.8"
