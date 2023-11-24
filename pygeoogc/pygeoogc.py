@@ -821,6 +821,7 @@ class RESTfulURLs(NamedTuple):
 
     daymet: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac"
     daymet_point: str = "https://daymet.ornl.gov/single-pixel/api/data"
+    gridmet: str = "http://thredds.northwestknowledge.net:8080/thredds/ncss"
     fema_nfhl: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer"
     fema_prelim_cslf: str = (
         "https://hazards.fema.gov/gis/nfhl/rest/services/CSLF/Prelim_CSLF/MapServer"
