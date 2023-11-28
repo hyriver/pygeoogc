@@ -288,7 +288,7 @@ def test_decompose():
 )
 def test_matchcrs(geo, gtype, expected):
     """Match CRS."""
-    matched = utils.match_crs(geo, DEF_CRS, "epsg:2149")
+    matched = utils.match_crs(geo, DEF_CRS, 2149)
     if gtype == "coords":
         val = matched[-1][0]
     elif gtype == "geometry":

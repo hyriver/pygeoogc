@@ -635,13 +635,13 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
     --------
     >>> from shapely import Point
     >>> point = Point(-7766049.665, 5691929.739)
-    >>> match_crs(point, "epsg:3857", 4326).xy
+    >>> match_crs(point, 3857, 4326).xy
     (array('d', [-69.7636111130079]), array('d', [45.44549114818127]))
     >>> bbox = (-7766049.665, 5691929.739, -7763049.665, 5696929.739)
-    >>> match_crs(bbox, "epsg:3857", 4326)
+    >>> match_crs(bbox, 3857, 4326)
     (-69.7636111130079, 45.44549114818127, -69.73666165448431, 45.47699468552394)
     >>> coords = [(-7766049.665, 5691929.739)]
-    >>> match_crs(coords, "epsg:3857", 4326)
+    >>> match_crs(coords, 3857, 4326)
     [(-69.7636111130079, 45.44549114818127)]
     """
     project = pyproj.Transformer.from_crs(in_crs, out_crs, always_xy=True).transform
