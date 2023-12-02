@@ -1,6 +1,7 @@
 """Top-level package for PyGeoOGC."""
 from importlib.metadata import PackageNotFoundError, version
 
+from pygeoogc.cache_keys import create_request_key
 from pygeoogc.exceptions import (
     InputTypeError,
     InputValueError,
@@ -30,6 +31,7 @@ __all__ = [
     "ServiceError",
     "ServiceUnavailableError",
     "ZeroMatchedError",
+    "create_request_key",
     "traverse_json",
     "streaming_download",
     "match_crs",

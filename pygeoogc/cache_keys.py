@@ -15,10 +15,10 @@ from yarl import URL
 RequestParams = Union[Mapping[Any, Any], Sequence[Any], str, None]
 StrOrURL = Union[str, URL]
 
-__all__ = ["create_key"]
+__all__ = ["create_request_key"]
 
 
-def normalize_url_params(url: StrOrURL, params: RequestParams = None) -> URL:
+def _normalize_url_params(url: StrOrURL, params: RequestParams = None) -> URL:
     """Normalize any combination of request parameter formats that aiohttp accepts."""
     if isinstance(url, str):
         url = URL(url)
@@ -33,7 +33,7 @@ def normalize_url_params(url: StrOrURL, params: RequestParams = None) -> URL:
     return URL(str(url_normalize(str(url))))
 
 
-def encode_dict(data: Any) -> bytes:
+def _encode_dict(data: Any) -> bytes:
     if not data:
         return b""
     if isinstance(data, bytes):
@@ -44,7 +44,7 @@ def encode_dict(data: Any) -> bytes:
     return "&".join(item_pairs).encode()
 
 
-def create_key(
+def create_request_key(
     method: str,
     url: StrOrURL,
     params: RequestParams = None,
@@ -53,10 +53,10 @@ def create_key(
 ) -> str:
     """Create a unique cache key based on request details."""
     # Normalize and filter all relevant pieces of request data
-    norm_url = normalize_url_params(url, params)
+    norm_url = _normalize_url_params(url, params)
 
     # Create a hash based on the normalized and filtered request
     key = hashlib.sha256(
-        method.upper().encode() + str(norm_url).encode() + encode_dict(data) + encode_dict(json)
+        method.upper().encode() + str(norm_url).encode() + _encode_dict(data) + _encode_dict(json)
     )
     return key.hexdigest()
