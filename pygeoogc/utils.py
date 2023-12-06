@@ -295,7 +295,7 @@ def _prepare_requests_args(
             root_dir = Path(root_dir)
         root_dir.mkdir(exist_ok=True, parents=True)
         files = (
-            Path(root_dir, f"{file_prefix}{cache_keys.create_key(method, u, **p)}.{fex}")
+            Path(root_dir, f"{file_prefix}{cache_keys.create_request_key(method, u, **p)}.{fex}")
             for u, p in zip(url_list, kwd_list)
         )
     else:
