@@ -315,9 +315,8 @@ class WMS:
         Validate the input arguments from the WMS service, defaults to True. Set this
         to False if you are sure all the WMS settings such as layer and crs are correct
         to avoid sending extra requests.
-    ssl : bool or SSLContext, optional
-        SSLContext to use for the connection, defaults to None. Set to False to disable
-        SSL certification verification.
+    ssl : bool, optional
+        Whether to use SSL for the connection, defaults to ``True``.
     """
 
     def __init__(
