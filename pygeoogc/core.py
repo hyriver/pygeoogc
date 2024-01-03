@@ -123,7 +123,7 @@ class ArcGISRESTfulBase:
     def _set_service_properties(self) -> None:
         rjson = self.get_response(self.base_url, [{"f": "json"}])[0]
         try:
-            self.valid_layers = {f"{lyr['id']}": lyr["name"] for lyr in rjson["layers"]}
+            self.valid_layers = {str(lyr["id"]): lyr["name"] for lyr in rjson["layers"]}
             self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
 
             extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
@@ -183,7 +183,7 @@ class ArcGISRESTfulBase:
     def initialize_service(self) -> None:
         """Initialize the RESTFul service."""
         self._set_service_properties()
-        if f"{self.layer}" not in self.valid_layers:
+        if str(self.layer) not in self.valid_layers:
             valids = [f'"{i}" for {n}' for i, n in self.valid_layers.items()]
             raise InputValueError("layer", valids)
 
@@ -280,10 +280,10 @@ class ArcGISRESTfulBase:
         payloads = [
             {
                 "objectIds": ",".join(ids),
-                "returnGeometry": f"{return_geom}".lower(),
-                "outSR": f"{self.out_sr}",
+                "returnGeometry": str(return_geom).lower(),
+                "outSR": str(self.out_sr),
                 "outfields": ",".join(self.outfields),
-                "ReturnM": f"{return_m}".lower(),
+                "ReturnM": str(return_m).lower(),
                 "f": self.outformat,
             }
             for ids in featureids
@@ -330,7 +330,7 @@ class ArcGISRESTfulBase:
         features = list(tlz.concat(features))
         self.n_missing -= len(features)
         self.disable_retry = retry
-        os.environ["HYRIVER_CACHE_DISABLE"] = f"{caching}".lower()
+        os.environ["HYRIVER_CACHE_DISABLE"] = str(caching).lower()
         return features
 
     def get_response(

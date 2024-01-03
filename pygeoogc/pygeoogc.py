@@ -171,7 +171,7 @@ class ArcGISRESTful:
             "f": self.client.outformat,
         }
         if distance:
-            payload.update({"distance": f"{distance}", "units": "esriSRUnit_Meter"})
+            payload.update({"distance": str(int(distance)), "units": "esriSRUnit_Meter"})
 
         if sql_clause:
             payload.update({"where": sql_clause})
@@ -185,7 +185,9 @@ class ArcGISRESTful:
             msg = resp["error"]["message"] if "error" in resp else "No matched records"
             raise ZeroMatchedError(msg) from ex
 
-    def oids_byfield(self, field: str, ids: str | list[str]) -> Iterator[tuple[str, ...]]:
+    def oids_byfield(
+        self, field: str, ids: str | int | list[str] | list[int]
+    ) -> Iterator[tuple[str, ...]]:
         """Get Object IDs based on a list of field IDs.
 
         Parameters
@@ -208,7 +210,7 @@ class ArcGISRESTful:
         if "string" in self.client.field_types.get(field, ""):
             fids = ", ".join(f"'{i}'" for i in ids_ls)
         else:
-            fids = ", ".join(f"{i}" for i in ids_ls)
+            fids = ", ".join(str(i) for i in ids_ls)
 
         return self.oids_bysql(f"{field} IN ({fids})")
 
@@ -451,7 +453,7 @@ class WMS:
             if self.version != "1.1.1" and self.is_geographic and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
             _payload = payload.copy()
-            _payload["bbox"] = f'{",".join(str(round(c, 6)) for c in _bbox)}'
+            _payload["bbox"] = ",".join(str(round(c, 6)) for c in _bbox)
             _payload["width"] = str(_width)
             _payload["height"] = str(_height)
             _payload["layers"] = lyr
@@ -725,7 +727,7 @@ class WFS(WFSBase):
         if "str" in valid_features[featurename]:
             feat_vals = ", ".join(f"'{fid}'" for fid in set(featureids))
         else:
-            feat_vals = ", ".join(f"{fid}" for fid in set(featureids))
+            feat_vals = ", ".join(str(fid) for fid in set(featureids))
 
         return self.getfeature_byfilter(
             f"{featurename} IN ({feat_vals})", method="POST", sort_attr=featurename

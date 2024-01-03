@@ -56,7 +56,6 @@ def create_request_key(
     norm_url = _normalize_url_params(url, params)
 
     # Create a hash based on the normalized and filtered request
-    key = hashlib.sha256(
+    return hashlib.sha256(
         method.upper().encode() + str(norm_url).encode() + _encode_dict(data) + _encode_dict(json)
-    )
-    return key.hexdigest()
+    ).hexdigest()
