@@ -145,11 +145,14 @@ if the server's response is unchanged.
 You can control the request/response caching behavior and verbosity of the package
 by setting the following environment variables:
 
-* ``HYRIVER_CACHE_NAME``: Path to the caching SQLite database. It defaults to
-  ``./cache/aiohttp_cache.sqlite``
+* ``HYRIVER_CACHE_NAME``: Path to the caching SQLite database for asynchronous HTTP
+  requests. It defaults to ``./cache/aiohttp_cache.sqlite``
+* ``HYRIVER_CACHE_NAME_HTTP``: Path to the caching SQLite database for HTTP requests.
+  It defaults to ``./cache/http_cache.sqlite``
 * ``HYRIVER_CACHE_EXPIRE``: Expiration time for cached requests in seconds. It defaults to
-  -1 (never expire).
+  one week.
 * ``HYRIVER_CACHE_DISABLE``: Disable reading/writing from/to the cache. The default is false.
+* ``HYRIVER_SSL_CERT``: Path to a SSL certificate file.
 
 For example, in your code before making any requests you can do:
 
@@ -161,6 +164,7 @@ For example, in your code before making any requests you can do:
     os.environ["HYRIVER_CACHE_NAME_HTTP"] = "path/to/http_cache.sqlite"
     os.environ["HYRIVER_CACHE_EXPIRE"] = "3600"
     os.environ["HYRIVER_CACHE_DISABLE"] = "true"
+    os.environ["HYRIVER_SSL_CERT"] = "path/to/cert.pem"
 
 There is also an inventory of URLs for some of these web services in form of a class called
 ``ServiceURL``. These URLs are in four categories: ``ServiceURL().restful``,
