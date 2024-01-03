@@ -261,14 +261,13 @@ class TestWFS:
 
     def test_wfs110(self):
         """WFS 1.1.0 by geom."""
-        wfs = WFS(
+        resp = WFS(
             ServiceURL().wfs.waterdata,
             layer="wmadata:gagesii",
             outformat="json",
             version="1.1.0",
             crs=ALT_CRS,
-        )
-        resp = wfs.getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
+        ).getfeature_bygeom(GEO_URB, geo_crs=DEF_CRS, always_xy=False)
         assert len(resp[0]["features"]) == 7
 
 
