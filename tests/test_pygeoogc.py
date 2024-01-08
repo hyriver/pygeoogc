@@ -1,6 +1,7 @@
 """Tests for PyGeoOGC package."""
 import io
 import sys
+from dataclasses import fields
 
 import pandas as pd
 import pytest
@@ -307,7 +308,14 @@ def test_esriquery():
 
 def test_urls():
     """Service URLs."""
-    assert len(ServiceURL()) == 4
+    total_urls = 0
+    service_url_class = ServiceURL()
+    for field in fields(service_url_class):
+        nested_class = getattr(service_url_class, field.name)
+        total_urls += sum(
+            isinstance(getattr(nested_class, f.name), str) for f in fields(nested_class)
+        )
+    assert total_urls == 38
 
 
 def test_show_versions():
