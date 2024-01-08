@@ -1,15 +1,16 @@
 """Base classes and function for REST, WMS, and WMF services."""
+
 from __future__ import annotations
 
 import itertools
 import uuid
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
     Iterator,
     Literal,
-    NamedTuple,
     Sequence,
     Union,
     cast,
@@ -811,13 +812,15 @@ class WFS(WFSBase):
         )
 
 
-class HttpURLs(NamedTuple):
+@dataclass(frozen=True)
+class HttpURLs:
     """URLs of the supported HTTP services."""
 
     ssebopeta: str = "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/uswem/web/conus/eta/modis_eta/daily/downloads"
 
 
-class RESTfulURLs(NamedTuple):
+@dataclass(frozen=True)
+class RESTfulURLs:
     """URLs of the supported RESTful services."""
 
     daymet: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac"
@@ -868,14 +871,16 @@ class RESTfulURLs(NamedTuple):
     ehydro_bins: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/Hydrographic_Survey_Bins/FeatureServer/2"
 
 
-class WFSURLs(NamedTuple):
+@dataclass(frozen=True)
+class WFSURLs:
     """URLs of the supported WFS services."""
 
     fema: str = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
     waterdata: str = "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows"
 
 
-class WMSURLs(NamedTuple):
+@dataclass(frozen=True)
+class WMSURLs:
     """URLs of the supported WMS services."""
 
     fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer"
@@ -891,10 +896,11 @@ class WMSURLs(NamedTuple):
     )
 
 
-class ServiceURL(NamedTuple):
+@dataclass(frozen=True)
+class ServiceURL:
     """URLs of the supported services."""
 
-    http: HttpURLs = HttpURLs()
-    restful: RESTfulURLs = RESTfulURLs()
-    wfs: WFSURLs = WFSURLs()
-    wms: WMSURLs = WMSURLs()
+    http: HttpURLs = field(default_factory=HttpURLs)
+    restful: RESTfulURLs = field(default_factory=RESTfulURLs)
+    wfs: WFSURLs = field(default_factory=WFSURLs)
+    wms: WMSURLs = field(default_factory=WMSURLs)
