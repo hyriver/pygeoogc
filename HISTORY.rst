@@ -2,6 +2,22 @@
 History
 =======
 
+0.16.1 (2024-XX-XX)
+-------------------
+
+Bug Fixes
+~~~~~~~~~
+- ``pyproj`` uses its own env variables for SSL certification. This release
+  fixes the issue with ``pyproj`` not being able to download the grid database
+  when using DOI SSL certification file. This release uses
+  ``pyproj.network.set_ca_bundle_path`` for setting the SSL certification file
+  given by the user via ``HYRIVER_SSL_CERT`` env variable.
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- For ``ServiceURL`` class, use ``dataclass`` instead for better performance
+  and consistency.
+
 0.16.0 (2024-01-03)
 -------------------
 
