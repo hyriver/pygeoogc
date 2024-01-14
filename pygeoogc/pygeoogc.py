@@ -6,17 +6,9 @@ import itertools
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterator,
-    Literal,
-    Sequence,
-    Union,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Iterator, Literal, Sequence, Union, cast, overload
 
+import cytoolz.curried as tlz
 import pyproj
 from shapely import ops
 
@@ -579,13 +571,14 @@ class WFS(WFSBase):
         if box_crs.is_geographic and not always_xy:
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
+        bbox_str = f'{",".join(str(round(c, 6)) for c in bbox)},{box_crs.to_string()}'
         payload = {
             "service": "wfs",
             "version": self.version,
             "outputFormat": "text/xml",
             "request": "GetFeature",
             "typeName": self.layer,
-            "bbox": f'{",".join(str(round(c, 6)) for c in bbox)},{box_crs.to_string()}',
+            "bbox": bbox_str,
             "srsName": self.crs_str,
             "resultType": "hits",
         }
@@ -602,7 +595,7 @@ class WFS(WFSBase):
                 "outputFormat": self.outformat,
                 "request": "GetFeature",
                 "typeName": self.layer,
-                "bbox": f'{",".join(str(round(c, 6)) for c in bbox)},{box_crs.to_string()}',
+                "bbox": bbox_str,
                 "srsName": self.crs_str,
                 **self.sort_params(sort_attr, nfeatures, i),
             }
@@ -720,18 +713,24 @@ class WFS(WFSBase):
         if featurename not in valid_features:
             raise InputValueError("featurename", list(valid_features))
 
-        featureids = [featureids] if isinstance(featureids, (str, int)) else list(featureids)
+        feat_set = {featureids} if isinstance(featureids, (str, int)) else set(featureids)
 
-        if not featureids:
+        if not feat_set:
             raise InputTypeError("featureids", "int, str, or list")
 
+        feat_itr = tlz.partition_all(self.max_nrecords, feat_set)
         if "str" in valid_features[featurename]:
-            feat_vals = ", ".join(f"'{fid}'" for fid in set(featureids))
+            feat_vals = (", ".join(f"'{fid}'" for fid in fids) for fids in feat_itr)
         else:
-            feat_vals = ", ".join(str(fid) for fid in set(featureids))
+            feat_vals = (", ".join(str(fid) for fid in fids) for fids in feat_itr)
 
-        return self.getfeature_byfilter(
-            f"{featurename} IN ({feat_vals})", method="POST", sort_attr=featurename
+        return list(
+            tlz.concat(
+                self.getfeature_byfilter(
+                    f"{featurename} IN ({f})", method="POST", sort_attr=featurename
+                )
+                for f in feat_vals
+            )
         )
 
     def getfeature_byfilter(

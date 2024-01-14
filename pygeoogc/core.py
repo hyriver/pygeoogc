@@ -610,9 +610,6 @@ class WFSBase:
         self, sort_attr: str | None, nfeatures: int, start_index: int
     ) -> dict[str, str]:
         """Get sort parameters for a WFS request."""
-        if nfeatures <= self.max_nrecords:
-            return {}
-
         schema = self.schema[self.layer]
         valid_attrs = schema["properties"] if schema else []
         if sort_attr is None:
@@ -630,6 +627,13 @@ class WFSBase:
 
         if valid_attrs and sort_attr not in valid_attrs:
             raise InputValueError("sort_attr", list(valid_attrs))
+
+        if nfeatures <= self.max_nrecords:
+            return {
+                "startIndex": str(start_index),
+                self.count_key: str(nfeatures),
+                "sortBy": sort_attr,
+            }
         return {
             "startIndex": str(start_index),
             self.count_key: str(self.max_nrecords),
