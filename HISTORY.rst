@@ -12,6 +12,8 @@ Bug Fixes
   when using DOI SSL certification file. This release uses
   ``pyproj.network.set_ca_bundle_path`` for setting the SSL certification file
   given by the user via ``HYRIVER_SSL_CERT`` env variable.
+- Fix an issue in ``WFS.getfeature_byid`` where the ``max_nrecords`` argument
+  was not being used correctly, thus resulting in large requests to fail.
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
