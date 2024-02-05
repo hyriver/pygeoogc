@@ -60,6 +60,7 @@ class ServiceUnavailableError(Exception):
         super().__init__(self.message)
 
     def __str__(self) -> str:
+        """Return the error message."""
         return self.message
 
 
@@ -80,4 +81,5 @@ class ZeroMatchedError(ValueError):
         super().__init__(self.message)
 
     def __str__(self) -> str:
+        """Return the error message."""
         return self.message
