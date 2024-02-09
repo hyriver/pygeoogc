@@ -438,7 +438,7 @@ class WMS:
             payload["crs"] = self.crs_str
 
         def _get_payloads(
-            args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]]
+            args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]],
         ) -> tuple[str, dict[str, str]]:
             lyr, bnds = args
             _bbox, counter, _width, _height = bnds
