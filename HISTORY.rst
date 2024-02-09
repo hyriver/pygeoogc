@@ -2,6 +2,13 @@
 History
 =======
 
+0.16.2 (2024-XX-XX)
+-------------------
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Remove the deprecated AirMap URL.
+
 0.16.1 (2024-01-15)
 -------------------
 
