@@ -315,7 +315,7 @@ def test_urls():
         total_urls += sum(
             isinstance(getattr(nested_class, f.name), str) for f in fields(nested_class)
         )
-    assert total_urls == 38
+    assert total_urls == 37
 
 
 def test_show_versions():
