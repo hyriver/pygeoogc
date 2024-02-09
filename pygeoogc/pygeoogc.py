@@ -616,7 +616,7 @@ class WFS(WFSBase):
 
         Parameters
         ----------
-        geometry : shapely.geometry
+        geometry : shapely.Polygon or shapely.MultiPolygon
             The input geometry
         geo_crs : str, or pyproj.CRS, optional
             The CRS of the input geometry, default to ``epsg:4326``.
@@ -857,7 +857,6 @@ class RESTfulURLs:
         "https://watersgeo.epa.gov/arcgis/rest/services/Support/CatchmentFabric/MapServer"
     )
     nid: str = "https://nid.sec.usace.army.mil/api"
-    airmap: str = "https://api.airmap.com/elevation/v1/ele"
     nm_pqs: str = "https://epqs.nationalmap.gov/v1/json"
     pygeoapi: str = "https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes"
     nm_3dep_index: str = (
