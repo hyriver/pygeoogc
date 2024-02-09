@@ -75,12 +75,12 @@ def check_response(resp: str) -> str:
         return resp
     else:
         try:
-            return str(root[-1][0].text).strip()
+            return str(root[-1][0].text).strip()  # pyright: ignore[reportIndexIssue]
         except IndexError:
             try:
-                return str(root[-1].text).strip()
+                return str(root[-1].text).strip()  # pyright: ignore[reportIndexIssue]
             except IndexError:
-                return str(root.text).strip()
+                return str(root.text).strip()  # pyright: ignore[reportIndexIssue,reportAttributeAccessIssue]
 
 
 class RetrySession:
@@ -586,12 +586,12 @@ class ESRIGeomQuery:
     def bbox(self) -> Mapping[str, str]:
         """Query for a bbox."""
         try:
-            bbox = shapely_box(*self.geometry)
+            bbox = shapely_box(*self.geometry)  # pyright: ignore[reportArgumentType]
         except (TypeError, AttributeError, ValueError) as ex:
             raise InputTypeError("geometry", "tuple", BOX_ORD) from ex
         geo_type = "esriGeometryEnvelope"
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), bbox.bounds))
-        return self._get_payload(geo_type, geo_json)
+        return self._get_payload(geo_type, geo_json)  # pyright: ignore[reportArgumentType]
 
     def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
@@ -665,24 +665,25 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
         if len(geom) > 4:
             raise TypeError
         if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
-            bbox = shapely_box(*geom)
+            bbox = shapely_box(*geom)  # pyright: ignore[reportArgumentType]
         else:
-            bbox = cast("Polygon", ops.transform(project, shapely_box(*geom)))
-        return tuple(float(p) for p in bbox.bounds)
+            bbox = ops.transform(project, shapely_box(*geom))  # pyright: ignore[reportArgumentType]
+        bbox = cast("Polygon", bbox)
+        return tuple(float(p) for p in bbox.bounds)  # pyright: ignore[reportReturnType]
 
     with contextlib.suppress(TypeError, AttributeError, ValueError):
         if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
             point = Point(geom)
         else:
             point = cast("Point", ops.transform(project, Point(geom)))
-        return [(float(point.x), float(point.y))]
+        return [(float(point.x), float(point.y))]  # pyright: ignore[reportReturnType]
 
     with contextlib.suppress(TypeError, AttributeError, ValueError):
         if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
             mp = MultiPoint(geom)
         else:
             mp = cast("MultiPoint", ops.transform(project, MultiPoint(geom)))
-        return [(float(p.x), float(p.y)) for p in mp.geoms]
+        return [(float(p.x), float(p.y)) for p in mp.geoms]  # pyright: ignore[reportReturnType]
 
     gtypes = " ".join(
         (
@@ -704,10 +705,10 @@ def esri_query(
     wkid = cast("int", pyproj.CRS(out_crs).to_epsg())
 
     with contextlib.suppress(TypeError, AttributeError, ValueError):
-        geom = Point(geom)
+        geom = Point(geom)  # pyright: ignore[reportAssignmentType]
 
     with contextlib.suppress(TypeError, AttributeError, ValueError):
-        geom = MultiPoint(geom)
+        geom = MultiPoint(geom)  # pyright: ignore[reportAssignmentType]
 
     if isinstance(geom, Point):
         return ESRIGeomQuery((geom.x, geom.y), wkid).point()
@@ -843,4 +844,4 @@ def valid_wms_crs(url: str) -> list[str]:
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
     root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
-    return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
+    return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]  # pyright: ignore[reportAttributeAccessIssue]
