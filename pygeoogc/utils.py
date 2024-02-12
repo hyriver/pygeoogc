@@ -844,4 +844,4 @@ def valid_wms_crs(url: str) -> list[str]:
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
     root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
-    return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]  # pyright: ignore[reportAttributeAccessIssue]
+    return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
