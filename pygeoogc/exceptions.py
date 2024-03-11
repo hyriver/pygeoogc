@@ -1,4 +1,5 @@
 """Customized PyGeoOGC exceptions."""
+
 from __future__ import annotations
 
 import async_retriever as ar

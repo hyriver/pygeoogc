@@ -1,4 +1,5 @@
 """Base classes and function for REST, WMS, and WMF services."""
+
 from __future__ import annotations
 
 import contextlib

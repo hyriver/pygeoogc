@@ -1,4 +1,5 @@
 """Some utilities for PyGeoOGC."""
+
 # pyright: reportGeneralTypeIssues=false
 from __future__ import annotations
 
@@ -337,8 +338,7 @@ def streaming_download(
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
-) -> Path:
-    ...
+) -> Path: ...
 
 
 @overload
@@ -353,8 +353,7 @@ def streaming_download(
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
-) -> list[Path]:
-    ...
+) -> list[Path]: ...
 
 
 def streaming_download(

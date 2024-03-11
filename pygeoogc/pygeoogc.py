@@ -355,8 +355,7 @@ class WMS:
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
         tiff_dir: Literal[None] = None,
-    ) -> dict[str, bytes]:
-        ...
+    ) -> dict[str, bytes]: ...
 
     @overload
     def getmap_bybox(
@@ -368,8 +367,7 @@ class WMS:
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
         tiff_dir: str | Path = ...,
-    ) -> list[Path]:
-        ...
+    ) -> list[Path]: ...
 
     def getmap_bybox(
         self,

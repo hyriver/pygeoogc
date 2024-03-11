@@ -1,4 +1,7 @@
 """Tests for PyGeoOGC package."""
+
+from __future__ import annotations
+
 import io
 import sys
 from dataclasses import fields
