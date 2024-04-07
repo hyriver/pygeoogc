@@ -50,7 +50,7 @@ New Features
 - Now, ``RetrySession`` can be used as a context manager. This is useful for
   closing the session after using it. For example:
 
-.. code:: python
+.. code-block:: python
 
     from pygeoogc import RetrySession
 
@@ -254,7 +254,7 @@ Internal Changes
 - Use ``pyupgrade`` package to update the type hinting annotations
   to Python 3.10 style.
 
-.. code:: python
+.. code-block:: python
 
     from pygeoogc.core import WMSBase
 
