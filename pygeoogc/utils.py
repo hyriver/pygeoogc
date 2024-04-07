@@ -61,7 +61,7 @@ if TYPE_CHECKING:
     )
 BOX_ORD = "(west, south, east, north)"
 MAX_CONN = 10
-CHUNK_SIZE = int(100 * 1024 * 1024)  # 100 MB
+CHUNK_SIZE = 100 * 1024 * 1024  # 100 MB
 EXPIRE_AFTER = 60 * 60 * 24 * 7  # 1 week
 __all__ = ["RetrySession", "traverse_json", "streaming_download", "match_crs", "validate_crs"]
 
@@ -843,4 +843,7 @@ def valid_wms_crs(url: str) -> list[str]:
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
     root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
-    return [t.text.lower() for t in root.findall(get_path(["Capability", "Layer", "CRS"]))]
+    return [
+        t.text.lower()  # pyright: ignore[reportOptionalMemberAccess]
+        for t in root.findall(get_path(["Capability", "Layer", "CRS"]))
+    ]
