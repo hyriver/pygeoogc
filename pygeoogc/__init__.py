@@ -6,6 +6,7 @@ import os
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from pygeoogc import exceptions
 from pygeoogc.cache_keys import create_request_key
 from pygeoogc.exceptions import (
     InputTypeError,
@@ -50,4 +51,6 @@ __all__ = [
     "match_crs",
     "validate_crs",
     "show_versions",
+    "exceptions",
+    "__version__",
 ]
