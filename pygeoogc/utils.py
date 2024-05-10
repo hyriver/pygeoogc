@@ -286,7 +286,8 @@ def _prepare_requests_args(
     if len(url_list) != len(kwd_list):
         raise InputTypeError("urls/kwds", "list of same length")
 
-    fex = file_extention.replace(".", "")
+    f_ext = file_extention.replace(".", "")
+    f_ext = f".{f_ext}" if f_ext else ""
 
     if fnames is None:
         if root_dir is None:
@@ -296,8 +297,8 @@ def _prepare_requests_args(
             root_dir = Path(root_dir)
         root_dir.mkdir(exist_ok=True, parents=True)
         files = (
-            Path(root_dir, f"{file_prefix}{cache_keys.create_request_key(method, u, **p)}.{fex}")
-            for u, p in zip(url_list, kwd_list)
+            Path(root_dir, f"{file_prefix}{cache_keys.create_request_key(method, u, **p)}{f_ext}")
+            for u, p in zip(url_list, kwd_list, strict=True)
         )
     else:
         f_list = (fnames,) if isinstance(fnames, (str, Path)) else tuple(fnames)
