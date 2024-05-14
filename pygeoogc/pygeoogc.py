@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Iterator, Literal, Sequence, Union, cast,
 
 import cytoolz.curried as tlz
 import pyproj
+import shapely
 from shapely import ops
 
 import async_retriever as ar
@@ -647,7 +648,7 @@ class WFS(WFSBase):
         str or bytes or dict
             WFS query response based on the given geometry.
         """
-        geom = utils.match_crs(geometry, geo_crs, self.crs_str)
+        geom = utils.match_crs(shapely.set_precision(geometry, 1e-6), geo_crs, self.crs_str)
         geom_name = ""
         if "geometry_column" in self.schema[self.layer]:
             geom_name = self.schema[self.layer]["geometry_column"]

@@ -29,6 +29,7 @@ import defusedxml.ElementTree as ETree
 import joblib
 import pyproj
 import requests
+import shapely
 import ujson
 import urllib3
 from pyproj.exceptions import CRSError as ProjCRSError
@@ -37,7 +38,6 @@ from requests.exceptions import RequestException
 from requests_cache import CachedSession, Response
 from requests_cache.backends.sqlite import SQLiteCache
 from shapely import LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon, ops
-from shapely import box as shapely_box
 from urllib3.exceptions import InsecureRequestWarning
 
 import async_retriever as ar
@@ -298,7 +298,7 @@ def _prepare_requests_args(
         root_dir.mkdir(exist_ok=True, parents=True)
         files = (
             Path(root_dir, f"{file_prefix}{cache_keys.create_request_key(method, u, **p)}{f_ext}")
-            for u, p in zip(url_list, kwd_list, strict=True)
+            for u, p in zip(url_list, kwd_list)
         )
     else:
         f_list = (fnames,) if isinstance(fnames, (str, Path)) else tuple(fnames)
@@ -569,6 +569,7 @@ class ESRIGeomQuery:
             point = Point(*self.geometry)
         except (TypeError, AttributeError, ValueError) as ex:
             raise InputTypeError("geometry", "tuple", "(x, y)") from ex
+        point = shapely.set_precision(point, 1e-6)
         geo_type = "esriGeometryPoint"
         geo_json = {"x": point.x, "y": point.y}
         return self._get_payload(geo_type, geo_json)
@@ -579,6 +580,7 @@ class ESRIGeomQuery:
             mp = MultiPoint(self.geometry)
         except (TypeError, AttributeError, ValueError) as ex:
             raise InputTypeError("geometry", "list of tuples", "[(x, y), ...]") from ex
+        mp = shapely.set_precision(mp, 1e-6)
         geo_type = "esriGeometryMultipoint"
         geo_json = {"points": [[p.x, p.y] for p in mp.geoms]}
         return self._get_payload(geo_type, geo_json)
@@ -586,9 +588,10 @@ class ESRIGeomQuery:
     def bbox(self) -> Mapping[str, str]:
         """Query for a bbox."""
         try:
-            bbox = shapely_box(*self.geometry)  # pyright: ignore[reportArgumentType]
+            bbox = shapely.box(*self.geometry)  # pyright: ignore[reportArgumentType]
         except (TypeError, AttributeError, ValueError) as ex:
             raise InputTypeError("geometry", "tuple", BOX_ORD) from ex
+        bbox = shapely.set_precision(bbox, 1e-6)
         geo_type = "esriGeometryEnvelope"
         geo_json = dict(zip(("xmin", "ymin", "xmax", "ymax"), bbox.bounds))
         return self._get_payload(geo_type, geo_json)  # pyright: ignore[reportArgumentType]
@@ -596,8 +599,9 @@ class ESRIGeomQuery:
     def polygon(self) -> Mapping[str, str]:
         """Query for a polygon."""
         if isinstance(self.geometry, Polygon):
+            geom = shapely.set_precision(self.geometry, 1e-6)
             geo_type = "esriGeometryPolygon"
-            geo_json = {"rings": [[[x, y] for x, y in zip(*self.geometry.exterior.coords.xy)]]}
+            geo_json = {"rings": [[[x, y] for x, y in zip(*geom.exterior.coords.xy)]]}
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "Polygon")
@@ -605,8 +609,9 @@ class ESRIGeomQuery:
     def polyline(self) -> Mapping[str, str]:
         """Query for a polyline."""
         if isinstance(self.geometry, LineString):
+            geom = shapely.set_precision(self.geometry, 1e-6)
             geo_type = "esriGeometryPolyline"
-            geo_json = {"paths": [[[x, y] for x, y in zip(*self.geometry.coords.xy)]]}
+            geo_json = {"paths": [[[x, y] for x, y in zip(*geom.coords.xy)]]}
             return self._get_payload(geo_type, geo_json)
 
         raise InputTypeError("geometry", "LineString")
@@ -665,9 +670,9 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
         if len(geom) > 4:
             raise TypeError
         if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
-            bbox = shapely_box(*geom)  # pyright: ignore[reportArgumentType]
+            bbox = shapely.box(*geom)  # pyright: ignore[reportArgumentType]
         else:
-            bbox = ops.transform(project, shapely_box(*geom))  # pyright: ignore[reportArgumentType]
+            bbox = ops.transform(project, shapely.box(*geom))  # pyright: ignore[reportArgumentType]
         bbox = cast("Polygon", bbox)
         return tuple(float(p) for p in bbox.bounds)  # pyright: ignore[reportReturnType]
 
@@ -731,7 +736,7 @@ def esri_query(
 def check_bbox(bbox: tuple[float, float, float, float]) -> None:
     """Check if an input inbox is a tuple of length 4."""
     try:
-        _ = shapely_box(*bbox)
+        _ = shapely.box(*bbox)
     except (TypeError, AttributeError, ValueError) as ex:
         raise InputTypeError("bbox", "tuple", BOX_ORD) from ex
 
