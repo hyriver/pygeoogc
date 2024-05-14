@@ -201,16 +201,16 @@ class TestWMS:
         )
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
         assert wms.get_validlayers()[self.layer] == self.layer
-        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11496857
+        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11501067
 
     def test_bybox(self):
         """WMS by bounding box."""
         wms = WMS(self.wms_url, layers=self.layer, outformat="image/tiff", crs=DEF_CRS)
         assert self.wms_url in wms.__repr__()
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6))
-        assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11507302
+        assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11511596
         flist = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6), tiff_dir="cache")
-        assert sum(f.stat().st_size for f in flist) == 11507170
+        assert sum(f.stat().st_size for f in flist) == 11511464
 
     def test_valid_crs(self):
         """Get WMS valid CRSs."""
