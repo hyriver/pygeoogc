@@ -7,6 +7,8 @@ History
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
+- In all requests by geometries, set the geometry precision to 6 decimal points
+  to avoid issues with large decimal points.
 - Add the ``exceptions`` module to the high-level API to declutter
   the main module. In the future, all exceptions will be raised from
   this module and not from the main module. For now, the exceptions
