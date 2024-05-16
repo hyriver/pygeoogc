@@ -321,7 +321,7 @@ def _download(
     try:
         resp = session_func(url, **kwd)
     except ServiceError as ex:
-        msg = f"An error occured when downloading {url}:\n{str(ex)}"
+        msg = f"An error occured when downloading {url}:\n{ex!s}"
         warnings.warn(msg, RuntimeWarning, stacklevel=2)
         return None
     fsize = int(resp.headers.get("Content-Length", -1))
