@@ -458,7 +458,7 @@ class WMS:
         if tiff_dir is not None:
             tiff_dir = Path(tiff_dir)
             tiff_dir.mkdir(parents=True, exist_ok=True)
-            return utils.streaming_download(
+            tiff_files = utils.streaming_download(
                 [self.url] * len(payloads),
                 [{"params": p} for p in payloads],
                 root_dir=tiff_dir,
@@ -466,6 +466,8 @@ class WMS:
                 n_jobs=4,
                 ssl=self.ssl,
             )
+            tiff_files = [f for f in tiff_files if f is not None]
+            return tiff_files
         rbinary = ar.retrieve_binary(
             [self.url] * len(payloads),
             [{"params": p} for p in payloads],
