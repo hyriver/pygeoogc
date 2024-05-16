@@ -316,9 +316,14 @@ def _download(
     kwd: Mapping[str, None | dict[Any, Any]],
     fname: Path,
     chunk_size: int,
-) -> Path:
+) -> Path | None:
     """Download a single file."""
-    resp = session_func(url, **kwd)
+    try:
+        resp = session_func(url, **kwd)
+    except ServiceError as ex:
+        msg = f"An error occured when downloading {url}:\n{str(ex)}"
+        warnings.warn(msg, RuntimeWarning, stacklevel=2)
+        return None
     fsize = int(resp.headers.get("Content-Length", -1))
     if not fname.exists() or fname.stat().st_size != fsize:
         fname.parent.mkdir(exist_ok=True, parents=True)
@@ -339,7 +344,7 @@ def streaming_download(
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
-) -> Path: ...
+) -> Path | None: ...
 
 
 @overload
@@ -354,7 +359,7 @@ def streaming_download(
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
-) -> list[Path]: ...
+) -> list[Path | None]: ...
 
 
 def streaming_download(
@@ -368,7 +373,7 @@ def streaming_download(
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
-) -> Path | list[Path]:
+) -> Path | None | list[Path | None]:
     """Download and store files in parallel from a list of URLs/Keywords.
 
     Notes
@@ -436,7 +441,7 @@ def streaming_download(
         joblib.delayed(_download)(func, u, k, f, chunk_size)
         for u, k, f in zip(url_list, kwd_list, files)
     )
-    fpaths = cast("list[Path]", fpaths)
+    fpaths = cast("list[Path | None]", fpaths)
     session.close()
     if isinstance(urls, str):
         return fpaths[0]
