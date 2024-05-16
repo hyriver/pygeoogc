@@ -7,6 +7,10 @@ History
 
 Internal Changes
 ~~~~~~~~~~~~~~~~
+- Make ``streaming_download`` more robust when encoutring request issues by
+  returning ``None`` for those links that have failed to be processed,
+  instead of throwing exceptions. So, for example, if only one link fails,
+  the function will return a list of paths with ``None`` for the failed link.
 - In all requests by geometries, set the geometry precision to 6 decimal points
   to avoid issues with large decimal points.
 - Add the ``exceptions`` module to the high-level API to declutter
