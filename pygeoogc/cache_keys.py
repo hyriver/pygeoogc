@@ -53,7 +53,7 @@ def create_request_key(
     json: Mapping[str, Any] | None = None,
 ) -> str:
     """Create a unique cache key based on request details.
-    
+
     Parameters
     ----------
     method : str
