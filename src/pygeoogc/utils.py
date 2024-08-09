@@ -42,7 +42,7 @@ from urllib3.exceptions import InsecureRequestWarning
 
 import async_retriever as ar
 from pygeoogc import cache_keys
-from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError
+from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ServiceUnavailableError
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -853,7 +853,10 @@ def valid_wms_crs(url: str) -> list[str]:
         return f"/{{{ns}}}".join(["", *tag_list])[1:]
 
     kwds = {"params": {"service": "wms", "request": "GetCapabilities"}}
-    root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
+    try:
+        root = ETree.fromstring(ar.retrieve_text([url], [kwds], ssl=False)[0])
+    except ETree.ParseError as ex:
+        raise ServiceUnavailableError(url) from ex
     return [
         t.text.lower()  # pyright: ignore[reportOptionalMemberAccess]
         for t in root.findall(get_path(["Capability", "Layer", "CRS"]))
