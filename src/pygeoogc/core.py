@@ -484,7 +484,7 @@ class WFSBase:
     ----------
     url : str
         The base url for the WFS service, for examples:
-        https://hazards.fema.gov/nfhl/services/public/NFHL/MapServer/WFSServer
+        https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/WFSServer
     layer : str
         The layer from the service to be downloaded, defaults to None which throws
         an error and includes all the available layers offered by the service.
