@@ -826,21 +826,21 @@ class RESTfulURLs:
     daymet: str = "https://thredds.daac.ornl.gov/thredds/ncss/ornldaac"
     daymet_point: str = "https://daymet.ornl.gov/single-pixel/api/data"
     gridmet: str = "http://thredds.northwestknowledge.net:8080/thredds/ncss"
-    fema_nfhl: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer"
+    fema_nfhl: str = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer"
     fema_prelim_cslf: str = (
-        "https://hazards.fema.gov/gis/nfhl/rest/services/CSLF/Prelim_CSLF/MapServer"
+        "https://hazards.fema.gov/arcgis/rest/services/CSLF/Prelim_CSLF/MapServer"
     )
     fema_draft_cslf: str = (
-        "https://hazards.fema.gov/gis/nfhl/rest/services/CSLF/Draft_CSLF/MapServer"
+        "https://hazards.fema.gov/arcgis/rest/services/CSLF/Draft_CSLF/MapServer"
     )
     fema_prelim_nfhl: str = (
-        "https://hazards.fema.gov/gis/nfhl/rest/services/PrelimPending/Prelim_NFHL/MapServer"
+        "https://hazards.fema.gov/arcgis/rest/services/PrelimPending/Prelim_NFHL/MapServer"
     )
     fema_pending_nfhl: str = (
-        "https://hazards.fema.gov/gis/nfhl/rest/services/PrelimPending/Pending_NFHL/MapServer"
+        "https://hazards.fema.gov/arcgis/rest/services/PrelimPending/Pending_NFHL/MapServer"
     )
     fema_draft_nfhl: str = (
-        "https://hazards.fema.gov/gis/nfhl/rest/services/AFHI/Draft_FIRM_DB/MapServer"
+        "https://hazards.fema.gov/arcgis/rest/services/AFHI/Draft_FIRM_DB/MapServer"
     )
     fws: str = "https://www.fws.gov/wetlandsmapservice/rest/services"
     nldi: str = "https://labs.waterdata.usgs.gov/api/nldi"
@@ -874,7 +874,7 @@ class RESTfulURLs:
 class WFSURLs:
     """URLs of the supported WFS services."""
 
-    fema: str = "https://hazards.fema.gov/gis/nfhl/services/public/NFHL/MapServer/WFSServer"
+    fema: str = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/WFSServer"
     waterdata: str = "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows"
 
 
@@ -882,7 +882,7 @@ class WFSURLs:
 class WMSURLs:
     """URLs of the supported WMS services."""
 
-    fema: str = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHLWMS/MapServer/WMSServer"
+    fema: str = "https://hazards.fema.gov/arcgis/rest/services/public/NFHLWMS/MapServer/WMSServer"
     fws: str = (
         "https://www.fws.gov/wetlandsmapservice/services/Wetlands_Raster/ImageServer/WMSServer"
     )
