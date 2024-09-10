@@ -171,17 +171,17 @@ def test_retry_ssl():
 
 
 def test_stream():
-    url = "http://speedtest.ftp.otenet.gr/files/test100k.db"
+    url = "http://ipv4.download.thinkbroadband.com/5MB.zip"
     fname = ogc.streaming_download(url)
-    assert fname.stat().st_size == 102400
+    assert fname.stat().st_size == 5242880
 
     urls = (
         url,
-        "http://speedtest.ftp.otenet.gr/files/test1Mb.db",
+        "http://ipv4.download.thinkbroadband.com:81/5MB.zip",
     )
     fname = ogc.streaming_download(urls)
-    assert fname[0].stat().st_size == 102400
-    assert fname[1].stat().st_size == 1048576
+    assert fname[0].stat().st_size == 5242880
+    assert fname[1].stat().st_size == 5242880
 
 
 @pytest.mark.filterwarnings("ignore:.*Content metadata*.")
