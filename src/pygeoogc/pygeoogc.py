@@ -830,9 +830,7 @@ class RESTfulURLs:
     fema_prelim_cslf: str = (
         "https://hazards.fema.gov/arcgis/rest/services/CSLF/Prelim_CSLF/MapServer"
     )
-    fema_draft_cslf: str = (
-        "https://hazards.fema.gov/arcgis/rest/services/CSLF/Draft_CSLF/MapServer"
-    )
+    fema_draft_cslf: str = "https://hazards.fema.gov/arcgis/rest/services/CSLF/Draft_CSLF/MapServer"
     fema_prelim_nfhl: str = (
         "https://hazards.fema.gov/arcgis/rest/services/PrelimPending/Prelim_NFHL/MapServer"
     )
