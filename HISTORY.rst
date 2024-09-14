@@ -2,6 +2,19 @@
 History
 =======
 
+0.17.1 (2024-09-14)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Update the links for FEMA web services to the latest addresses.
+- When the CRS of a WMS cannot be parsed throw a more informative error
+  regarding the service being down (:issue_hydro:`122`).
+
+Internal Changes
+~~~~~~~~~~~~~~~~
+- Drop support for Python 3.8 since its end-of-life date is October 2024.
+
 0.17.0 (2024-05-16)
 -------------------
 
