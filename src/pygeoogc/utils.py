@@ -42,7 +42,12 @@ from urllib3.exceptions import InsecureRequestWarning
 
 import async_retriever as ar
 from pygeoogc import cache_keys
-from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ServiceUnavailableError
+from pygeoogc.exceptions import (
+    InputTypeError,
+    InputValueError,
+    ServiceError,
+    ServiceUnavailableError,
+)
 
 if TYPE_CHECKING:
     from typing_extensions import Self
