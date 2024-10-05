@@ -436,6 +436,7 @@ class WMS:
         else:
             payload["crs"] = self.crs_str
 
+        precision = 2 if pyproj.CRS(self.crs).is_projected else 6
         def _get_payloads(
             args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]],
         ) -> tuple[str, dict[str, str]]:
@@ -445,7 +446,7 @@ class WMS:
             if self.version != "1.1.1" and self.is_geographic and not always_xy:
                 _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
             _payload = payload.copy()
-            _payload["bbox"] = ",".join(str(round(c, 6)) for c in _bbox)
+            _payload["bbox"] = ",".join(str(round(c, precision)) for c in _bbox)
             _payload["width"] = str(_width)
             _payload["height"] = str(_height)
             _payload["layers"] = lyr
@@ -572,7 +573,8 @@ class WFS(WFSBase):
         if box_crs.is_geographic and not always_xy:
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
-        bbox_str = f'{",".join(str(round(c, 6)) for c in bbox)},{box_crs.to_string()}'
+        precision = 2 if box_crs.is_projected else 6
+        bbox_str = f'{",".join(str(round(c, precision)) for c in bbox)},{box_crs.to_string()}'
         payload = {
             "service": "wfs",
             "version": self.version,
@@ -650,7 +652,9 @@ class WFS(WFSBase):
         str or bytes or dict
             WFS query response based on the given geometry.
         """
-        geom = utils.match_crs(shapely.set_precision(geometry, 1e-6), geo_crs, self.crs_str)
+        geom = utils.match_crs(geometry, geo_crs, self.crs_str)
+        precision = 1e-2 if pyproj.CRS(self.crs_str).is_projected else 1e-6
+        geom = shapely.set_precision(geom, precision)
         geom_name = ""
         if "geometry_column" in self.schema[self.layer]:
             geom_name = self.schema[self.layer]["geometry_column"]
@@ -667,7 +671,7 @@ class WFS(WFSBase):
             msg = "Cannot find the geometry column name in the schema."
             raise ValueError(msg)
 
-        if pyproj.CRS(geo_crs).is_geographic and not always_xy:
+        if pyproj.CRS(self.crs_str).is_geographic and not always_xy:
             g_wkt = ops.transform(lambda x, y: (y, x), geom).wkt
         else:
             g_wkt = geom.wkt
@@ -841,7 +845,7 @@ class RESTfulURLs:
         "https://hazards.fema.gov/arcgis/rest/services/AFHI/Draft_FIRM_DB/MapServer"
     )
     fws: str = "https://www.fws.gov/wetlandsmapservice/rest/services"
-    nldi: str = "https://labs.waterdata.usgs.gov/api/nldi"
+    nldi: str = "https://api.water.usgs.gov/nldi"
     nwis: str = "https://waterservices.usgs.gov/nwis"
     wbd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
     nhd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer"
@@ -857,7 +861,7 @@ class RESTfulURLs:
     )
     nid: str = "https://nid.sec.usace.army.mil/api"
     nm_pqs: str = "https://epqs.nationalmap.gov/v1/json"
-    pygeoapi: str = "https://labs.waterdata.usgs.gov/api/nldi/pygeoapi/processes"
+    pygeoapi: str = "https://api.water.usgs.gov/nldi/pygeoapi/processes"
     nm_3dep_index: str = (
         "https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer"
     )
