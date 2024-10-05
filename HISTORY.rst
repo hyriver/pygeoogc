@@ -2,6 +2,26 @@
 History
 =======
 
+0.18.0 (2024-10-05)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Update the links for NLDI and PyGeoAPI web services to the latest addresses.
+
+Bug Fixes
+~~~~~~~~~
+- Fix a bug in ``WFS.getfeature_bygeom`` where if the input geometry is in
+  a geographic CRS, the function fails to transform it correctly to the
+  web service's CRS.
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+- Drop support for Python 3.8 since its end-of-life date is October 2024.
+- Remove all exceptions from the main module and raise them from the
+  ``exceptions`` module. This is to declutter the main module and make
+  it easier to maintain.
+
 0.17.1 (2024-09-14)
 -------------------
 
