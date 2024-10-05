@@ -6,7 +6,7 @@ import itertools
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Literal, Sequence, Union, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
 
 import cytoolz.curried as tlz
 import pyproj
@@ -19,6 +19,8 @@ from pygeoogc.core import ArcGISRESTfulBase, WFSBase, WMSBase
 from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, ZeroMatchedError
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
+
     from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
     RESPONSE = Union[
@@ -437,6 +439,7 @@ class WMS:
             payload["crs"] = self.crs_str
 
         precision = 2 if pyproj.CRS(self.crs).is_projected else 6
+
         def _get_payloads(
             args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]],
         ) -> tuple[str, dict[str, str]]:
@@ -892,9 +895,7 @@ class WMSURLs:
     nm_3dep: str = (
         "https://elevation.nationalmap.gov/arcgis/services/3DEPElevation/ImageServer/WMSServer"
     )
-    gebco: str = (
-        "https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv"
-    )
+    gebco: str = "https://wms.gebco.net/mapserv"
 
 
 @dataclass(frozen=True)
