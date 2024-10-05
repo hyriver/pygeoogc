@@ -8,14 +8,6 @@ from pathlib import Path
 
 from pygeoogc import exceptions
 from pygeoogc.cache_keys import create_request_key
-from pygeoogc.exceptions import (
-    InputTypeError,
-    InputValueError,
-    MissingInputError,
-    ServiceError,
-    ServiceUnavailableError,
-    ZeroMatchedError,
-)
 from pygeoogc.print_versions import show_versions
 from pygeoogc.pygeoogc import WFS, WMS, ArcGISRESTful, ServiceURL
 from pygeoogc.utils import RetrySession, match_crs, streaming_download, traverse_json, validate_crs
@@ -39,12 +31,6 @@ __all__ = [
     "WMS",
     "ServiceURL",
     "RetrySession",
-    "InputTypeError",
-    "InputValueError",
-    "MissingInputError",
-    "ServiceError",
-    "ServiceUnavailableError",
-    "ZeroMatchedError",
     "create_request_key",
     "traverse_json",
     "streaming_download",
