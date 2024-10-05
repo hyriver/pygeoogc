@@ -7,7 +7,8 @@ licensed under the MIT license. See the ``LICENSE`` file for more details.
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Literal, Mapping, Sequence, Union
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal, Union
 
 from multidict import MultiDict
 from url_normalize import url_normalize

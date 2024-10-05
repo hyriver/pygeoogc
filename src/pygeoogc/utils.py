@@ -14,10 +14,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Generator,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -50,6 +47,8 @@ from pygeoogc.exceptions import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Generator, Mapping, Sequence
+
     from typing_extensions import Self
 
     CRSTYPE = Union[int, str, pyproj.CRS]
@@ -262,20 +261,15 @@ class RetrySession:
         self.close()
 
 
-def _prepare_requests_args(
-    urls: list[str] | str,
+def _prepare_kwd_list_and_files(
     kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None,
-    method: str,
+    method: Literal["GET", "POST", "get", "post"],
+    url_list: tuple[str, ...],
     fnames: str | Path | Sequence[str | Path] | None,
     root_dir: str | Path | None,
     file_prefix: str,
     file_extention: str,
-) -> tuple[
-    tuple[str, ...], tuple[dict[str, None | dict[Any, Any]], ...], Generator[Path, None, None]
-]:
-    """Get url and kwds for streaming download."""
-    url_list = (urls,) if isinstance(urls, str) else tuple(urls)
-
+) -> tuple[tuple[dict[str, None | dict[Any, Any]], ...], Generator[Path, None, None]]:
     if kwds is None:
         if method == "GET":
             kwd_list = ({"params": None},) * len(url_list)
@@ -283,13 +277,6 @@ def _prepare_requests_args(
             kwd_list = ({"data": None},) * len(url_list)
     else:
         kwd_list = (kwds,) if isinstance(kwds, dict) else tuple(kwds)
-    key_list = set(itertools.chain.from_iterable(k.keys() for k in kwd_list))
-    valid_keys = ("params", "data", "json", "headers")
-    if any(k not in valid_keys for k in key_list):
-        raise InputValueError("kwds", valid_keys)
-
-    if len(url_list) != len(kwd_list):
-        raise InputTypeError("urls/kwds", "list of same length")
 
     f_ext = file_extention.replace(".", "")
     f_ext = f".{f_ext}" if f_ext else ""
@@ -310,6 +297,34 @@ def _prepare_requests_args(
         if len(url_list) != len(f_list):
             raise InputTypeError("urls/fnames", "lists of same length")
         files = (Path(f) for f in f_list)
+
+    return kwd_list, files
+
+
+def _prepare_requests_args(
+    urls: list[str] | str,
+    kwds: list[dict[str, dict[Any, Any]]] | dict[str, dict[Any, Any]] | None,
+    method: Literal["GET", "POST", "get", "post"],
+    fnames: str | Path | Sequence[str | Path] | None,
+    root_dir: str | Path | None,
+    file_prefix: str,
+    file_extention: str,
+) -> tuple[
+    tuple[str, ...], tuple[dict[str, None | dict[Any, Any]], ...], Generator[Path, None, None]
+]:
+    """Get url and kwds for streaming download."""
+    url_list = (urls,) if isinstance(urls, str) else tuple(urls)
+    kwd_list, files = _prepare_kwd_list_and_files(
+        kwds, method, url_list, fnames, root_dir, file_prefix, file_extention
+    )
+    key_list = set(itertools.chain.from_iterable(k.keys() for k in kwd_list))
+    valid_keys = ("params", "data", "json", "headers")
+    if any(k not in valid_keys for k in key_list):
+        raise InputValueError("kwds", valid_keys)
+
+    if len(url_list) != len(kwd_list):
+        raise InputTypeError("urls/kwds", "list of same length")
+
     url_list = cast("tuple[str, ...]", url_list)
     kwd_list = cast("tuple[dict[str, None | dict[Any, Any]], ...]", kwd_list)
     return url_list, kwd_list, files
@@ -345,7 +360,7 @@ def streaming_download(
     root_dir: str | Path | None = None,
     file_prefix: str = "",
     file_extention: str = "",
-    method: str = "GET",
+    method: Literal["GET", "POST", "get", "post"] = "GET",
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
@@ -360,7 +375,7 @@ def streaming_download(
     root_dir: str | Path | None = None,
     file_prefix: str = "",
     file_extention: str = "",
-    method: str = "GET",
+    method: Literal["GET", "POST", "get", "post"] = "GET",
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
@@ -374,7 +389,7 @@ def streaming_download(
     root_dir: str | Path | None = None,
     file_prefix: str = "",
     file_extention: str = "",
-    method: str = "GET",
+    method: Literal["GET", "POST", "get", "post"] = "GET",
     ssl: bool = True,
     chunk_size: int = CHUNK_SIZE,
     n_jobs: int = MAX_CONN,
@@ -566,7 +581,7 @@ class ESRIGeomQuery:
         dict
             An ESRI geometry payload.
         """
-        esri_json = ujson.dumps({**geo_json, "spatialRelference": {"wkid": str(self.wkid)}})
+        esri_json = ujson.dumps(geo_json | {"spatialRelference": {"wkid": str(self.wkid)}})
         return {
             "geometryType": geo_type,
             "geometry": esri_json,
@@ -697,7 +712,7 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
         if pyproj.CRS(in_crs) == pyproj.CRS(out_crs):
             mp = MultiPoint(geom)
         else:
-            mp = cast("MultiPoint", ops.transform(project, MultiPoint(geom)))
+            mp = ops.transform(project, MultiPoint(geom))
         return [(float(p.x), float(p.y)) for p in mp.geoms]  # pyright: ignore[reportReturnType]
 
     gtypes = " ".join(

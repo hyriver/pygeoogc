@@ -8,7 +8,7 @@ import os
 import uuid
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Literal, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Union, cast
 
 import cytoolz.curried as tlz
 import pyproj
@@ -28,6 +28,8 @@ from pygeoogc.exceptions import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Sequence
+
     CRSTYPE = Union[int, str, pyproj.CRS]
 
 __all__ = ["ArcGISRESTfulBase", "WMSBase", "WFSBase"]
@@ -35,7 +37,7 @@ __all__ = ["ArcGISRESTfulBase", "WMSBase", "WFSBase"]
 
 def _extract_layer(url: str, layer: int | None) -> tuple[str, int]:
     """Check if layer is included in url, if so separate and return them."""
-    url_obj = URL(url[:-1] if url.endswith("/") else url)
+    url_obj = URL(url.removesuffix("/"))
     if layer is None:
         try:
             return url_obj.parent.human_repr(), int(url_obj.parts[-1])
