@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import async_retriever as ar
+import async_retriever.exceptions as ar
 
 
 class ServiceError(ar.ServiceError):
