@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
     CRSTYPE = Union[int, str, pyproj.CRS]
 
-__all__ = ["ArcGISRESTfulBase", "WMSBase", "WFSBase"]
+__all__ = ["ArcGISRESTfulBase", "WFSBase", "WMSBase"]
 
 
 def _extract_layer(url: str, layer: int | None) -> tuple[str, int]:

@@ -1,6 +1,5 @@
 """Some utilities for PyGeoOGC."""
 
-# pyright: reportGeneralTypeIssues=false
 from __future__ import annotations
 
 import contextlib
@@ -10,6 +9,7 @@ import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from threading import Lock
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -67,7 +67,7 @@ BOX_ORD = "(west, south, east, north)"
 MAX_CONN = 10
 CHUNK_SIZE = 100 * 1024 * 1024  # 100 MB
 EXPIRE_AFTER = 60 * 60 * 24 * 7  # 1 week
-__all__ = ["RetrySession", "traverse_json", "streaming_download", "match_crs", "validate_crs"]
+__all__ = ["RetrySession", "match_crs", "streaming_download", "traverse_json", "validate_crs"]
 
 warnings.filterwarnings("ignore", message=".*too short worker timeout.*")
 
@@ -118,6 +118,8 @@ class RetrySession:
         If ``True`` verify SSL certificates, defaults to ``True``.
     """
 
+    _lock = Lock()
+
     def __init__(
         self,
         retries: int = 3,
@@ -162,6 +164,12 @@ class RetrySession:
         for prefix in prefixes:
             self.session.mount(prefix, adapter)
 
+    def __del__(self) -> None:
+        """Ensure resources are cleaned up."""
+        # Suppress errors during garbage collection
+        with contextlib.suppress(Exception):
+            self.close()
+
     @property
     def disable(self) -> bool:
         """Disable caching request/responses."""
@@ -169,16 +177,17 @@ class RetrySession:
 
     @disable.setter
     def disable(self, value: bool) -> None:
-        self._disable = value
-        if not self._disable:
-            self._disable = os.getenv("HYRIVER_CACHE_DISABLE", "false").lower() == "true"
+        with self._lock:
+            self._disable = value
+            if not self._disable:
+                self._disable = os.getenv("HYRIVER_CACHE_DISABLE", "false").lower() == "true"
 
-        if self._disable:
-            self.session = requests.Session()
-        else:
-            backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
-            self.session = CachedSession(expire_after=self.expire_after, backend=backend)
-        self.session.cert = self.ssl_cert
+            if self._disable:
+                self.session = requests.Session()
+            else:
+                backend = SQLiteCache(self.cache_name, fast_save=True, timeout=1)
+                self.session = CachedSession(expire_after=self.expire_after, backend=backend)
+            self.session.cert = self.ssl_cert
 
     def get(
         self,
