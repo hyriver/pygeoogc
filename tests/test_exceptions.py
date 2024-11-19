@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 import pygeoogc as ogc
+from pygeoogc import ArcGISRESTful, RetrySession, ServiceURL
 from pygeoogc.exceptions import (
     InputTypeError,
     InputValueError,
@@ -12,7 +13,6 @@ from pygeoogc.exceptions import (
     ServiceError,
     ZeroMatchedError,
 )
-from pygeoogc import ArcGISRESTful, RetrySession, ServiceURL
 
 
 class TestRESTException:
