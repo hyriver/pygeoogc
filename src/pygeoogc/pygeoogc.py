@@ -880,7 +880,7 @@ class WFSURLs:
     """URLs of the supported WFS services."""
 
     fema: str = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/WFSServer"
-    waterdata: str = "https://labs.waterdata.usgs.gov/geoserver/wmadata/ows"
+    waterdata: str = "https://api.water.usgs.gov/geoserver/wmadata/ows"
 
 
 @dataclass(frozen=True)
