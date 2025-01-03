@@ -76,8 +76,8 @@ target-version = "py39"
 line-length = 100
 
 exclude = [
-  "__pycache__",
   ".nox",
+  "__pycache__",
 ]
 
 lint.select = [
