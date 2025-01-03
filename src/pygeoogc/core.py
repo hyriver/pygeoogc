@@ -575,19 +575,16 @@ class WFSBase:
             for lyr in self.available_layer
         }
 
-        self.schema = {}
         if self.layer:
             if self.layer not in self.available_layer:
                 raise InputValueError("layers", self.available_layer)
             layers = [self.layer]
         else:
             layers = self.available_layer
-
-        for lyr in layers:
-            try:
+        self.schema = {lyr: None for lyr in layers}
+        with contextlib.suppress(KeyError):
+            for lyr in layers:
                 self.schema[lyr] = wfs.get_schema(lyr)
-            except KeyError:
-                self.schema[lyr] = None
 
     def validate_wfs(self) -> None:
         """Validate input arguments with the WFS service."""

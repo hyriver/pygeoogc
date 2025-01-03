@@ -26,11 +26,11 @@ except PackageNotFoundError:
     __version__ = "999"
 
 __all__ = [
+    "WFS",
+    "WMS",
     "ArcGISRESTful",
     "RetrySession",
     "ServiceURL",
-    "WFS",
-    "WMS",
     "__version__",
     "create_request_key",
     "exceptions",
