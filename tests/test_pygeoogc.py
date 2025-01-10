@@ -201,16 +201,16 @@ class TestWMS:
         )
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS)
         assert wms.get_validlayers()[self.layer] == self.layer
-        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0_0"]) == 11501067
+        assert sys.getsizeof(r_dict[f"{self.layer}_dd_0"]) == 11501067
 
     def test_bybox(self):
         """WMS by bounding box."""
         wms = WMS(self.wms_url, layers=self.layer, outformat="image/tiff", crs=DEF_CRS)
         assert self.wms_url in wms.__repr__()
         r_dict = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6))
-        assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11511596
+        assert sum(sys.getsizeof(r) for r in r_dict.values()) == 11498778
         flist = wms.getmap_bybox(GEO_NAT.bounds, 20, DEF_CRS, max_px=int(3e6), tiff_dir="cache")
-        assert sum(f.stat().st_size for f in flist) == 11511464
+        assert sum(f.stat().st_size for f in flist) == 11498712
 
     def test_valid_crs(self):
         """Get WMS valid CRSs."""
@@ -278,7 +278,7 @@ class TestWFS:
 def test_decompose():
     """Bounding box decomposition."""
     bboxs = utils.bbox_decompose(GEO_URB.bounds, 10)
-    assert bboxs[0][-1] == 2828
+    assert bboxs[0][-1] == (-118.515, 34.318, -118.31, 34.518)
 
 
 @pytest.mark.parametrize(
@@ -318,7 +318,7 @@ def test_urls():
         total_urls += sum(
             isinstance(getattr(nested_class, f.name), str) for f in fields(nested_class)
         )
-    assert total_urls == 37
+    assert total_urls == 36
 
 
 def test_show_versions():
