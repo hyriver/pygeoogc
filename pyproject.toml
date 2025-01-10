@@ -56,7 +56,6 @@ optional-dependencies.test = [
   "pandas",
   "pytest-cov",
   "pytest-sugar",
-  "pytest-xdist[psutil]",
 ]
 urls.Changelog = "https://docs.hyriver.io/changelogs/pygeoogc.html"
 urls.CI = "https://github.com/hyriver/pygeoogc/actions"
@@ -208,9 +207,11 @@ ignore-words-list = "gage,gages,paramss,trough"
 addopts = [
   "--import-mode=importlib",
   "--doctest-modules",
-  "-n=auto",
   "-v",
   "--cov",
+  "--cov-append",
+  "--cov-branch",
+  "--cov-report=xml",
   "--junitxml=junit.xml",
   "--durations=5",
 ]
@@ -236,16 +237,15 @@ ignore_errors = true
 
 [tool.coverage.paths]
 source = [ "src", "*/site-packages" ]
-omit = [
-  "**/__init__.py",
-  "**/print_versions.py",
-]
 
 [tool.coverage.run]
 branch = true
 parallel = true
-source = [
+source_pkgs = [
   "pygeoogc",
+]
+omit = [
+  "**/__init__.py",
 ]
 
 [tool.pyright]
