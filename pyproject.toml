@@ -208,11 +208,6 @@ addopts = [
   "--import-mode=importlib",
   "--doctest-modules",
   "-v",
-  "--cov",
-  "--cov-append",
-  "--cov-branch",
-  "--cov-report=xml",
-  "--junitxml=junit.xml",
   "--durations=5",
 ]
 doctest_optionflags = 'NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL NUMBER'
@@ -250,10 +245,8 @@ omit = [
 
 [tool.pyright]
 exclude = [
-  ".nox/",
   "**/__pycache__",
   "**/__init__.py",
-  "tests/",
 ]
 include = [
   "src/pygeoogc",
