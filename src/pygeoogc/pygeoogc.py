@@ -419,7 +419,9 @@ class WMS:
         """
         utils.check_bbox(bbox)
         _bbox = utils.match_crs(bbox, box_crs, self.crs_str)
-        bounds = utils.bbox_decompose(_bbox, resolution, self.crs_str, max_px)
+        bounds, sub_width, sub_height = utils.bbox_decompose(
+            _bbox, resolution, self.crs_str, max_px
+        )
 
         payload = {
             "version": self.version,
@@ -441,21 +443,21 @@ class WMS:
         precision = 2 if pyproj.CRS(self.crs).is_projected else 6
 
         def _get_payloads(
-            args: tuple[str, tuple[tuple[float, float, float, float], str, int, int]],
+            lyr: str, bbox: tuple[float, float, float, float], counter: int
         ) -> tuple[str, dict[str, str]]:
-            lyr, bnds = args
-            _bbox, counter, _width, _height = bnds
-
             if self.version != "1.1.1" and self.is_geographic and not always_xy:
-                _bbox = (_bbox[1], _bbox[0], _bbox[3], _bbox[2])
+                bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
             _payload = payload.copy()
-            _payload["bbox"] = ",".join(str(round(c, precision)) for c in _bbox)
-            _payload["width"] = str(_width)
-            _payload["height"] = str(_height)
+            _payload["bbox"] = ",".join(str(round(c, precision)) for c in bbox)
+            _payload["width"] = str(sub_width)
+            _payload["height"] = str(sub_height)
             _payload["layers"] = lyr
             return f"{lyr}_dd_{counter}", _payload
 
-        _lyr_payloads = (_get_payloads(i) for i in itertools.product(self.layers, bounds))
+        _lyr_payloads = (
+            _get_payloads(lyr, box, i)
+            for lyr, (i, box) in itertools.product(self.layers, enumerate(bounds))
+        )
         layers, payloads = zip(*_lyr_payloads)
         layers = cast("tuple[str]", layers)
         payloads = cast("tuple[dict[str, str]]", payloads)
@@ -577,7 +579,7 @@ class WFS(WFSBase):
             bbox = (bbox[1], bbox[0], bbox[3], bbox[2])
 
         precision = 2 if box_crs.is_projected else 6
-        bbox_str = f'{",".join(str(round(c, precision)) for c in bbox)},{box_crs.to_string()}'
+        bbox_str = f"{','.join(str(round(c, precision)) for c in bbox)},{box_crs.to_string()}"
         payload = {
             "service": "wfs",
             "version": self.version,
@@ -869,8 +871,7 @@ class RESTfulURLs:
         "https://index.nationalmap.gov/arcgis/rest/services/3DEPElevationIndex/MapServer"
     )
     geoconnex: str = "https://reference.geoconnex.us"
-    stnflood: str = "https://stn.wim.usgs.gov/STNServices/"
-    stnflood_dd: str = "https://stn.wim.usgs.gov/STNWeb/datadictionary/"
+    stnflood: str = "https://stn.wim.usgs.gov/STNServices"
     ehydro: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/eHydro_Survey_Data/FeatureServer/0"
     ehydro_bins: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/Hydrographic_Survey_Bins/FeatureServer/2"
 

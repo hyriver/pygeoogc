@@ -779,9 +779,9 @@ def bbox_decompose(
     bbox: tuple[float, float, float, float],
     resolution: float,
     box_crs: CRSTYPE = 4326,
-    max_px: int = 8000000,
-) -> list[tuple[tuple[float, float, float, float], str, int, int]]:
-    r"""Split the bounding box vertically for WMS requests.
+    max_px: int = 8_000_000,
+) -> tuple[list[tuple[float, float, float, float]], int, int]:
+    """Split the bounding box vertically for WMS requests.
 
     Parameters
     ----------
@@ -797,26 +797,12 @@ def bbox_decompose(
 
     Returns
     -------
-    list of tuples
-        Each tuple includes the following elements:
-
-        * Tuple of px_tot 4 that represents a bounding box (west, south, east, north) of a cell,
-        * A label that represents cell ID starting from bottom-left to top-right, for example a
-          2x2 decomposition has the following labels::
-
-          |---------|---------|
-          |         |         |
-          |   0_1   |   1_1   |
-          |         |         |
-          |---------|---------|
-          |         |         |
-          |   0_0   |   1_0   |
-          |         |         |
-          |---------|---------|
-
-        * Raster width of a cell,
-        * Raster height of a cell.
-
+    boxes : list of tuple
+        List of sub-bboxes in the form (west, south, east, north).
+    sub_width : int
+        Width of each sub-bbox in degrees.
+    sub_height : int
+        Height of each sub-bbox in degrees.
     """
     check_bbox(bbox)
 
@@ -828,31 +814,33 @@ def bbox_decompose(
 
     x_dist = geod.geometry_length(LineString([(xmin, ymin), (xmax, ymin)]))
     y_dist = geod.geometry_length(LineString([(xmin, ymin), (xmin, ymax)]))
-    width = int(math.ceil(x_dist / resolution))
-    height = int(math.ceil(y_dist / resolution))
 
+    width = math.ceil(x_dist / resolution)
+    height = math.ceil(y_dist / resolution)
     if width * height <= max_px:
-        bboxs = [(bbox, "0_0", width, height)]
+        return [bbox], width, height
 
-    n_px = int(math.sqrt(max_px))
+    # Divisions in each direction maintaining aspect ratio
+    aspect_ratio = width / height
+    n_boxes = math.ceil((width * height) / max_px)
+    nx = math.ceil(math.sqrt(n_boxes * aspect_ratio))
+    ny = math.ceil(n_boxes / nx)
+    dx = (east - west) / nx
+    dy = (north - south) / ny
 
-    def _split_directional(low: float, high: float, px_tot: int) -> tuple[list[int], list[float]]:
-        npt = [n_px for _ in range(int(px_tot / n_px))] + [px_tot % n_px]
-        xd = abs(high - low)
-        dx = [xd * n / sum(npt) for n in npt]
-        xs = [low + d for d in itertools.accumulate(dx)]
-        xs.insert(0, low)
-        return npt, xs
-
-    nw, xs = _split_directional(west, east, width)
-    nh, ys = _split_directional(south, north, height)
+    # Calculate buffer sizes in degrees
+    sub_width = math.ceil(width / nx)
+    sub_height = math.ceil(height / ny)
 
     bboxs = []
-    for j, h in enumerate(nh):
-        for i, w in enumerate(nw):
-            bx_crs = (xs[i], ys[j], xs[i + 1], ys[j + 1])
-            bboxs.append((bx_crs, f"{i}_{j}", w, h))
-    return bboxs
+    for i in range(nx):
+        box_west = west + (i * dx)
+        box_east = min(west + ((i + 1) * dx), east)
+        for j in range(ny):
+            box_south = south + (j * dy)
+            box_north = min(south + ((j + 1) * dy), north)
+            bboxs.append((box_west, box_south, box_east, box_north))
+    return bboxs, sub_width, sub_height
 
 
 def validate_crs(crs: CRSTYPE) -> str:
