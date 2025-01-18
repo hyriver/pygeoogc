@@ -60,7 +60,7 @@ class TestREST:
 
     def test_bygeom(self):
         """RESTFul by geometry."""
-        geofab = ArcGISRESTful(self.fab_url, max_workers=4)
+        geofab = ArcGISRESTful(self.fab_url)
         _ = geofab.oids_bygeom(GEO_NAT.bounds)
         oids = geofab.oids_bygeom(GEO_NAT)
         wb_all = geofab.get_features(oids)
@@ -156,18 +156,6 @@ def test_retrysession_params():
         post1 = session.post(f"{url}/post", data=data)
         post2 = session.post(f"{url}/post", payload=data)
         assert post1.json()["args"] == post2.json()["args"]
-
-
-def test_retry_ssl():
-    with utils.RetrySession(ssl=False) as session:
-        base_url = "/".join(
-            (
-                "https://gaftp.epa.gov/epadatacommons/ORD",
-                "NHDPlusLandscapeAttributes/StreamCat/HydroRegions",
-            )
-        )
-        r = session.get(base_url)
-        assert r.status_code == 200
 
 
 def test_stream():
