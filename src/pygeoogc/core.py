@@ -8,7 +8,7 @@ import os
 import uuid
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import cytoolz.curried as tlz
 import pyproj
@@ -30,7 +30,9 @@ from pygeoogc.exceptions import (
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
-    CRSTYPE = Union[int, str, pyproj.CRS]
+    from pyproj import CRS
+
+    CRSType = int | str | CRS
 
 __all__ = ["ArcGISRESTfulBase", "WFSBase", "WMSBase"]
 
@@ -68,12 +70,6 @@ class ArcGISRESTfulBase:
         all the available fields which is the default setting.
     crs : str, int, or pyproj.CRS, optional
         The spatial reference of the output data, defaults to ``epsg:4326``
-    max_workers : int, optional
-        Max number of simultaneous requests, default to 2. Note
-        that some services might face issues when several requests are sent
-        simultaneously and will return the requests partially. It's recommended
-        to avoid using too many workers unless you are certain the web service
-        can handle it.
     verbose : bool, optional
         If True, prints information about the requests and responses,
         defaults to False.
@@ -89,8 +85,7 @@ class ArcGISRESTfulBase:
         layer: int | None = None,
         outformat: str = "geojson",
         outfields: list[str] | str = "*",
-        crs: CRSTYPE = 4326,
-        max_workers: int = 1,
+        crs: CRSType = 4326,
         verbose: bool = False,
         disable_retry: bool = False,
     ) -> None:
@@ -98,7 +93,6 @@ class ArcGISRESTfulBase:
         self.outformat = outformat
         self.outfields = outfields if isinstance(outfields, (list, tuple)) else [outfields]
         self.crs = utils.validate_crs(crs)
-        self.max_workers = max_workers
         self.verbose = verbose
         self.disable_retry = disable_retry
 
@@ -349,7 +343,6 @@ class ArcGISRESTfulBase:
                 [url] * len(payloads),
                 [{req_key: p} for p in payloads],
                 request_method=method,
-                max_workers=self.max_workers,
             )
             resp = cast("list[dict[str, Any]]", resp)
         except ValueError as ex:
@@ -404,7 +397,7 @@ class WMSBase:
         layers: str | int | Sequence[str | int] = "",
         outformat: str = "",
         version: str = "1.3.0",
-        crs: CRSTYPE = 4326,
+        crs: CRSType = 4326,
         validation: bool = True,
     ) -> None:
         self.url = url
@@ -518,7 +511,7 @@ class WFSBase:
         layer: str | None = None,
         outformat: str | None = None,
         version: str = "2.0.0",
-        crs: CRSTYPE = 4326,
+        crs: CRSType = 4326,
         read_method: str = "json",
         max_nrecords: int = 1000,
         validation: bool = True,

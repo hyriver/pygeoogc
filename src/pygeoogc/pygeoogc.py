@@ -6,7 +6,7 @@ import itertools
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Union, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 import cytoolz.curried as tlz
 import pyproj
@@ -21,12 +21,11 @@ from pygeoogc.exceptions import InputTypeError, InputValueError, ServiceError, Z
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
+    from pyproj import CRS
     from shapely import LineString, MultiPoint, MultiPolygon, Point, Polygon
 
-    RESPONSE = Union[
-        "list[str]", "list[bytes]", "list[dict[str, Any]]", "list[list[dict[str, Any]]]"
-    ]
-    CRSTYPE = Union[int, str, pyproj.CRS]
+    CRSType = int | str | CRS
+    Response = list[str] | list[bytes] | list[dict[str, Any]] | list[list[dict[str, Any]]]
 
 
 class ArcGISRESTful:
@@ -56,12 +55,6 @@ class ArcGISRESTful:
         all the available fields which is the default behaviour.
     crs : str, int, or pyproj.CRS, optional
         The spatial reference of the output data, defaults to ``epsg:4326``.
-    max_workers : int, optional
-        Number of simultaneous download, default to 1, i.e., no threading. Note
-        that some services might face issues when several requests are sent
-        simultaneously and will return the requests partially. It's recommended
-        to avoid using too many workers unless you are certain the web service
-        can handle it.
     verbose : bool, optional
         If True, prints information about the requests and responses,
         defaults to False.
@@ -77,8 +70,7 @@ class ArcGISRESTful:
         layer: int | None = None,
         outformat: str = "geojson",
         outfields: list[str] | str = "*",
-        crs: CRSTYPE = 4326,
-        max_workers: int = 1,
+        crs: CRSType = 4326,
         verbose: bool = False,
         disable_retry: bool = False,
     ) -> None:
@@ -88,7 +80,6 @@ class ArcGISRESTful:
             outformat=outformat,
             outfields=outfields,
             crs=crs,
-            max_workers=max_workers,
             verbose=verbose,
             disable_retry=disable_retry,
         )
@@ -104,7 +95,7 @@ class ArcGISRESTful:
             | list[tuple[float, float]]
             | tuple[float, float, float, float]
         ),
-        geo_crs: CRSTYPE = 4326,
+        geo_crs: CRSType = 4326,
         spatial_relation: str = "esriSpatialRelIntersects",
         sql_clause: str | None = None,
         distance: int | None = None,
@@ -323,7 +314,7 @@ class WMS:
         layers: str | list[str],
         outformat: str,
         version: str = "1.3.0",
-        crs: CRSTYPE = 4326,
+        crs: CRSType = 4326,
         validation: bool = True,
         ssl: bool = True,
     ) -> None:
@@ -353,7 +344,7 @@ class WMS:
         self,
         bbox: tuple[float, float, float, float],
         resolution: float,
-        box_crs: CRSTYPE = ...,
+        box_crs: CRSType = ...,
         always_xy: bool = ...,
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
@@ -365,7 +356,7 @@ class WMS:
         self,
         bbox: tuple[float, float, float, float],
         resolution: float,
-        box_crs: CRSTYPE = ...,
+        box_crs: CRSType = ...,
         always_xy: bool = ...,
         max_px: int = ...,
         kwargs: dict[str, Any] | None = ...,
@@ -376,7 +367,7 @@ class WMS:
         self,
         bbox: tuple[float, float, float, float],
         resolution: float,
-        box_crs: CRSTYPE = 4326,
+        box_crs: CRSType = 4326,
         always_xy: bool = False,
         max_px: int = 8000000,
         kwargs: dict[str, Any] | None = None,
@@ -477,7 +468,6 @@ class WMS:
         rbinary = ar.retrieve_binary(
             [self.url] * len(payloads),
             [{"params": p} for p in payloads],
-            max_workers=4,
             ssl=self.ssl,
         )
         return dict(zip(layers, rbinary))
@@ -526,7 +516,7 @@ class WFS(WFSBase):
         layer: str | None = None,
         outformat: str | None = None,
         version: str = "2.0.0",
-        crs: CRSTYPE = 4326,
+        crs: CRSType = 4326,
         read_method: str = "json",
         max_nrecords: int = 1000,
         validation: bool = True,
@@ -545,10 +535,10 @@ class WFS(WFSBase):
     def getfeature_bybox(
         self,
         bbox: tuple[float, float, float, float],
-        box_crs: CRSTYPE = 4326,
+        box_crs: CRSType = 4326,
         always_xy: bool = False,
         sort_attr: str | None = None,
-    ) -> RESPONSE:
+    ) -> Response:
         """Get data from a WFS service within a bounding box.
 
         Parameters
@@ -615,11 +605,11 @@ class WFS(WFSBase):
     def getfeature_bygeom(
         self,
         geometry: Polygon | MultiPolygon,
-        geo_crs: CRSTYPE = 4326,
+        geo_crs: CRSType = 4326,
         always_xy: bool = False,
         predicate: str = "INTERSECTS",
         sort_attr: str | None = None,
-    ) -> RESPONSE:
+    ) -> Response:
         """Get features based on a geometry.
 
         Parameters
@@ -704,7 +694,7 @@ class WFS(WFSBase):
         self,
         featurename: str,
         featureids: Sequence[int | str] | int | str,
-    ) -> RESPONSE:
+    ) -> Response:
         """Get features based on feature IDs.
 
         Parameters
@@ -745,7 +735,7 @@ class WFS(WFSBase):
 
     def getfeature_byfilter(
         self, cql_filter: str, method: str = "GET", sort_attr: str | None = None
-    ) -> RESPONSE:
+    ) -> Response:
         """Get features based on a valid CQL filter.
 
         Notes

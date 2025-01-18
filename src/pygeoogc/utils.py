@@ -16,7 +16,6 @@ from typing import (
     Callable,
     Literal,
     TypeVar,
-    Union,
     cast,
     overload,
 )
@@ -49,11 +48,12 @@ from pygeoogc.exceptions import (
 if TYPE_CHECKING:
     from collections.abc import Generator, Mapping, Sequence
 
+    from pyproj import CRS
     from typing_extensions import Self
 
-    CRSTYPE = Union[int, str, pyproj.CRS]
-    GEOM = TypeVar(
-        "GEOM",
+    CRSType = int | str | CRS
+    GeomType = TypeVar(
+        "GeomType",
         Point,
         MultiPoint,
         Polygon,
@@ -651,7 +651,7 @@ class ESRIGeomQuery:
         raise InputTypeError("geometry", "LineString")
 
 
-def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
+def match_crs(geom: GeomType, in_crs: CRSType, out_crs: CRSType) -> GeomType:
     """Reproject a geometry to another CRS.
 
     Parameters
@@ -735,9 +735,9 @@ def match_crs(geom: GEOM, in_crs: CRSTYPE, out_crs: CRSTYPE) -> GEOM:
 
 
 def esri_query(
-    geom: GEOM,
-    geo_crs: CRSTYPE,
-    out_crs: CRSTYPE,
+    geom: GeomType,
+    geo_crs: CRSType,
+    out_crs: CRSType,
 ) -> Mapping[str, str]:
     """Generate geometry queries based on ESRI template."""
     geom = match_crs(geom, geo_crs, out_crs)
@@ -778,7 +778,7 @@ def check_bbox(bbox: tuple[float, float, float, float]) -> None:
 def bbox_decompose(
     bbox: tuple[float, float, float, float],
     resolution: float,
-    box_crs: CRSTYPE = 4326,
+    box_crs: CRSType = 4326,
     max_px: int = 8_000_000,
 ) -> tuple[list[tuple[float, float, float, float]], int, int]:
     """Split the bounding box vertically for WMS requests.
@@ -843,7 +843,7 @@ def bbox_decompose(
     return bboxs, sub_width, sub_height
 
 
-def validate_crs(crs: CRSTYPE) -> str:
+def validate_crs(crs: CRSType) -> str:
     """Validate a CRS.
 
     Parameters
