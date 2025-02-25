@@ -23,10 +23,10 @@ from typing import (
 import cytoolz.curried as tlz
 import defusedxml.ElementTree as ETree
 import joblib
+import orjson
 import pyproj
 import requests
 import shapely
-import ujson
 import urllib3
 from pyproj.exceptions import CRSError as ProjCRSError
 from requests.adapters import HTTPAdapter
@@ -590,7 +590,7 @@ class ESRIGeomQuery:
         dict
             An ESRI geometry payload.
         """
-        esri_json = ujson.dumps(geo_json | {"spatialRelference": {"wkid": str(self.wkid)}})
+        esri_json = orjson.dumps(geo_json | {"spatialRelference": {"wkid": str(self.wkid)}})
         return {
             "geometryType": geo_type,
             "geometry": esri_json,
