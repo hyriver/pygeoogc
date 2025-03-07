@@ -337,7 +337,7 @@ class ArcGISRESTfulBase:
         method: Literal["get", "GET", "post", "POST"] = "GET",
     ) -> list[dict[str, Any]]:
         """Send payload and get the response."""
-        req_key = "params" if method == "GET" else "data"
+        req_key = "params" if method in ("GET", "get") else "data"
         try:
             resp = ar.retrieve_json(
                 [url] * len(payloads),
