@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import itertools
+import json
 import math
 import os
 import warnings
@@ -23,7 +24,6 @@ from typing import (
 import cytoolz.curried as tlz
 import defusedxml.ElementTree as ETree
 import joblib
-import json
 import pyproj
 import requests
 import shapely

@@ -574,7 +574,7 @@ class WFSBase:
             layers = [self.layer]
         else:
             layers = self.available_layer
-        self.schema = {lyr: None for lyr in layers}
+        self.schema = dict.fromkeys(layers)
         with contextlib.suppress(KeyError):
             for lyr in layers:
                 self.schema[lyr] = wfs.get_schema(lyr)
