@@ -863,7 +863,7 @@ class RESTfulURLs:
     geoconnex: str = "https://reference.geoconnex.us"
     stnflood: str = "https://stn.wim.usgs.gov/STNServices"
     ehydro: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/eHydro_Survey_Data/FeatureServer/0"
-    ehydro_bins: str = "https://services7.arcgis.com/n1YM8pTrFmm7L4hs/ArcGIS/rest/services/Hydrographic_Survey_Bins/FeatureServer/2"
+    ehydro_bins: str = "https://spatial.usace.army.mil/opjarcgis/rest/services/ehydro/SurveyJobBinsH3/FeatureServer/0"
 
 
 @dataclass(frozen=True)
