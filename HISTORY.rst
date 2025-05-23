@@ -2,6 +2,13 @@
 History
 =======
 
+0.19.4 (2025-05-23)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Update the links for eHydro web services to the latest addresses.
+
 0.19.3 (2025-03-07)
 -------------------
 
