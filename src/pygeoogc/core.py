@@ -119,9 +119,10 @@ class ArcGISRESTfulBase:
 
     def _set_service_properties(self) -> None:
         rjson = self.get_response(self.base_url, [{"f": "json"}])[0]
+        rjson_layer = self.get_response(self.url, [{"f": "json"}])[0]
         try:
             self.valid_layers = {str(lyr["id"]): lyr["name"] for lyr in rjson["layers"]}
-            self.query_formats = rjson["supportedQueryFormats"].replace(" ", "").lower().split(",")
+            self.query_formats = rjson_layer["supportedQueryFormats"].replace(" ", "").lower().split(",")
 
             extent = rjson["extent"] if "extent" in rjson else rjson["fullExtent"]
             bounds = (extent["xmin"], extent["ymin"], extent["xmax"], extent["ymax"])
@@ -279,7 +280,7 @@ class ArcGISRESTfulBase:
                 "objectIds": ",".join(ids),
                 "returnGeometry": str(return_geom).lower(),
                 "outSR": str(self.out_sr),
-                "outfields": ",".join(self.outfields),
+                "outFields": ",".join(self.outfields),
                 "ReturnM": str(return_m).lower(),
                 "f": self.outformat,
             }
