@@ -32,7 +32,7 @@ COORDS = [(-118.72, 34.118), (-118.31, 34.518)]
 
 class TestREST:
     wbd_url: str = ServiceURL().restful.wbd
-    fab_url: str = f"{ServiceURL().restful.nhd_fabric}/1"
+    hp3d_url: str = ServiceURL().restful.hp3d
     epa_url: str = ServiceURL().restful.nhdplus_epa
     nhd_url: str = ServiceURL().restful.nhdplushr
 
@@ -60,13 +60,13 @@ class TestREST:
 
     def test_bygeom(self):
         """RESTFul by geometry."""
-        geofab = ArcGISRESTful(self.fab_url)
-        _ = geofab.oids_bygeom(GEO_NAT.bounds)
-        oids = geofab.oids_bygeom(GEO_NAT)
-        wb_all = geofab.get_features(oids)
-        oids = geofab.oids_bygeom(GEO_NAT, sql_clause="areasqkm > 20")
-        wb_large = geofab.get_features(oids)
-        assert len(wb_all[0]["features"]) - len(wb_large[0]["features"]) == 915
+        hp3d = ArcGISRESTful(self.hp3d_url, 60, outformat="json")
+        _ = hp3d.oids_bygeom(GEO_NAT.bounds)
+        oids = hp3d.oids_bygeom(GEO_NAT)
+        wb_all = hp3d.get_features(oids)
+        oids = hp3d.oids_bygeom(GEO_NAT, sql_clause="areasqkm > 20")
+        wb_large = hp3d.get_features(oids)
+        assert len(wb_all[0]["features"]) - len(wb_large[0]["features"]) == 882
 
     def test_bymultipoint(self):
         """RESTFul by geometry."""
