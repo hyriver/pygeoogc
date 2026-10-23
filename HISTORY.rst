@@ -2,8 +2,13 @@
 History
 =======
 
-0.19.5 (2026-XX-XX)
+0.19.5 (2026-10-23)
 -------------------
+
+This release points the 3D Hydrography Program (3DHP) service at its new
+FeatureServer address and adds the ArcGIS FeatureServer of the National
+Inventory of Dams. PyNHD's ``HP3D`` class uses the new 3DHP address once
+this version is installed; no code changes are needed.
 
 New Features
 ~~~~~~~~~~~~
