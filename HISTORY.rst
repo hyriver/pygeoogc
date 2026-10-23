@@ -13,7 +13,9 @@ this version is installed; no code changes are needed.
 New Features
 ~~~~~~~~~~~~
 - Update the link for the 3D Hydrography Program (3DHP) web service to
-  its new FeatureServer address.
+  its new FeatureServer address. The new service only supports ``json``
+  as its query format, so pass ``outformat="json"`` to ``ArcGISRESTful``
+  when using ``ServiceURL().restful.hp3d``.
 - Add ``nid_arc`` to ``ServiceURL().restful`` for the ArcGIS FeatureServer
   of the National Inventory of Dams (NID).
 
