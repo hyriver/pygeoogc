@@ -844,7 +844,7 @@ class RESTfulURLs:
     nwis: str = "https://waterservices.usgs.gov/nwis"
     wbd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer"
     nhd: str = "https://hydro.nationalmap.gov/arcgis/rest/services/nhd/MapServer"
-    hp3d: str = "https://hydro.nationalmap.gov/arcgis/rest/services/3DHP_all/MapServer"
+    hp3d: str = "https://3dhp.nationalmap.gov/arcgis/rest/services/usgs_3dhp_all/FeatureServer"
     nhdplushr: str = "https://hydro.nationalmap.gov/arcgis/rest/services/NHDPlus_HR/MapServer"
     nhdhr_edits: str = "https://edits.nationalmap.gov/arcgis/rest/services/HEM/NHDHigh/MapServer"
     nhdplushr_edits: str = (

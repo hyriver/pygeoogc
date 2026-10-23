@@ -2,6 +2,14 @@
 History
 =======
 
+0.19.5 (2026-XX-XX)
+-------------------
+
+New Features
+~~~~~~~~~~~~
+- Update the link for the 3D Hydrography Program (3DHP) web service to
+  its new FeatureServer address.
+
 0.19.4 (2025-05-23)
 -------------------
 
