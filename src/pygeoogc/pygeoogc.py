@@ -855,6 +855,7 @@ class RESTfulURLs:
         "https://watersgeo.epa.gov/arcgis/rest/services/Support/CatchmentFabric/MapServer"
     )
     nid: str = "https://nid.sec.usace.army.mil/api"
+    nid_arc: str = "https://geospatial.sec.usace.army.mil/dls/rest/services/NID/National_Inventory_of_Dams_Public_Service/FeatureServer/0"
     nm_pqs: str = "https://epqs.nationalmap.gov/v1/json"
     pygeoapi: str = "https://api.water.usgs.gov/nldi/pygeoapi/processes"
     nm_3dep_index: str = (

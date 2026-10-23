@@ -9,6 +9,8 @@ New Features
 ~~~~~~~~~~~~
 - Update the link for the 3D Hydrography Program (3DHP) web service to
   its new FeatureServer address.
+- Add ``nid_arc`` to ``ServiceURL().restful`` for the ArcGIS FeatureServer
+  of the National Inventory of Dams (NID).
 
 0.19.4 (2025-05-23)
 -------------------
