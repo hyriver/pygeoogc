@@ -3,7 +3,8 @@ build-backend = "hatchling.build"
 
 requires = [
   "hatch-vcs",
-  "hatchling",
+  # shortcut: 1.32 writes Metadata-Version 2.5, which the release actions' twine rejects; unpin once it accepts 2.5
+  "hatchling<1.32",
 ]
 
 [project]
